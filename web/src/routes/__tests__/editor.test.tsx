@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 
+import { fill } from "./fill";
 import { Inside } from "./here";import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PageEditor } from "../PageEditor";
@@ -182,7 +183,7 @@ describe("the page editor", () => {
     expect(screen.getByLabelText("Label")).toHaveValue("Shop");
 
     await userEvent.clear(screen.getByLabelText("Label"));
-    await userEvent.type(screen.getByLabelText("Label"), "Our shop");
+    await fill(screen.getByLabelText("Label"), "Our shop");
 
     await waitFor(() => expect(sent.length).toBeGreaterThan(0), { timeout: 4000 });
     expect(sent[0]).toEqual({ values: { links: [{ label: "Our shop", url: "/shop/" }] } });

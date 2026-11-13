@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 
+import { fill } from "./fill";
 import { Inside } from "./here";import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PeoplePage } from "../PeoplePage";
@@ -144,7 +145,7 @@ describe("the people and roles screen", () => {
 
     await screen.findByText("Joris Bakker");
 
-    await user.type(screen.getByLabelText("Invite someone"), "new@example.org");
+    await fill(screen.getByLabelText("Invite someone"), "new@example.org");
     await user.selectOptions(screen.getByLabelText("Role for the person you invite"), "viewer");
     await user.click(screen.getByRole("button", { name: "Send invite" }));
 
@@ -173,7 +174,7 @@ describe("the people and roles screen", () => {
     setUp(fetchMock);
     await screen.findByText("Joris Bakker");
 
-    await user.type(screen.getByLabelText("Invite someone"), "new@example.org");
+    await fill(screen.getByLabelText("Invite someone"), "new@example.org");
     await user.click(screen.getByRole("button", { name: "Send invite" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("That is not a role.");
@@ -233,7 +234,7 @@ describe("making a new project", () => {
     await userEvent.click(await screen.findByRole("button", { name: /New project/ }));
 
     const dialog = await screen.findByRole("dialog", { name: "New project" });
-    await userEvent.type(within(dialog).getByLabelText("Name"), "Korenaar Bakery");
+    await fill(within(dialog).getByLabelText("Name"), "Korenaar Bakery");
     expect(dialog).toHaveTextContent("/o/technative/p/korenaar-bakery");
 
     await userEvent.click(within(dialog).getByRole("button", { name: /Make it and set it up/ }));
@@ -277,7 +278,7 @@ describe("making a new project", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: /New project/ }));
     const dialog = await screen.findByRole("dialog", { name: "New project" });
-    await userEvent.type(within(dialog).getByLabelText("Name"), "Korenaar");
+    await fill(within(dialog).getByLabelText("Name"), "Korenaar");
     await userEvent.click(within(dialog).getByRole("button", { name: /Make it and set it up/ }));
 
     expect(await screen.findByText(/already a project with that address/)).toBeInTheDocument();

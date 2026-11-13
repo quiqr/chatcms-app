@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { fill } from "./fill";
 import { Inside } from "./here";
 import { ProjectSettingsPage } from "../ProjectSettingsPage";
 
@@ -86,7 +87,7 @@ describe("the project settings screen", () => {
     renderPage();
 
     await user.clear(await screen.findByLabelText("Name"));
-    await user.type(screen.getByLabelText("Name"), "Korenaar BV");
+    await fill(screen.getByLabelText("Name"), "Korenaar BV");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => {

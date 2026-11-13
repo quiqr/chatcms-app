@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { fill } from "./fill";
 import { SignInPage } from "../SignInPage";
 
 function renderPage(at = "/sign-in") {
@@ -62,8 +63,8 @@ describe("the sign-in screen", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText("Email"), "joris@example.org");
-    await user.type(screen.getByLabelText("Password"), "a long enough passphrase");
+    await fill(screen.getByLabelText("Email"), "joris@example.org");
+    await fill(screen.getByLabelText("Password"), "a long enough passphrase");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -90,8 +91,8 @@ describe("the sign-in screen", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText("Email"), "joris@example.org");
-    await user.type(screen.getByLabelText("Password"), "wrong one entirely");
+    await fill(screen.getByLabelText("Email"), "joris@example.org");
+    await fill(screen.getByLabelText("Password"), "wrong one entirely");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -105,8 +106,8 @@ describe("the sign-in screen", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText("Email"), "joris@example.org");
-    await user.type(screen.getByLabelText("Password"), "a long enough passphrase");
+    await fill(screen.getByLabelText("Email"), "joris@example.org");
+    await fill(screen.getByLabelText("Password"), "a long enough passphrase");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Nothing is lost");
@@ -126,8 +127,8 @@ describe("the sign-in screen", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText("Email"), "joris@example.org");
-    await user.type(screen.getByLabelText("Password"), "a long enough passphrase");
+    await fill(screen.getByLabelText("Email"), "joris@example.org");
+    await fill(screen.getByLabelText("Password"), "a long enough passphrase");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(await screen.findByText("the projects")).toBeInTheDocument();
@@ -147,8 +148,8 @@ describe("the sign-in screen", () => {
     const user = userEvent.setup();
     renderPage("/sign-in?then=%2Fp%2Fkorenaar%2Fcontent");
 
-    await user.type(screen.getByLabelText("Email"), "joris@example.org");
-    await user.type(screen.getByLabelText("Password"), "a long enough passphrase");
+    await fill(screen.getByLabelText("Email"), "joris@example.org");
+    await fill(screen.getByLabelText("Password"), "a long enough passphrase");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(await screen.findByText("the content browser")).toBeInTheDocument();
@@ -168,8 +169,8 @@ describe("the sign-in screen", () => {
     const user = userEvent.setup();
     renderPage("/sign-in?then=%2F%2Fsomewhere.example%2Ftake-your-session");
 
-    await user.type(screen.getByLabelText("Email"), "joris@example.org");
-    await user.type(screen.getByLabelText("Password"), "a long enough passphrase");
+    await fill(screen.getByLabelText("Email"), "joris@example.org");
+    await fill(screen.getByLabelText("Password"), "a long enough passphrase");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(await screen.findByText("the projects")).toBeInTheDocument();

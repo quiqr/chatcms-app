@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { fill } from "./fill";
 import { InviteAUser, NewOrganisation, PlatformHistory } from "../AdministrationPage";
 import { PlatformOrganisations } from "../PlatformOrganisations";
 
@@ -97,10 +98,9 @@ describe("the administration screen", () => {
 
   it("suggests the address from the name", async () => {
     vi.stubGlobal("fetch", answers(empty));
-    const user = userEvent.setup();
     renderPage();
 
-    await user.type(await screen.findByLabelText("Name"), "Korenaar Bakery");
+    await fill(await screen.findByLabelText("Name"), "Korenaar Bakery");
 
     expect(screen.getByText("Its address will be /o/korenaar-bakery")).toBeInTheDocument();
   });
@@ -113,8 +113,8 @@ describe("the administration screen", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(await screen.findByLabelText("Name"), "Korenaar Bakery");
-    await user.type(screen.getByLabelText("Who administers it"), "marieke@korenaar.example");
+    await fill(await screen.findByLabelText("Name"), "Korenaar Bakery");
+    await fill(screen.getByLabelText("Who administers it"), "marieke@korenaar.example");
     await user.click(screen.getByRole("button", { name: "Start it" }));
 
     await waitFor(() => {
@@ -219,8 +219,8 @@ describe("the administration screen", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(await screen.findByLabelText("Name"), "Korenaar Bakery");
-    await user.type(screen.getByLabelText("Who administers it"), "marieke@korenaar.example");
+    await fill(await screen.findByLabelText("Name"), "Korenaar Bakery");
+    await fill(screen.getByLabelText("Who administers it"), "marieke@korenaar.example");
     await user.click(screen.getByRole("button", { name: "Start it" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("That address is already taken.");
@@ -256,7 +256,7 @@ describe("the administration screen", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(await screen.findByLabelText("Email"), "sam@example.org");
+    await fill(await screen.findByLabelText("Email"), "sam@example.org");
     await user.click(screen.getByRole("button", { name: "Make them" }));
 
     expect(await screen.findByRole("status")).toHaveTextContent("sent a way in");

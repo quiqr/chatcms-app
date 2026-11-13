@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { fill } from "./fill";
 import { HereContext, type WhoAmI } from "../../lib/whoami";
 import type { OrganisationArea, Project } from "../../lib/tenancy";
 import { ManageProjects } from "../ManageProjects";
@@ -101,7 +102,7 @@ describe("what a whole site can be put through", () => {
     expect(screen.getByRole("button", { name: "Duplicate site" })).toBeDisabled();
 
     await user.clear(name);
-    await user.type(name, "Korenaar Bakery 2");
+    await fill(name, "Korenaar Bakery 2");
     await user.click(screen.getByLabelText(/People and their roles/));
     await user.click(screen.getByRole("button", { name: "Duplicate site" }));
 

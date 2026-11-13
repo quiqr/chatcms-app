@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 
+import { fill } from "./fill";
 import { Inside } from "./here";import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PublishPage } from "../PublishPage";
@@ -132,7 +133,7 @@ describe("the publish screen", () => {
     );
     renderPage();
 
-    await userEvent.type(await screen.findByLabelText("What's in this update?"), "Spring prices");
+    await fill(await screen.findByLabelText("What's in this update?"), "Spring prices");
     await userEvent.click(screen.getByRole("button", { name: "Publish 2 changes" }));
 
     expect(sent).toContainEqual({ note: "Spring prices" });

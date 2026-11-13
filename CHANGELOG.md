@@ -53,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The frontend check gives each test 30 seconds instead of 5. Under the
   load of the whole gate, tests of screens nobody had changed ran past 5
   seconds and failed it; a local `npm run test` keeps the default.
+- The frontend tests are cheaper in the gate. The check runs Vitest with at
+  most four workers, so it shares the machine with the other checks instead
+  of starting one per core, and tests that fill a field without being about
+  typing paste the text in one step instead of typing it a key at a time.
 - Building the server no longer runs the frontend's tests. They ran inside
   the build that the server embeds, so a deployment ran the whole suite again
   under the load of building a machine, and one test timing out stopped a

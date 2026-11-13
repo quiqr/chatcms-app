@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 
+import { fill } from "./fill";
 import { Inside } from "./here";import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MediaPage } from "../MediaPage";
@@ -129,7 +130,7 @@ describe("the media library", () => {
 
     await userEvent.click(await screen.findByText("bread.png"));
     const field = screen.getByLabelText("Description for screen readers");
-    await userEvent.type(field, "A loaf on a board");
+    await fill(field, "A loaf on a board");
     await userEvent.tab();
 
     await waitFor(() => expect(sent).toContainEqual([`${base}/images/bread.png`, "PUT"]));

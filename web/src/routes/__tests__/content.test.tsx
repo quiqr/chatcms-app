@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 
+import { fill } from "./fill";
 import { Inside } from "./here";import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ContentPage } from "../ContentPage";
@@ -106,7 +107,7 @@ describe("the content browser", () => {
     renderPage();
 
     await userEvent.click(await screen.findByRole("button", { name: /New article/ }));
-    await userEvent.type(screen.getByLabelText("Name"), "Spring prices");
+    await fill(screen.getByLabelText("Name"), "Spring prices");
     await userEvent.click(screen.getByRole("button", { name: "Make it" }));
 
     expect(sent).toContainEqual([`${base}/content`, "POST", { section: "news", title: "Spring prices" }]);
@@ -127,7 +128,7 @@ describe("the content browser", () => {
     await userEvent.click(await screen.findByRole("button", { name: "What to do with One" }));
     await userEvent.click(screen.getByRole("button", { name: "Rename" }));
     await userEvent.clear(screen.getByLabelText("Name"));
-    await userEvent.type(screen.getByLabelText("Name"), "The first");
+    await fill(screen.getByLabelText("Name"), "The first");
     await userEvent.click(screen.getByRole("button", { name: "Save the name" }));
 
     expect(sent).toContainEqual([`${base}/rename/news/one`, "POST", { title: "The first", copy: false }]);
@@ -147,7 +148,7 @@ describe("the content browser", () => {
     await userEvent.click(await screen.findByRole("button", { name: "What to do with One" }));
     await userEvent.click(screen.getByRole("button", { name: "Make a copy" }));
     await userEvent.clear(screen.getByLabelText("Name"));
-    await userEvent.type(screen.getByLabelText("Name"), "One again");
+    await fill(screen.getByLabelText("Name"), "One again");
     await userEvent.click(screen.getByRole("button", { name: "Save the name" }));
 
     expect(sent).toContainEqual([`${base}/rename/news/one`, "POST", { title: "One again", copy: true }]);

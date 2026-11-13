@@ -1,11 +1,12 @@
 ---
 # chatcms-3op9
 title: header everywhere, user menu always topright
-status: in-progress
+status: completed
 type: task
 priority: high
 created_at: 2026-11-13T11:44:14Z
-updated_at: 2026-11-13T13:39:40Z
+updated_at: 2026-11-13T14:00:23Z
+openspec-link: openspec/changes/archive/2026-11-13-header-everywhere
 parent: chatcms-iqog
 ---
 

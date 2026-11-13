@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 
+import { fill } from "./fill";
 import { Inside } from "./here";import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OnboardingPage } from "../OnboardingPage";
@@ -95,7 +96,7 @@ describe("the onboarding screen", () => {
     renderPage();
 
     await screen.findByRole("radiogroup", { name: "Where the site comes from" });
-    await user.type(screen.getByLabelText("Address of the site in git"), "git@example.org:korenaar/site.git");
+    await fill(screen.getByLabelText("Address of the site in git"), "git@example.org:korenaar/site.git");
     await user.click(screen.getByRole("button", { name: "Bring it in" }));
 
     expect(await screen.findByText(/Quiqr model found/)).toBeInTheDocument();
@@ -188,7 +189,7 @@ describe("the onboarding screen", () => {
     renderPage();
 
     await screen.findByRole("radiogroup", { name: "Where the site comes from" });
-    await user.type(screen.getByLabelText("Address of the site in git"), "nowhere");
+    await fill(screen.getByLabelText("Address of the site in git"), "nowhere");
     await user.click(screen.getByRole("button", { name: "Bring it in" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("That address could not be reached.");
