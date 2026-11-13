@@ -6,8 +6,10 @@ import { describe, expect, it } from "vitest";
 
 import type { Project } from "../../lib/tenancy";
 import { EditorShell } from "../EditorShell";
+import { OrganisationAdminShell } from "../OrganisationAdminShell";
 import { OrganisationShell } from "../OrganisationShell";
 import { PhoneShell } from "../PhoneShell";
+import { PlatformAdminShell } from "../PlatformAdminShell";
 import { ProjectShell } from "../ProjectShell";
 import { Inside } from "../../routes/__tests__/here";
 import { canSeeSetup, canSeeTechnicalDetail } from "../roles";
@@ -322,6 +324,23 @@ describe("the way out", () => {
       "OrganisationShell",
       <OrganisationShell organisation={{ name: "TechNative" }} viewer={theViewer}>{null}</OrganisationShell>,
     ],
+    [
+      "OrganisationAdminShell",
+      <OrganisationAdminShell
+        organisation="technative"
+        name="TechNative"
+        usage={{ members: { held: 2, full: false }, projects: { held: 1, full: false } }}
+        viewer={theViewer}
+      >
+        {null}
+      </OrganisationAdminShell>,
+    ],
+    [
+      "PlatformAdminShell",
+      <PlatformAdminShell organisations={1} users={2} viewer={theViewer}>
+        {null}
+      </PlatformAdminShell>,
+    ],
   ];
 
   for (const [name, shell] of everyShell) {
@@ -339,5 +358,48 @@ describe("the way out", () => {
 
       unmount();
     });
+
+    it(`${name} keeps the person menu at the end of its top bar`, () => {
+      const { unmount } = at("/o/technative/p/korenaar/content", shell);
+
+      const bar = screen.getByRole("banner");
+      const person = screen.getByTestId("person-menu");
+      expect(bar, `${name} has no person menu in its top bar`).toContainElement(person);
+      expect(bar.lastElementChild).toBe(person);
+
+      unmount();
+    });
   }
+
+  it("says the role on the project", async () => {
+    at(
+      "/o/technative/p/korenaar/content",
+      <ProjectShell project={project} viewer={{ name: "Marieke", role: "editor" }} title="Content">
+        {null}
+      </ProjectShell>,
+    );
+
+    expect(screen.getByRole("complementary", { name: "Project navigation" })).not.toHaveTextContent("Marieke");
+
+    await userEvent.click(screen.getByTestId("person-menu"));
+
+    const menu = await screen.findByRole("menu");
+    expect(menu).toHaveTextContent("Marieke");
+    expect(menu).toHaveTextContent("Editor");
+  });
+
+  it("says you are in the platform admin area", async () => {
+    at(
+      "/administration/organisations",
+      <PlatformAdminShell organisations={1} users={2} viewer={theViewer}>
+        {null}
+      </PlatformAdminShell>,
+    );
+
+    expect(within(screen.getByRole("banner")).getByRole("link", { name: "Back to my projects" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId("person-menu"));
+
+    expect(await screen.findByRole("menu")).toHaveTextContent("Platform admin");
+  });
 });

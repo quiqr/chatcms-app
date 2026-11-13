@@ -1,11 +1,11 @@
 ---
 # chatcms-3op9
 title: header everywhere, user menu always topright
-status: todo
+status: in-progress
 type: task
 priority: high
 created_at: 2026-11-13T11:44:14Z
-updated_at: 2026-11-13T11:45:27Z
+updated_at: 2026-11-13T13:39:40Z
 parent: chatcms-iqog
 ---
 

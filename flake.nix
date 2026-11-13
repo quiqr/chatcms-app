@@ -69,7 +69,7 @@
           npm run check:interface
           npm run check:strings
           npm run check:bundle
-          npm run test
+          npm run test -- --testTimeout=30000
           runHook postCheck
         '';
 

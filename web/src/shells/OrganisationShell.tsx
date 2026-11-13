@@ -2,8 +2,8 @@ import { Check, ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 
-import { PersonMenu } from "./PersonMenu";
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "../components/ui/menu";
+import { TopBar } from "./TopBar";
 import { useAdministers } from "./useAdministers";
 import { say } from "../lib/say";
 import { projectsPath } from "../lib/paths";
@@ -25,7 +25,7 @@ export function OrganisationShell({
 
   return (
     <div data-testid="organisation-shell" className="min-h-dvh">
-      <header className="flex min-h-14 flex-wrap items-center gap-3 border-b border-border bg-card px-6 py-3">
+      <TopBar viewer={viewer}>
         <NavLink to="/projects" className="flex min-h-11 items-center" aria-label={say("organisation-shell.quiqr-chatcms-go-to-your-projects")}>
           <img src="/quiqr-logo.svg" alt={say("organisation-shell.quiqr-chatcms")} className="h-7 w-auto" />
         </NavLink>
@@ -97,8 +97,7 @@ export function OrganisationShell({
         <NavLink to="/help" className="flex h-11 items-center px-3 text-sm text-muted-foreground">
           {say("common.help")}
         </NavLink>
-        {viewer && <PersonMenu name={viewer.name} />}
-      </header>
+      </TopBar>
 
       <main className="mx-auto w-full max-w-[1200px] p-6">{children}</main>
     </div>

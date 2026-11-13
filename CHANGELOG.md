@@ -44,6 +44,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Every screen has a top bar, and the person menu is always at its right
+  end. The project shell kept it at the bottom of its sidebar and the two
+  admin areas had no top bar at all; they now have a light one, with "Back to
+  my projects" at its start, while the platform admin area keeps its dark
+  sidebar. The person menu says the role held here under the name: the role
+  on the project, "Organisation admin" or "Platform admin".
+- The frontend check gives each test 30 seconds instead of 5. Under the
+  load of the whole gate, tests of screens nobody had changed ran past 5
+  seconds and failed it; a local `npm run test` keeps the default.
 - Building the server no longer runs the frontend's tests. They ran inside
   the build that the server embeds, so a deployment ran the whole suite again
   under the load of building a machine, and one test timing out stopped a

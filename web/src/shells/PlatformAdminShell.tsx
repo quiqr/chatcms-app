@@ -2,7 +2,7 @@ import { Building2, History, Shield, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 
-import { PersonMenu } from "./PersonMenu";
+import { TopBar } from "./TopBar";
 import { say } from "../lib/say";
 
 /**
@@ -29,7 +29,7 @@ export function PlatformAdminShell({
     }`;
 
   return (
-    <div className="min-h-dvh sm:flex">
+    <div className="flex min-h-dvh flex-col sm:flex-row">
       <aside
         aria-label={say("platform.platform-admin")}
         className="flex flex-col gap-4 bg-admin-area p-4 text-admin-area-foreground sm:min-h-dvh sm:w-[260px] sm:shrink-0"
@@ -63,20 +63,20 @@ export function PlatformAdminShell({
             {say("platform.history")}
           </NavLink>
         </nav>
-
-        <span className="flex-1" />
-
-        <NavLink
-          to="/projects"
-          className="flex min-h-11 items-center px-2 text-sm opacity-80 hover:opacity-100"
-        >
-          {say("platform.back-to-my-projects")}
-        </NavLink>
-
-        {viewer && <PersonMenu name={viewer.name} />}
       </aside>
 
-      <main className="w-full max-w-[1100px] p-6">{children}</main>
+      <div className="contents sm:flex sm:min-w-0 sm:flex-1 sm:flex-col">
+        <TopBar viewer={viewer && { name: viewer.name, role: say("platform.platform-admin") }} className="order-first sm:order-none">
+          <NavLink
+            to="/projects"
+            className="flex h-11 items-center px-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            {say("platform.back-to-my-projects")}
+          </NavLink>
+        </TopBar>
+
+        <main className="w-full max-w-[1100px] p-6">{children}</main>
+      </div>
     </div>
   );
 }

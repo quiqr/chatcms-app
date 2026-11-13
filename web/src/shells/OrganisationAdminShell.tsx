@@ -2,7 +2,7 @@ import { FolderGit2, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 
-import { PersonMenu } from "./PersonMenu";
+import { TopBar } from "./TopBar";
 import { Tile } from "../components/ui/avatar";
 import { HowFull } from "../components/ui/usage";
 import { say } from "../lib/say";
@@ -30,7 +30,7 @@ export function OrganisationAdminShell({
   const here = `/o/${organisation}/manage`;
 
   return (
-    <div className="min-h-dvh sm:flex">
+    <div className="flex min-h-dvh flex-col sm:flex-row">
       <aside
         aria-label={say("manage.manage-organisation")}
         className="flex flex-col gap-4 border-b border-border bg-card p-4 sm:min-h-dvh sm:w-[260px] sm:shrink-0 sm:border-b-0 sm:border-r"
@@ -87,20 +87,20 @@ export function OrganisationAdminShell({
             {say("manage.limits-are-set-by-the-platform-admin")}
           </p>
         </div>
-
-        <span className="flex-1" />
-
-        <NavLink
-          to={`/o/${organisation}/projects`}
-          className="flex min-h-11 items-center px-2 text-sm text-muted-foreground hover:text-foreground"
-        >
-          {say("manage.back-to-my-projects")}
-        </NavLink>
-
-        {viewer && <PersonMenu name={viewer.name} />}
       </aside>
 
-      <main className="w-full max-w-[1000px] p-6">{children}</main>
+      <div className="contents sm:flex sm:min-w-0 sm:flex-1 sm:flex-col">
+        <TopBar viewer={viewer && { name: viewer.name, role: say("role.admin") }} className="order-first sm:order-none">
+          <NavLink
+            to={`/o/${organisation}/projects`}
+            className="flex h-11 items-center px-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            {say("manage.back-to-my-projects")}
+          </NavLink>
+        </TopBar>
+
+        <main className="w-full max-w-[1000px] p-6">{children}</main>
+      </div>
     </div>
   );
 }

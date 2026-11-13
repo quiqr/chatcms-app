@@ -9,8 +9,8 @@ import { cn } from "../lib/cn";
 import { useHere } from "../lib/whoami";
 import { setupNavigation, siteNavigation, type NavEntry } from "./navigation";
 import { canSeeSetup, named } from "./roles";
-import { PersonMenu } from "./PersonMenu";
 import { SyncIndicator, type SyncState } from "./SyncIndicator";
+import { TopBar } from "./TopBar";
 import type { Project } from "../lib/tenancy";
 import { say } from "../lib/say";
 
@@ -94,25 +94,17 @@ export function ProjectShell({
         {canSeeSetup(viewer.role) && (
           <NavGroup label={say("project-shell.setup")} entries={setupNavigation(organisation, project.slug)} />
         )}
-
-        <div className="mt-auto flex items-center gap-2 border-t border-border-subtle px-2 pt-3">
-          <PersonMenu name={viewer.name} />
-          <span className="flex min-w-0 flex-col">
-            <span className="truncate text-sm">{viewer.name}</span>
-            <span className="text-xs capitalize text-subtle-foreground">{named(viewer.role)}</span>
-          </span>
-        </div>
       </aside>
 
       <div className="flex min-w-0 shrink grow-[999] basis-[560px] flex-col">
-        <header className="flex min-h-14 flex-wrap items-center gap-3 border-b border-border bg-card px-8 py-3">
+        <TopBar viewer={{ name: viewer.name, role: named(viewer.role) }} className="px-8">
           <h1 className="flex-1 text-lg font-semibold">{title}</h1>
           <SyncIndicator state={syncState} />
           {actions}
           <Button asChild count={project.unpublished}>
             <NavLink to={`/o/${organisation}/p/${project.slug}/publish`}>{say("common.publish")}</NavLink>
           </Button>
-        </header>
+        </TopBar>
 
         <main className="min-w-0 flex-1 p-8">{children}</main>
       </div>

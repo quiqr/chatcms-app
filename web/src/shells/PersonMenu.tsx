@@ -14,7 +14,7 @@ import { say } from "../lib/say";
  * three, so from inside a site there was no way to yourself and no way out
  * at all.
  */
-export function PersonMenu({ name, className }: { name: string; className?: string }) {
+export function PersonMenu({ name, role, className }: { name: string; role?: string; className?: string }) {
   const goTo = useNavigate();
   const [busy, setBusy] = useState(false);
 
@@ -46,7 +46,10 @@ export function PersonMenu({ name, className }: { name: string; className?: stri
       </MenuTrigger>
 
       <MenuContent align="end">
-        <p className="px-3 py-2 text-[13px] text-subtle-foreground">{name}</p>
+        <p className="flex flex-col px-3 py-2">
+          <span className="text-[13px]">{name}</span>
+          {role && <span className="text-xs text-subtle-foreground">{role}</span>}
+        </p>
 
         <MenuSeparator />
 

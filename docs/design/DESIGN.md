@@ -84,11 +84,13 @@ followed by "ChatCMS" in `muted-foreground`. Height 24–28 px in headers.
   (project tile + name + domain, opens the project list) · nav group
   *Site*: Content, Media, Publish (with count badge of unpublished
   changes), History · nav group *Setup* (only owner/implementer): People &
-  roles, Project settings, Workflows ("Soon" badge) · spacer · current user
-  (avatar, name, role).
+  roles, Project settings, Workflows ("Soon" badge).
 - **Top bar** (`bg-card`, bottom border, 12 px × 32 px padding): title or
   breadcrumb · sync indicator · page actions · primary **Publish** button
-  with count.
+  with count · avatar.
+- **The avatar is always the last thing in the top bar**, in every shell, and
+  never in a sidebar. It opens the person menu: name and the role held here,
+  then account, preferences and the ways out.
 - **Responsive**: shell is `flex flex-wrap`; content is
   `flex: 999 1 560px; min-width: 0`, so under ~800 px the sidebar stacks
   above content. On phones replace the sidebar with the phone shell below.
@@ -116,15 +118,16 @@ Light sidebar like the project shell: logo · organisation tile ("Studio Noord �
 Organisation") · nav group *Manage organisation*: Projects, Members (with
 counts) · **usage box** (`bg-background` panel: Members n of max, Projects n of
 max, each with a 6 px bar; "Limits are set by the platform admin"; when a limit
-is off show "n · no limit" without a bar) · spacer · "Back to my projects" ·
-user with role "Organisation admin".
+is off show "n · no limit" without a bar). Light top bar beside it, as in
+every shell: "Back to my projects" · avatar (role "Organisation admin").
 
 ### Platform admin shell
 Dark sidebar (`bg-secondary`, text `#FAFAFA`, secondary text `#A1A1AA`) so it is
 always obvious you are in the admin area: logo · "You're in Platform admin"
 panel with shield icon (`#27272A` bg) · nav: Organisations, Users (with counts;
-active item `#3F3F46`) · spacer · "Back to my projects" · user with role
-"Platform admin". Content area is the normal light page.
+active item `#3F3F46`). The top bar beside it is light, like everywhere
+else: "Back to my projects" · avatar (role "Platform admin"). Content area is
+the normal light page.
 
 ## 4. Components (map to shadcn/ui)
 

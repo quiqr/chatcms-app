@@ -4,8 +4,8 @@ import { NavLink } from "react-router";
 
 import { Button } from "../components/ui/button";
 import { Segmented } from "../components/ui/segmented";
-import { PersonMenu } from "./PersonMenu";
 import { AssistantSlot } from "./ProjectShell";
+import { TopBar } from "./TopBar";
 import { useHere } from "../lib/whoami";
 import { SyncIndicator } from "./SyncIndicator";
 import type { Project } from "../lib/tenancy";
@@ -60,7 +60,7 @@ export function EditorShell({
       </nav>
 
       <div className="flex min-w-0 shrink grow-[999] basis-[560px] flex-col">
-        <header className="flex min-h-14 flex-wrap items-center gap-3 border-b border-border bg-card px-6 py-3">
+        <TopBar viewer={viewer}>
           <Button variant="ghost" size="iconCompact" asChild aria-label={say("editor-shell.back-to-content")}>
             <NavLink to={`/o/${organisation}/p/${project.slug}/content`}>
               <ArrowLeft aria-hidden="true" className="size-4" />
@@ -80,11 +80,10 @@ export function EditorShell({
             className="hidden md:inline-flex"
           />
           <AssistantSlot />
-          <PersonMenu name={viewer.name} />
           <Button asChild count={project.unpublished}>
             <NavLink to={`/o/${organisation}/p/${project.slug}/publish`}>{say("common.publish")}</NavLink>
           </Button>
-        </header>
+        </TopBar>
 
         <main data-testid="editor-slots" className="flex min-w-0 flex-1 flex-wrap items-stretch">
           {layout !== "preview" && (
