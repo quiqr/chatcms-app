@@ -44,6 +44,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Everything that can be clicked shows the pointing hand. Tailwind 4 gives a
+  button the arrow, so a button showed the hand only when it happened to be
+  built as a link: "New project" and Save showed the arrow, Publish the hand.
+  One rule now covers buttons, menu items, radio cards, segments, tabs,
+  disclosures and the labels of checkboxes, radios and file pickers, a
+  disabled control keeps the arrow, and the interface check fails on a
+  component that sets the arrow itself.
 - Every screen has a top bar, and the person menu is always at its right
   end. The project shell kept it at the bottom of its sidebar and the two
   admin areas had no top bar at all; they now have a light one, with "Back to

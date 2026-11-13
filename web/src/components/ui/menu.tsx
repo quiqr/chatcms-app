@@ -36,7 +36,7 @@ export function MenuItem({
   return (
     <DropdownMenu.Item
       className={cn(
-        "flex h-11 cursor-default select-none items-center gap-2 rounded-sm px-3 text-sm outline-hidden data-highlighted:bg-muted",
+        "flex h-11 select-none items-center gap-2 rounded-sm px-3 text-sm outline-hidden data-highlighted:bg-muted",
         destructive && "text-destructive-foreground",
         className,
       )}

@@ -146,6 +146,11 @@ the normal light page.
 | Table | `Table` in an `overflow-x-auto` wrapper | People list. |
 | Tooltip/Popover | `Tooltip` / `Popover` | Implementer sync details. |
 
+Everything that can be clicked shows the pointing hand, whether it is a link
+or a button: buttons, menu items, radio cards, segments, tabs, disclosures and
+the labels of checkboxes, radios and file pickers. A disabled control does
+not. One rule in `index.css` does this; no component sets the arrow itself.
+
 Avatars: initials on a soft tint. Project tiles: first letter on a soft tint.
 
 ## 5. Screens

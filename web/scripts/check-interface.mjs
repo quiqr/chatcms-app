@@ -110,6 +110,14 @@ for (const path of sources(sourceDir)) {
     }
   }
 
+  // What can be clicked shows the hand, so nothing sets the arrow. This one
+  // holds on implementer screens too, so it runs before rule three.
+  for (const [index, line] of everyLine.entries()) {
+    if (/\bcursor-(?:default|auto)\b/.test(line)) {
+      problems.push(`${name}:${index + 1} sets the arrow cursor; what can be clicked shows the hand`);
+    }
+  }
+
   // Rule three: no version control word where a content creator can read it.
   if (forImplementers) continue;
   for (const sentence of userVisibleStrings(text)) {
@@ -165,4 +173,4 @@ if (problems.length > 0) {
   process.exit(1);
 }
 
-console.log("check-interface: tokens, touch targets and editor language are all in order");
+console.log("check-interface: tokens, touch targets, the pointer and editor language are all in order");
