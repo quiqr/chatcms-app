@@ -44,6 +44,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The browser tab shows the Quiqr icon, the same one quiqr.org uses. The
+  application named no icon, so the browser asked for `/favicon.ico`, got the
+  application's page back and showed its own placeholder. The frontend check
+  now fails when the build does not carry the icon.
 - The project switcher switches projects. The project at the top of the
   sidebar looked like a menu but went to the overview; it now opens the
   organisation's projects with the current one checked and "All projects" at

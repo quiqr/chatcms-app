@@ -1,11 +1,12 @@
 ---
 # chatcms-dx31
 title: switch project button should really switch project
-status: in-progress
+status: completed
 type: bug
 priority: normal
 created_at: 2026-11-13T11:49:58Z
-updated_at: 2026-11-13T15:02:00Z
+updated_at: 2026-11-13T15:18:15Z
+openspec-link: openspec/changes/archive/2026-11-13-switch-project-from-the-frame
 parent: chatcms-iqog
 ---
 
