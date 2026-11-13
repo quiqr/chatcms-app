@@ -8,6 +8,7 @@ import { Button } from "../components/ui/button";
 import { cn } from "../lib/cn";
 import { useHere } from "../lib/whoami";
 import { setupNavigation, siteNavigation, type NavEntry } from "./navigation";
+import { ProjectSwitcher } from "./ProjectSwitcher";
 import { canSeeSetup, named } from "./roles";
 import { SyncIndicator, type SyncState } from "./SyncIndicator";
 import { TopBar } from "./TopBar";
@@ -77,18 +78,19 @@ export function ProjectShell({
           <span className="text-[15px] text-muted-foreground">{say("common.chatcms")}</span>
         </span>
 
-        <NavLink
-          to="/projects"
-          aria-label={`${project.name}, switch project`}
-          className="flex min-h-14 items-center gap-2.5 rounded-xl border border-border bg-card px-2.5 py-2 hover:bg-muted"
-        >
-          <Tile name={project.name} />
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate text-[15px] font-semibold">{project.name}</span>
-            <span className="truncate text-xs text-subtle-foreground">{project.domain}</span>
-          </span>
-          <ChevronsUpDown aria-hidden="true" className="size-4 shrink-0 text-subtle-foreground" />
-        </NavLink>
+        <ProjectSwitcher project={project}>
+          <button
+            type="button"
+            className="flex min-h-14 items-center gap-2.5 rounded-xl border border-border bg-card px-2.5 py-2 text-left hover:bg-muted"
+          >
+            <Tile name={project.name} />
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate text-[15px] font-semibold">{project.name}</span>
+              <span className="truncate text-xs text-subtle-foreground">{project.domain}</span>
+            </span>
+            <ChevronsUpDown aria-hidden="true" className="size-4 shrink-0 text-subtle-foreground" />
+          </button>
+        </ProjectSwitcher>
 
         <NavGroup label={say("project-shell.site")} entries={siteNavigation(organisation, project.slug)} unpublished={project.unpublished} />
         {canSeeSetup(viewer.role) && (

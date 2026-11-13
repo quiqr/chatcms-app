@@ -1,11 +1,11 @@
 ---
 # chatcms-dx31
 title: switch project button should really switch project
-status: todo
+status: in-progress
 type: bug
 priority: normal
 created_at: 2026-11-13T11:49:58Z
-updated_at: 2026-11-13T11:52:19Z
+updated_at: 2026-11-13T15:02:00Z
 parent: chatcms-iqog
 ---
 

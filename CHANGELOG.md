@@ -44,6 +44,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The project switcher switches projects. The project at the top of the
+  sidebar looked like a menu but went to the overview; it now opens the
+  organisation's projects with the current one checked and "All projects" at
+  the end, and choosing one opens its content. The project in the phone
+  header opens the same menu, where it did nothing before.
 - Everything that can be clicked shows the pointing hand. Tailwind 4 gives a
   button the arrow, so a button showed the hand only when it happened to be
   built as a link: "New project" and Save showed the arrow, Publish the hand.

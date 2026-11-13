@@ -1,3 +1,4 @@
+import { ChevronsUpDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 
@@ -6,6 +7,7 @@ import { cn } from "../lib/cn";
 import { siteNavigation } from "./navigation";
 import { useHere } from "../lib/whoami";
 import { PersonMenu } from "./PersonMenu";
+import { ProjectSwitcher } from "./ProjectSwitcher";
 import { SyncIndicator } from "./SyncIndicator";
 import type { Project } from "../lib/tenancy";
 import { say } from "../lib/say";
@@ -34,9 +36,14 @@ export function PhoneShell({
       className="flex min-h-dvh flex-col overflow-x-clip sm:hidden"
     >
       <header className="flex items-center gap-2 border-b border-border bg-card px-4 py-3">
-        <Tile name={project.name} />
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-sm font-semibold">{project.name}</span>
+        <ProjectSwitcher project={project}>
+          <button type="button" className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg text-left">
+            <Tile name={project.name} />
+            <span className="truncate text-sm font-semibold">{project.name}</span>
+            <ChevronsUpDown aria-hidden="true" className="size-4 shrink-0 text-subtle-foreground" />
+          </button>
+        </ProjectSwitcher>
+        <span className="flex min-w-0 flex-1 justify-end">
           <SyncIndicator />
         </span>
         <PersonMenu name={viewer.name} />

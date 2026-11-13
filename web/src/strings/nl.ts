@@ -528,6 +528,13 @@ export const nl: Strings = {
   "project-shell.site": "Site",
   "project-shell.soon": "Binnenkort",
 
+  // project-switcher
+  "project-switcher.all-projects": "Alle projecten",
+  "project-switcher.could-not-read": "Je projecten konden nu niet gelezen worden",
+  "project-switcher.looking": "Je projecten zoeken...",
+  "project-switcher.switch-from": "{name}, ander project kiezen",
+  "project-switcher.this-one": "Hier ben je nu",
+
   // projects
   "projects.cancel": "Annuleren",
   "projects.import-a-site-or-start-from": "Haal een site binnen of begin met een sjabloon",

@@ -525,6 +525,13 @@ export const en = {
   "project-shell.site": "Site",
   "project-shell.soon": "Soon",
 
+  // project-switcher
+  "project-switcher.all-projects": "All projects",
+  "project-switcher.could-not-read": "Your projects could not be read just now",
+  "project-switcher.looking": "Looking for your projects...",
+  "project-switcher.switch-from": "{name}, switch project",
+  "project-switcher.this-one": "You are in this one",
+
   // projects
   "projects.cancel": "Cancel",
   "projects.import-a-site-or-start-from": "Import a site or start from a template",

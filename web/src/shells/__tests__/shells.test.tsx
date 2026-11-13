@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Project } from "../../lib/tenancy";
 import { EditorShell } from "../EditorShell";
@@ -401,5 +401,66 @@ describe("the way out", () => {
     await userEvent.click(screen.getByTestId("person-menu"));
 
     expect(await screen.findByRole("menu")).toHaveTextContent("Platform admin");
+  });
+});
+
+describe("the project switcher", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const theirProjects = {
+    projects: [
+      project,
+      { ...project, slug: "studio-noord", name: "Studio Noord", unpublished: 0 },
+      { ...project, slug: "oud", name: "Oud", archived: true },
+    ],
+    usage: { members: { held: 1, full: false }, projects: { held: 3, full: false } },
+  };
+
+  function answering(status: number, body: unknown) {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: status < 400, status, json: async () => body }));
+  }
+
+  it("offers the other projects, the current one marked, and the way to all of them", async () => {
+    answering(200, theirProjects);
+    at("/o/technative/p/korenaar/content", <ProjectShell project={project} viewer={theViewer} title="Content">{null}</ProjectShell>);
+
+    await userEvent.click(screen.getByRole("button", { name: "Korenaar Bakery, switch project" }));
+
+    const menu = await screen.findByRole("menu");
+    const other = await within(menu).findByRole("menuitem", { name: /Studio Noord/ });
+    expect(other).toHaveAttribute("href", "/o/technative/p/studio-noord/content");
+
+    const current = within(menu).getByRole("menuitem", { name: /Korenaar Bakery/ });
+    expect(current).toHaveAttribute("aria-current", "true");
+    expect(within(current).getByLabelText("You are in this one")).toBeInTheDocument();
+
+    expect(within(menu).queryByRole("menuitem", { name: /Oud/ })).not.toBeInTheDocument();
+    expect(within(menu).getByRole("menuitem", { name: "All projects" })).toHaveAttribute("href", "/o/technative/projects");
+  });
+
+  it("says so when the projects cannot be read, and still leads to all of them", async () => {
+    answering(500, { code: "internal", message: "no" });
+    at("/o/technative/p/korenaar/content", <ProjectShell project={project} viewer={theViewer} title="Content">{null}</ProjectShell>);
+
+    await userEvent.click(screen.getByRole("button", { name: "Korenaar Bakery, switch project" }));
+
+    const menu = await screen.findByRole("menu");
+    expect(await within(menu).findByText("Your projects could not be read just now")).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitem", { name: "All projects" })).toBeInTheDocument();
+  });
+
+  it("opens from the project in the phone header", async () => {
+    answering(200, theirProjects);
+    at("/o/technative/p/korenaar/content", <PhoneShell project={project} viewer={theViewer}>{null}</PhoneShell>);
+
+    await userEvent.click(screen.getByRole("button", { name: "Korenaar Bakery, switch project" }));
+
+    const menu = await screen.findByRole("menu");
+    expect(await within(menu).findByRole("menuitem", { name: /Studio Noord/ })).toHaveAttribute(
+      "href",
+      "/o/technative/p/studio-noord/content",
+    );
   });
 });

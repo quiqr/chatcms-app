@@ -81,7 +81,8 @@ followed by "ChatCMS" in `muted-foreground`. Height 24–28 px in headers.
 
 ### Project shell (all screens inside a project)
 - **Sidebar** (240 px, `bg-card`, right border): logo · project switcher
-  (project tile + name + domain, opens the project list) · nav group
+  (project tile + name + domain; opens a menu of the organisation's projects,
+  the current one checked, then "All projects") · nav group
   *Site*: Content, Media, Publish (with count badge of unpublished
   changes), History · nav group *Setup* (only owner/implementer): People &
   roles, Project settings, Workflows ("Soon" badge).
@@ -98,7 +99,8 @@ followed by "ChatCMS" in `muted-foreground`. Height 24–28 px in headers.
   the full sidebar to give room to form + preview.
 
 ### Phone shell (< 640 px)
-- Header: project tile, project name, sync dot + text, avatar. Under it a
+- Header: project switcher (project tile + name, same menu as the sidebar),
+  sync dot + text, avatar. Under it a
   horizontally scrollable chip row for collections where relevant.
 - Bottom tab bar: Content, Media, Publish (badge), History. 52 px targets,
   padded by `env(safe-area-inset-bottom)`.
