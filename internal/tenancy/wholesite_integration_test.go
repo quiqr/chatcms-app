@@ -14,11 +14,11 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/quiqr/chatcms/internal/gitsync"
-	"github.com/quiqr/chatcms/internal/httpapi"
-	"github.com/quiqr/chatcms/internal/policy"
-	"github.com/quiqr/chatcms/internal/tenancy"
-	"github.com/quiqr/chatcms/internal/wholesite"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
+	"github.com/quiqr/chatcms-app/internal/policy"
+	"github.com/quiqr/chatcms-app/internal/tenancy"
+	"github.com/quiqr/chatcms-app/internal/wholesite"
 )
 
 // withASite gives the harness somewhere to keep working copies, and makes

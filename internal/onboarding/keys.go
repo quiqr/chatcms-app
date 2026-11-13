@@ -14,8 +14,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/quiqr/chatcms/internal/secrets"
-	"github.com/quiqr/chatcms/internal/store"
+	"github.com/quiqr/chatcms-app/internal/secrets"
+	"github.com/quiqr/chatcms-app/internal/store"
 )
 
 // ErrNoKeyYet says a project has no deploy key, which is its own answer

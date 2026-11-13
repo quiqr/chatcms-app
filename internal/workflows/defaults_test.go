@@ -4,7 +4,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/quiqr/chatcms/internal/workflows"
+	"github.com/quiqr/chatcms-app/internal/workflows"
 )
 
 func TestAProjectThatPublishesItsSourceDoesNotBuild(t *testing.T) {

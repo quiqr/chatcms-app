@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/quiqr/chatcms/internal/model"
+	"github.com/quiqr/chatcms-app/internal/model"
 )
 
 func main() {

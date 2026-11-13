@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/quiqr/chatcms/internal/forms"
-	"github.com/quiqr/chatcms/internal/model"
+	"github.com/quiqr/chatcms-app/internal/forms"
+	"github.com/quiqr/chatcms-app/internal/model"
 )
 
 const recordingsDir = "../../test/fixtures/reference"

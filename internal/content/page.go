@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/quiqr/chatcms/internal/forms"
-	"github.com/quiqr/chatcms/internal/frontmatter"
-	"github.com/quiqr/chatcms/internal/model"
+	"github.com/quiqr/chatcms-app/internal/forms"
+	"github.com/quiqr/chatcms-app/internal/frontmatter"
+	"github.com/quiqr/chatcms-app/internal/model"
 )
 
 // Page is one editable thing in a site: a single page the model names, or one

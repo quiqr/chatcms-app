@@ -9,7 +9,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/quiqr/chatcms/internal/imagekind"
+	"github.com/quiqr/chatcms-app/internal/imagekind"
 )
 
 // Image is one picture in a site, as a person sees it.

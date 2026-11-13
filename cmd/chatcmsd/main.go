@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/quiqr/chatcms/internal/app"
+	"github.com/quiqr/chatcms-app/internal/app"
 )
 
 func main() {

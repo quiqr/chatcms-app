@@ -23,14 +23,14 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/quiqr/chatcms/internal/app"
-	"github.com/quiqr/chatcms/internal/auth"
-	"github.com/quiqr/chatcms/internal/gitsync"
-	"github.com/quiqr/chatcms/internal/httpapi"
-	"github.com/quiqr/chatcms/internal/jobs"
-	"github.com/quiqr/chatcms/internal/policy"
-	"github.com/quiqr/chatcms/internal/store"
-	"github.com/quiqr/chatcms/internal/testsupport"
+	"github.com/quiqr/chatcms-app/internal/app"
+	"github.com/quiqr/chatcms-app/internal/auth"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
+	"github.com/quiqr/chatcms-app/internal/jobs"
+	"github.com/quiqr/chatcms-app/internal/policy"
+	"github.com/quiqr/chatcms-app/internal/store"
+	"github.com/quiqr/chatcms-app/internal/testsupport"
 )
 
 func testConfig(t *testing.T) app.Config {

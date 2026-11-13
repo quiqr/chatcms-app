@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/quiqr/chatcms/internal/runner"
-	"github.com/quiqr/chatcms/internal/sitebuild"
+	"github.com/quiqr/chatcms-app/internal/runner"
+	"github.com/quiqr/chatcms-app/internal/sitebuild"
 )
 
 const (

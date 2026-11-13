@@ -10,10 +10,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/quiqr/chatcms/internal/gitsync"
-	"github.com/quiqr/chatcms/internal/httpapi"
-	"github.com/quiqr/chatcms/internal/model"
-	"github.com/quiqr/chatcms/internal/policy"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
+	"github.com/quiqr/chatcms-app/internal/model"
+	"github.com/quiqr/chatcms-app/internal/policy"
 )
 
 // Site is what the media library needs from a project's working copy.

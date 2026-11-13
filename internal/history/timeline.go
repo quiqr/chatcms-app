@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/quiqr/chatcms/internal/gitsync"
-	"github.com/quiqr/chatcms/internal/publish"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/publish"
 )
 
 // Entry is one version of the site as a person sees it in the timeline.

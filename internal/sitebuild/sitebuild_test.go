@@ -13,8 +13,8 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/quiqr/chatcms/internal/runner"
-	"github.com/quiqr/chatcms/internal/sitebuild"
+	"github.com/quiqr/chatcms-app/internal/runner"
+	"github.com/quiqr/chatcms-app/internal/sitebuild"
 )
 
 const fixture = "../../test/fixtures/sites/small-site"

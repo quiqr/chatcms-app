@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/quiqr/chatcms/internal/forms"
+	"github.com/quiqr/chatcms-app/internal/forms"
 )
 
 const goldenDir = "../../test/fixtures/content/golden"

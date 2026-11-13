@@ -8,11 +8,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/quiqr/chatcms/internal/gitsync"
-	"github.com/quiqr/chatcms/internal/httpapi"
-	"github.com/quiqr/chatcms/internal/model"
-	"github.com/quiqr/chatcms/internal/policy"
-	"github.com/quiqr/chatcms/internal/sitesync"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
+	"github.com/quiqr/chatcms-app/internal/model"
+	"github.com/quiqr/chatcms-app/internal/policy"
+	"github.com/quiqr/chatcms-app/internal/sitesync"
 )
 
 const organisation = "11111111-1111-1111-1111-111111111111"

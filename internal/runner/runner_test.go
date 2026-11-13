@@ -10,7 +10,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/quiqr/chatcms/internal/runner"
+	"github.com/quiqr/chatcms-app/internal/runner"
 )
 
 func TestValidateRefusesAnUnusableTask(t *testing.T) {

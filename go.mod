@@ -1,4 +1,4 @@
-module github.com/quiqr/chatcms
+module github.com/quiqr/chatcms-app
 
 go 1.26.0
 

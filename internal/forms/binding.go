@@ -7,7 +7,7 @@ package forms
 import (
 	"strings"
 
-	"github.com/quiqr/chatcms/internal/model"
+	"github.com/quiqr/chatcms-app/internal/model"
 )
 
 // BodyKey is the name the reference implementation gives the Markdown body

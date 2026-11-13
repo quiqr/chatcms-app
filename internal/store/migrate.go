@@ -10,7 +10,7 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/lock"
 
-	"github.com/quiqr/chatcms/db"
+	"github.com/quiqr/chatcms-app/db"
 )
 
 var ErrDatabaseAhead = errors.New("the database schema is newer than this binary")

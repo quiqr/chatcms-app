@@ -9,11 +9,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/quiqr/chatcms/internal/content"
-	"github.com/quiqr/chatcms/internal/forms"
-	"github.com/quiqr/chatcms/internal/gitsync"
-	"github.com/quiqr/chatcms/internal/model"
-	"github.com/quiqr/chatcms/internal/publish"
+	"github.com/quiqr/chatcms-app/internal/content"
+	"github.com/quiqr/chatcms-app/internal/forms"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/model"
+	"github.com/quiqr/chatcms-app/internal/publish"
 )
 
 // FieldConflict is one field two people changed, with both answers.

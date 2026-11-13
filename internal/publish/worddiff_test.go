@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/quiqr/chatcms/internal/publish"
+	"github.com/quiqr/chatcms-app/internal/publish"
 )
 
 func rebuilt(parts []publish.Word, want publish.Part) string {

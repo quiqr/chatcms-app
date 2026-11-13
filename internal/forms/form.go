@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/quiqr/chatcms/internal/frontmatter"
-	"github.com/quiqr/chatcms/internal/model"
+	"github.com/quiqr/chatcms-app/internal/frontmatter"
+	"github.com/quiqr/chatcms-app/internal/model"
 )
 
 // ErrNoSuchField says a path does not name anything the model declares.

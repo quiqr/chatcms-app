@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/quiqr/chatcms/internal/gitsync"
-	"github.com/quiqr/chatcms/internal/model"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/model"
 )
 
 // Section is a group in the content browser: the site's pages, or one

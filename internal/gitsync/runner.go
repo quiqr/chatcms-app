@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/quiqr/chatcms/internal/redact"
+	"github.com/quiqr/chatcms-app/internal/redact"
 )
 
 // Config is what the engine needs to reach git and a remote.

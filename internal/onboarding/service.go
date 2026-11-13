@@ -8,10 +8,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/quiqr/chatcms/internal/httpapi"
-	"github.com/quiqr/chatcms/internal/policy"
-	"github.com/quiqr/chatcms/internal/store"
-	"github.com/quiqr/chatcms/internal/tenancy"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
+	"github.com/quiqr/chatcms-app/internal/policy"
+	"github.com/quiqr/chatcms-app/internal/store"
+	"github.com/quiqr/chatcms-app/internal/tenancy"
 )
 
 // Service answers the HTTP layer's questions about setting a project up. It

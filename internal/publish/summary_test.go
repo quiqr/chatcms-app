@@ -7,9 +7,9 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/quiqr/chatcms/internal/gitsync"
-	"github.com/quiqr/chatcms/internal/model"
-	"github.com/quiqr/chatcms/internal/publish"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/model"
+	"github.com/quiqr/chatcms-app/internal/publish"
 )
 
 // site stands in for a working copy: what differs, what the files say now,

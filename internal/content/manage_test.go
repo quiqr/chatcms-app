@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/quiqr/chatcms/internal/content"
-	"github.com/quiqr/chatcms/internal/gitsync"
-	"github.com/quiqr/chatcms/internal/httpapi"
+	"github.com/quiqr/chatcms-app/internal/content"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
 )
 
 func TestSlugIsWhatTheOldQuiqrWouldName(t *testing.T) {

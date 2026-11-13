@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/quiqr/chatcms/internal/redact"
+	"github.com/quiqr/chatcms-app/internal/redact"
 )
 
 func TestRunnerUsesTheConfiguredBinary(t *testing.T) {

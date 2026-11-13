@@ -11,11 +11,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/quiqr/chatcms/internal/auth"
-	"github.com/quiqr/chatcms/internal/builds"
-	"github.com/quiqr/chatcms/internal/store"
-	"github.com/quiqr/chatcms/internal/tenancy"
-	"github.com/quiqr/chatcms/internal/testsupport"
+	"github.com/quiqr/chatcms-app/internal/auth"
+	"github.com/quiqr/chatcms-app/internal/builds"
+	"github.com/quiqr/chatcms-app/internal/store"
+	"github.com/quiqr/chatcms-app/internal/tenancy"
+	"github.com/quiqr/chatcms-app/internal/testsupport"
 )
 
 func records(t *testing.T) (*builds.Records, uuid.UUID) {

@@ -8,10 +8,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/quiqr/chatcms/internal/httpapi"
-	"github.com/quiqr/chatcms/internal/policy"
-	"github.com/quiqr/chatcms/internal/publish"
-	"github.com/quiqr/chatcms/internal/tenancy"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
+	"github.com/quiqr/chatcms-app/internal/policy"
+	"github.com/quiqr/chatcms-app/internal/publish"
+	"github.com/quiqr/chatcms-app/internal/tenancy"
 )
 
 // Web answers the HTTP layer's questions, turning slugs into a project and a

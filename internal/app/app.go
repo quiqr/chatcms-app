@@ -11,7 +11,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/quiqr/chatcms/internal/version"
+	"github.com/quiqr/chatcms-app/internal/version"
 )
 
 func Run(args []string, stdout, stderr io.Writer) int {

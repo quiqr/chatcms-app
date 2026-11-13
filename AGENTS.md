@@ -30,7 +30,7 @@ Do not revisit these without asking.
 | Migrations | Embedded in the binary, run on start-up                           |
 | Git        | The git CLI called from Go, never go-git, version pinned via Nix  |
 | Packaging  | Nix flake plus a NixOS module; Nix-only deployment is fine        |
-| VCS        | jj, colocated with git; remote `git@github.com:quiqr/chatcms.git` |
+| VCS        | jj, colocated with git; remote `git@github.com:quiqr/chatcms-app.git` |
 
 The database holds users, organisations, memberships, roles, projects,
 credentials and job state. Content stays in git.

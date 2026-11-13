@@ -11,9 +11,9 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/quiqr/chatcms/internal/runner"
-	"github.com/quiqr/chatcms/internal/sitebuild"
-	"github.com/quiqr/chatcms/internal/workflows"
+	"github.com/quiqr/chatcms-app/internal/runner"
+	"github.com/quiqr/chatcms-app/internal/sitebuild"
+	"github.com/quiqr/chatcms-app/internal/workflows"
 )
 
 const checkedSite = "../../test/fixtures/sites/with-workflow"

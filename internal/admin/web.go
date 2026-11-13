@@ -7,10 +7,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/quiqr/chatcms/internal/httpapi"
-	"github.com/quiqr/chatcms/internal/policy"
-	"github.com/quiqr/chatcms/internal/store"
-	"github.com/quiqr/chatcms/internal/tenancy"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
+	"github.com/quiqr/chatcms-app/internal/policy"
+	"github.com/quiqr/chatcms-app/internal/store"
+	"github.com/quiqr/chatcms-app/internal/tenancy"
 )
 
 // Web is the service as the HTTP layer wants it: the same acts, with the

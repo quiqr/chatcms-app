@@ -9,7 +9,7 @@ is already automated.
 into the binary:
 
 ```
--X=github.com/quiqr/chatcms/internal/version.Version=${version}
+-X=github.com/quiqr/chatcms-app/internal/version.Version=${version}
 ```
 
 `chatcmsd --version` and `/api/health` both report it, so a running machine

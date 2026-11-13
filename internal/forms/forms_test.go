@@ -7,9 +7,9 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/quiqr/chatcms/internal/forms"
-	"github.com/quiqr/chatcms/internal/frontmatter"
-	"github.com/quiqr/chatcms/internal/model"
+	"github.com/quiqr/chatcms-app/internal/forms"
+	"github.com/quiqr/chatcms-app/internal/frontmatter"
+	"github.com/quiqr/chatcms-app/internal/model"
 )
 
 // fieldsFrom builds a field tree by parsing a model, so the tests exercise

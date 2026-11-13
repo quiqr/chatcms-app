@@ -5,7 +5,8 @@ status: todo
 type: bug
 priority: high
 created_at: 2026-11-05T16:49:49Z
-updated_at: 2026-11-05T16:49:49Z
+updated_at: 2026-11-13T11:53:39Z
+parent: chatcms-0fml
 ---
 
 Found while deploying ChatCMS to durer for the first time (quiqr/chatcms.eu

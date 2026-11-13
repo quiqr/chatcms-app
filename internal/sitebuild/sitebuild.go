@@ -7,7 +7,7 @@ import (
 	"io/fs"
 	"time"
 
-	"github.com/quiqr/chatcms/internal/runner"
+	"github.com/quiqr/chatcms-app/internal/runner"
 )
 
 const (

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/quiqr/chatcms/internal/model"
+	"github.com/quiqr/chatcms-app/internal/model"
 )
 
 // Kind is what sort of thing changed, in the words the designs use for the

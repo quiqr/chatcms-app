@@ -21,11 +21,11 @@ OVERALL_MIN="${CHATCMS_COVERAGE_MIN:-70}"
 CORE_MIN="${CHATCMS_CORE_COVERAGE_MIN:-80}"
 
 CORE_PACKAGES=(
-  "github.com/quiqr/chatcms/internal/model"
-  "github.com/quiqr/chatcms/internal/forms"
-  "github.com/quiqr/chatcms/internal/policy"
-  "github.com/quiqr/chatcms/internal/gitsync"
-  "github.com/quiqr/chatcms/internal/httpapi"
+  "github.com/quiqr/chatcms-app/internal/model"
+  "github.com/quiqr/chatcms-app/internal/forms"
+  "github.com/quiqr/chatcms-app/internal/policy"
+  "github.com/quiqr/chatcms-app/internal/gitsync"
+  "github.com/quiqr/chatcms-app/internal/httpapi"
 )
 
 GENERATED_PATTERN='[.]generated[.]go$'

@@ -3,8 +3,8 @@ package app
 import (
 	"log/slog"
 
-	"github.com/quiqr/chatcms/internal/gitsync"
-	"github.com/quiqr/chatcms/internal/jobs"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/jobs"
 )
 
 // RegisterSyncJobForTest exposes the sync handler so an integration test can

@@ -17,13 +17,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/quiqr/chatcms/internal/admin"
-	"github.com/quiqr/chatcms/internal/auth"
-	"github.com/quiqr/chatcms/internal/gitsync"
-	"github.com/quiqr/chatcms/internal/httpapi"
-	"github.com/quiqr/chatcms/internal/policy"
-	"github.com/quiqr/chatcms/internal/store"
-	"github.com/quiqr/chatcms/internal/tenancy"
+	"github.com/quiqr/chatcms-app/internal/admin"
+	"github.com/quiqr/chatcms-app/internal/auth"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
+	"github.com/quiqr/chatcms-app/internal/policy"
+	"github.com/quiqr/chatcms-app/internal/store"
+	"github.com/quiqr/chatcms-app/internal/tenancy"
 )
 
 func main() {

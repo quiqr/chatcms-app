@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/quiqr/chatcms/internal/httpapi"
-	"github.com/quiqr/chatcms/internal/policy"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
+	"github.com/quiqr/chatcms-app/internal/policy"
 )
 
 func TestARoleAnOrganisationDoesNotHaveIsRefused(t *testing.T) {

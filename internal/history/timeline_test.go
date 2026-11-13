@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/quiqr/chatcms/internal/gitsync"
-	"github.com/quiqr/chatcms/internal/history"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/history"
 )
 
 func at(day int, hour int) time.Time {

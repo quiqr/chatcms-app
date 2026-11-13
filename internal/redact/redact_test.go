@@ -44,7 +44,7 @@ func TestSecretsKeepsOrdinaryText(t *testing.T) {
 }
 
 func TestSecretsLeavesAPlainURL(t *testing.T) {
-	message := "cloning https://github.com/quiqr/chatcms.git"
+	message := "cloning https://github.com/quiqr/chatcms-app.git"
 	if got := Secrets(message); got != message {
 		t.Errorf("Secrets(%q) = %q, want a URL with no credential untouched", message, got)
 	}

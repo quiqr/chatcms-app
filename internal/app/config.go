@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/quiqr/chatcms/internal/mail"
+	"github.com/quiqr/chatcms-app/internal/mail"
 )
 
 type Config struct {

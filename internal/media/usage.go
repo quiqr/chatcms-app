@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/quiqr/chatcms/internal/model"
+	"github.com/quiqr/chatcms-app/internal/model"
 )
 
 // UsedOn finds the pages that refer to a picture. A site writes a picture's

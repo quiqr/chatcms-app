@@ -13,7 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/quiqr/chatcms/internal/store"
+	"github.com/quiqr/chatcms-app/internal/store"
 )
 
 // How long a session lasts. A working day when it was not asked to be

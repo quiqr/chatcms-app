@@ -14,7 +14,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/quiqr/chatcms/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
 )
 
 // Sites is what this package needs from the working copies: one to read, and

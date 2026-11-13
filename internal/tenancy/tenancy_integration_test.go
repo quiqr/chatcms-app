@@ -8,12 +8,12 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/quiqr/chatcms/internal/auth"
-	"github.com/quiqr/chatcms/internal/httpapi"
-	"github.com/quiqr/chatcms/internal/policy"
-	"github.com/quiqr/chatcms/internal/store"
-	"github.com/quiqr/chatcms/internal/tenancy"
-	"github.com/quiqr/chatcms/internal/testsupport"
+	"github.com/quiqr/chatcms-app/internal/auth"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
+	"github.com/quiqr/chatcms-app/internal/policy"
+	"github.com/quiqr/chatcms-app/internal/store"
+	"github.com/quiqr/chatcms-app/internal/tenancy"
+	"github.com/quiqr/chatcms-app/internal/testsupport"
 )
 
 const password = "a long enough passphrase"

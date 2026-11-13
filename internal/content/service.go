@@ -8,12 +8,12 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/quiqr/chatcms/internal/forms"
-	"github.com/quiqr/chatcms/internal/frontmatter"
-	"github.com/quiqr/chatcms/internal/gitsync"
-	"github.com/quiqr/chatcms/internal/httpapi"
-	"github.com/quiqr/chatcms/internal/model"
-	"github.com/quiqr/chatcms/internal/policy"
+	"github.com/quiqr/chatcms-app/internal/forms"
+	"github.com/quiqr/chatcms-app/internal/frontmatter"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
+	"github.com/quiqr/chatcms-app/internal/model"
+	"github.com/quiqr/chatcms-app/internal/policy"
 )
 
 // Site is what editing one page needs from a project's working copy.

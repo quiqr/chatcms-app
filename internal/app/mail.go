@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"log/slog"
 
-	"github.com/quiqr/chatcms/internal/jobs"
-	"github.com/quiqr/chatcms/internal/mail"
+	"github.com/quiqr/chatcms-app/internal/jobs"
+	"github.com/quiqr/chatcms-app/internal/mail"
 )
 
 // registerMailJob teaches the worker how to send one message. The handler is

@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	xdraw "golang.org/x/image/draw"
 
-	"github.com/quiqr/chatcms/internal/imagekind"
-	"github.com/quiqr/chatcms/internal/store"
+	"github.com/quiqr/chatcms-app/internal/imagekind"
+	"github.com/quiqr/chatcms-app/internal/store"
 )
 
 // PictureSize is how wide and tall a person's picture is kept. It is shown

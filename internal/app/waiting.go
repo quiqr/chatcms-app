@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/quiqr/chatcms/internal/publish"
+	"github.com/quiqr/chatcms-app/internal/publish"
 )
 
 // waitingInSites answers how much of a project is waiting to be published,

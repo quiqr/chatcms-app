@@ -98,7 +98,7 @@
         ldflags = [
           "-s"
           "-w"
-          "-X=github.com/quiqr/chatcms/internal/version.Version=${version}"
+          "-X=github.com/quiqr/chatcms-app/internal/version.Version=${version}"
         ];
 
         meta = {

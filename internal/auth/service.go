@@ -10,9 +10,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/quiqr/chatcms/internal/httpapi"
-	"github.com/quiqr/chatcms/internal/mail"
-	"github.com/quiqr/chatcms/internal/store"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
+	"github.com/quiqr/chatcms-app/internal/mail"
+	"github.com/quiqr/chatcms-app/internal/store"
 )
 
 // Service joins the parts: it checks a claim, issues a session, and hands out

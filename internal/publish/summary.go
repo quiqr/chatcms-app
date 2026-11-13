@@ -7,9 +7,9 @@ import (
 	"sort"
 	"time"
 
-	"github.com/quiqr/chatcms/internal/frontmatter"
-	"github.com/quiqr/chatcms/internal/gitsync"
-	"github.com/quiqr/chatcms/internal/model"
+	"github.com/quiqr/chatcms-app/internal/frontmatter"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/model"
 )
 
 // Change is one thing a person will see in the review list.

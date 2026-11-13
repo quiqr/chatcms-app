@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/quiqr/chatcms/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/gitsync"
 )
 
 // Target is where and in what form a project publishes. It comes from the

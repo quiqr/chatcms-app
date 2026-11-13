@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/quiqr/chatcms/internal/frontmatter"
-	"github.com/quiqr/chatcms/internal/model"
+	"github.com/quiqr/chatcms-app/internal/frontmatter"
+	"github.com/quiqr/chatcms-app/internal/model"
 )
 
 // FieldChange is one field of one page that differs from the published site.

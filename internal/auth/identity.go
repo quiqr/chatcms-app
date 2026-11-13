@@ -11,9 +11,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/quiqr/chatcms/internal/httpapi"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
 
-	"github.com/quiqr/chatcms/internal/store"
+	"github.com/quiqr/chatcms-app/internal/store"
 )
 
 // Identity answers whether someone is who they claim to be. It is an

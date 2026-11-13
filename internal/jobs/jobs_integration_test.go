@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/quiqr/chatcms/internal/jobs"
-	"github.com/quiqr/chatcms/internal/store"
-	"github.com/quiqr/chatcms/internal/testsupport"
+	"github.com/quiqr/chatcms-app/internal/jobs"
+	"github.com/quiqr/chatcms-app/internal/store"
+	"github.com/quiqr/chatcms-app/internal/testsupport"
 )
 
 const kind = "sync"

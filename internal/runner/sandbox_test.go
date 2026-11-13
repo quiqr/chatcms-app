@@ -11,7 +11,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/quiqr/chatcms/internal/runner"
+	"github.com/quiqr/chatcms-app/internal/runner"
 )
 
 func newSandbox(t *testing.T, change ...func(*runner.Config)) *runner.Sandbox {

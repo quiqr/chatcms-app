@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/quiqr/chatcms/internal/model"
+	"github.com/quiqr/chatcms-app/internal/model"
 )
 
 // hugoConfigurations are the names and places Hugo accepts its configuration

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/quiqr/chatcms/internal/preview"
+	"github.com/quiqr/chatcms-app/internal/preview"
 )
 
 func hugoBin(t *testing.T) string {

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/quiqr/chatcms/internal/runner"
+	"github.com/quiqr/chatcms-app/internal/runner"
 )
 
 // bare runs a task with nothing between it and the machine. It exists to be
