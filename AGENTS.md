@@ -63,11 +63,13 @@ nix build .#web                    # build the frontend on its own
 
 go test ./...                      # fast unit loop, no database needed
 go test -tags=integration ./...    # adds the tests that need PostgreSQL
-bash scripts/dev.sh                # everything: database, key, seed, server on :8080
-bash scripts/dev.sh fresh          # the same, throwing the database and state away first
-CHATCMS_HOST=0.0.0.0 bash scripts/dev.sh   # reachable from a phone; the frontend reads it too
-bash scripts/dev.sh stop           # stop a server left running, and the database
-CHATCMS_INSTANCE=test bash scripts/dev.sh  # a second server: own port, state and database
+scripts/dev-be.sh                  # backend: database, key, seed, Mailpit, server on :8080
+scripts/dev-be.sh fresh            # the same, throwing the database and state away first
+scripts/dev-be.sh stop             # stop a server left running, and the database
+scripts/dev-fe.sh                  # frontend: Vite on :5173, warns when no backend answers
+CHATCMS_HOST=0.0.0.0 scripts/dev-be.sh     # reachable from a phone; dev-fe.sh reads it too
+CHATCMS_INSTANCE=test scripts/dev-be.sh    # a second instance: own ports, state and database
+CHATCMS_INSTANCE=test scripts/dev-fe.sh    # its frontend, on :5174 against :8081
 bash scripts/dev-db.sh up          # local Postgres in ./.pgdata, prints the URL
 bash scripts/dev-db.sh reset       # throw the database away and start over
 

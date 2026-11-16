@@ -181,6 +181,25 @@
         touch $out
       '';
 
+      mkDevScriptsCheck = { pkgs, ... }: pkgs.runCommand "chatcms-dev-scripts"
+        {
+          nativeBuildInputs = [ pkgs.bash pkgs.shellcheck ];
+          src = nixpkgs.lib.fileset.toSource {
+            root = ./.;
+            fileset = nixpkgs.lib.fileset.unions [
+              ./scripts/dev-instance.sh
+              ./scripts/dev-be.sh
+              ./scripts/dev-fe.sh
+              ./scripts/dev-scripts.test.sh
+            ];
+          };
+        } ''
+        cd $src
+        shellcheck -x scripts/dev-instance.sh scripts/dev-be.sh scripts/dev-fe.sh scripts/dev-scripts.test.sh
+        bash scripts/dev-scripts.test.sh
+        touch $out
+      '';
+
       mkDevShell = { pkgs, system, ... }: pkgs.mkShell {
         name = "chatcms";
         packages = with pkgs; [
@@ -249,6 +268,7 @@
         integration = mkIntegrationTests args;
         frontend = mkWeb (args // { checked = true; });
         sqlc = mkSqlcCheck args;
+        dev-scripts = mkDevScriptsCheck args;
       } // nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
         # A virtual machine can only be booted on Linux, so this check exists
         # there and not on a Mac, where the rest still runs.

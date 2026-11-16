@@ -1,11 +1,11 @@
 ---
 # chatcms-2udf
-title: 03 Assistant, isolation and scale
+title: 06 Assistant, isolation and scale
 status: draft
 type: milestone
 priority: low
 created_at: 2026-10-21T15:32:56Z
-updated_at: 2026-11-02T20:30:00Z
+updated_at: 2026-11-16T11:08:11Z
 ---
 
 ## Goal

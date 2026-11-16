@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `scripts/dev-fe.sh` starts the frontend development server. It follows
+  `CHATCMS_INSTANCE` and `CHATCMS_HOST` like the backend does, installs the
+  frontend dependencies on a fresh checkout, and warns when no backend answers.
 - Signing in as each role in one press during development. Under
   `npm run dev` the sign-in screen offers a button for the platform admin,
   the implementer, the editor and the viewer, and each goes through the
@@ -43,6 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   list is searched, filtered and paged by the server, a page at a time.
 
 ### Changed
+
+- **Breaking for developers:** `scripts/dev.sh` is now `scripts/dev-be.sh`.
+  A named instance's frontend no longer needs its ports typed by hand.
 
 - The browser tab shows the Quiqr icon, the same one quiqr.org uses. The
   application named no icon, so the browser asked for `/favicon.ico`, got the

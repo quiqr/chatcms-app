@@ -7,13 +7,18 @@ git, and git stays hidden from content creators.
 
 Status: milestone 01, building the MVP. Not yet usable.
 
-## Getting started
+## Development
+
+start the application in developer mode.
 
 ```bash
-nix develop                  # Go, Node, Postgres, sqlc, goose, Hugo, Playwright
-bash scripts/dev-db.sh up    # local Postgres, prints CHATCMS_DATABASE_URL
-nix flake check              # build, vet, tests, coverage gate
+nix develop             # Everything you need: Go, Node, Postgres, sqlc, goose, Hugo, Playwright
+./scripts/dev-be.sh     # Starts a backend instance incl. psql. Read the script for all options.
+./scripts/dev-fe.sh     # Starts a frontend instance. Read the script for all options.
+nix flake check         # build, vet, tests, coverage gate
 ```
+
+
 
 ## Documentation
 
