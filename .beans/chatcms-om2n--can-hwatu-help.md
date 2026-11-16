@@ -1,11 +1,11 @@
 ---
 # chatcms-om2n
 title: can hwatu help?
-status: todo
+status: scrapped
 type: task
 priority: normal
 created_at: 2026-11-16T14:41:34Z
-updated_at: 2026-11-16T14:42:15Z
+updated_at: 2026-11-16T18:15:00Z
 parent: chatcms-0fml
 ---
 
