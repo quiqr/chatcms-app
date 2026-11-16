@@ -392,6 +392,7 @@ export const en = {
   "onboarding.no-templates-match": "No templates match \"{search}\".",
   "onboarding.organisation": "Organisation",
   "onboarding.project-name": "Project name",
+  "onboarding.project-needs-a-name": "A project needs a name with at least one letter or digit.",
   "onboarding.quiqr-community-catalogue": "Quiqr community catalogue",
   "onboarding.ready-made-hugo-sites": "Ready-made Hugo sites with Quiqr forms, shared by the Quiqr community. You get your own copy to change.",
   "onboarding.screenshot-of": "Screenshot of {name}",

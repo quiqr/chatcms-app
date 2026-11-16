@@ -167,6 +167,10 @@ export function UseTemplatePage() {
   async function proceed(event: React.FormEvent) {
     event.preventDefault();
     if (!template) return;
+    if (slugFor(shownName) === "") {
+      setTrouble(say("onboarding.project-needs-a-name"));
+      return;
+    }
     setBusy(true);
     setTrouble("");
     try {
@@ -310,10 +314,7 @@ export function UseTemplatePage() {
               <Button asChild variant="outline">
                 <NavLink to={`/o/${fromAddress}/new/template`}>{say("onboarding.back")}</NavLink>
               </Button>
-              <Button
-                type="submit"
-                disabled={busy || noRoom !== null || slugFor(shownName) === "" || remote.trim() === ""}
-              >
+              <Button type="submit" disabled={busy || noRoom !== null}>
                 {say("onboarding.continue-to-deploy-key")}
               </Button>
             </div>

@@ -395,6 +395,7 @@ export const nl: Strings = {
   "onboarding.no-templates-match": "Geen templates passen bij \"{search}\".",
   "onboarding.organisation": "Organisatie",
   "onboarding.project-name": "Projectnaam",
+  "onboarding.project-needs-a-name": "Een project heeft een naam nodig met minstens één letter of cijfer.",
   "onboarding.quiqr-community-catalogue": "Quiqr-communitycatalogus",
   "onboarding.ready-made-hugo-sites": "Kant-en-klare Hugo-sites met Quiqr-formulieren, gedeeld door de Quiqr-community. Je krijgt een eigen kopie om aan te passen.",
   "onboarding.screenshot-of": "Schermafbeelding van {name}",

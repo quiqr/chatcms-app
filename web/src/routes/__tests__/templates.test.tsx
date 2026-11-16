@@ -231,6 +231,29 @@ describe("naming a project made from a template", () => {
     );
   });
 
+  it("lets a template that asks for another Hugo go ahead", async () => {
+    serve({ [templates]: { body: gallery() }, [projects]: { body: usage(1) } });
+    at("/o/technative/new/template/Summer", stepRoute);
+
+    expect(await screen.findByRole("note")).toHaveTextContent("asks for Hugo 0.101.0 extended");
+    expect(screen.getByRole("button", { name: "Continue to the key" })).toBeEnabled();
+  });
+
+  it("says what is missing instead of greying the button out", async () => {
+    const calls = serve({ [templates]: { body: gallery() }, [projects]: { body: usage(1) } });
+    const user = userEvent.setup();
+    at("/o/technative/new/template/Summer", stepRoute);
+
+    await screen.findByRole("heading", { name: "Start from Summer" });
+    await user.clear(screen.getByLabelText("Project name"));
+    await fill(screen.getByLabelText("Project name"), "!!!");
+    await fill(screen.getByLabelText("Empty git address for your copy"), "git@github.com:technative/recipes.git");
+    await user.click(screen.getByRole("button", { name: "Continue to the key" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("A project needs a name with at least one letter or digit.");
+    expect(calls.some((call) => call.method === "POST")).toBe(false);
+  });
+
   it("warns when this uses the last free project", async () => {
     serve({ [templates]: { body: gallery() }, [projects]: { body: usage(4, 5) } });
     at("/o/technative/new/template/Summer", stepRoute);
