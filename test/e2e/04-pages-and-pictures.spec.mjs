@@ -2,12 +2,13 @@
 import { test, expect, saves, worksOnAPhone } from "./fixtures.mjs";
 
 test("a page is made, edited and removed", async ({ signedIn: page, chatcms }, testInfo) => {
-  await page.goto(`${chatcms.url}/o/technative/p/korenaar/content`);
+  await page.goto(`${chatcms.url}/o/technative/p/korenaar/content/c/news`);
 
   await test.step("a page is made and opens", async () => {
-    await page.getByRole("button", { name: /New / }).first().click();
-    await page.getByLabel("Name").fill("Autumn prices");
-    await page.getByRole("button", { name: "Make it" }).click();
+    await page.getByRole("button", { name: "New article" }).click();
+    await page.getByLabel("Title").fill("Autumn prices");
+    await expect(page.getByRole("button", { name: "Create and edit" })).toBeEnabled();
+    await page.getByRole("button", { name: "Create and edit" }).click();
 
     await page.waitForURL(/content\/news\/autumn-prices/);
     await expect(page.getByRole("textbox", { name: "Headline" })).toHaveValue("Autumn prices");
@@ -18,9 +19,10 @@ test("a page is made, edited and removed", async ({ signedIn: page, chatcms }, t
   });
 
   await test.step("it is listed, and marked as not published", async () => {
-    await page.goto(`${chatcms.url}/o/technative/p/korenaar/content`);
-    await expect(page.getByRole("button", { name: "Summer prices", exact: true })).toBeVisible();
-    await expect(page.getByText("Not published").first()).toBeVisible();
+    await page.goto(`${chatcms.url}/o/technative/p/korenaar/content/c/news`);
+    const row = page.getByRole("listitem").filter({ has: page.getByRole("link", { name: "Summer prices", exact: true }) });
+    await expect(row).toBeVisible();
+    await expect(row.getByText("New", { exact: true })).toBeVisible();
   });
 
   await test.step("removing asks first, and says what will happen", async () => {
@@ -32,7 +34,7 @@ test("a page is made, edited and removed", async ({ signedIn: page, chatcms }, t
     await expect(asking).toContainText("bring it back");
 
     await asking.getByRole("button", { name: "Yes, remove it" }).click();
-    await expect(page.getByRole("button", { name: "Summer prices", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Summer prices", exact: true })).toHaveCount(0);
   });
 
   await worksOnAPhone(page, testInfo);

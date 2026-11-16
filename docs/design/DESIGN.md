@@ -215,6 +215,12 @@ title, search, **New article** (label uses the collection's item name).
 List rows: thumbnail, title, "Edited by X · time", status badge, … menu
 (Rename, Duplicate, View on site, Delete…). "Show N more" pagination.
 
+The content area is now specified by the content-menu hand-off in
+`docs/design/content-menu/` (`CONTENT-MENU.md`, direction B): the content
+column built from the model's menu, the collection view, the new-item dialog,
+the editor header with previous and next, quick find, and the phone screens.
+Where that file and this section disagree, that file wins.
+
 ### 5.6 Form editor + live preview — `editor`, `editor-assistant`
 - Top bar: back, collection + page title, sync status, layout toggle
   (Form / Side by side / Preview), **Assistant**, **Publish**.

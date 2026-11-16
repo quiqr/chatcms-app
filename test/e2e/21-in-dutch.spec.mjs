@@ -29,8 +29,8 @@ test("the interface is read in Dutch, and follows to another machine", async ({
     // The phone shell has no heading of its own, so this is the screen
     // itself rather than the frame around it.
     await page.goto(`${chatcms.url}/o/technative/p/korenaar/content`);
-    await expect(page.getByPlaceholder("Een pagina zoeken")).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Nieuw / }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Inhoud", level: 2 })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Snel zoeken/ })).toBeVisible();
 
     await page.goto(`${chatcms.url}/o/technative/p/korenaar/media`);
     await expect(page.getByRole("button", { name: "Afbeeldingen toevoegen" }).first()).toBeVisible();

@@ -189,7 +189,7 @@ describe("EditorShell", () => {
       <EditorShell
         project={project}
         viewer={theViewer}
-        breadcrumb="News / About us"
+        title="Home page"
         layout={layout}
         onLayoutChange={() => {}}
         form={<p>Fields</p>}
@@ -214,7 +214,7 @@ describe("EditorShell", () => {
 
     const rail = screen.getByTestId("editor-rail");
     expect(rail.className).toContain("w-16");
-    expect(within(rail).getByRole("link", { name: "Content" })).toBeInTheDocument();
+    expect(within(rail).getByRole("button", { name: "Show the content menu" })).toBeInTheDocument();
     expect(screen.queryByRole("complementary", { name: "Project navigation" })).toBeNull();
   });
 
@@ -313,7 +313,7 @@ describe("the way out", () => {
       <EditorShell
         project={project}
         viewer={theViewer}
-        breadcrumb="News"
+        title="Home page"
         layout="split"
         onLayoutChange={() => {}}
         form={null}

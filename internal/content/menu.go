@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/quiqr/chatcms-app/internal/gitsync"
 	"github.com/quiqr/chatcms-app/internal/httpapi"
 	"github.com/quiqr/chatcms-app/internal/model"
 	"github.com/quiqr/chatcms-app/internal/policy"
@@ -40,34 +39,11 @@ type Entry struct {
 	HasChanges bool
 }
 
-type CollectionItem struct {
-	Key       string
-	Title     string
-	Folder    string
-	File      string
-	Bundle    bool
-	Status    string
-	Waiting   bool
-	By        string
-	SortValue string
-}
-
-type Folder struct {
-	Name  string
-	Count int
-}
-
-type Listing struct {
-	Collection model.Collection
-	Items      []CollectionItem
-	Folders    []Folder
-	ShowsPaths bool
-}
-
 const (
 	StatusPublished = "published"
 	StatusChanged   = "changed"
 	StatusNew       = "new"
+	StatusDraft     = "draft"
 )
 
 func (s *Service) Menu(ctx context.Context, actor policy.Actor, projectID uuid.UUID) (Menu, error) {
@@ -162,82 +138,6 @@ func waitingFor(item model.Item, waiting map[string]changeBy) (changeBy, bool) {
 	return latest, found
 }
 
-func (s *Service) Items(ctx context.Context, actor policy.Actor, projectID uuid.UUID, collectionKey string) (Listing, error) {
-	resource, err := s.reachable(ctx, actor, policy.ActionReadContent, projectID)
-	if err != nil {
-		return Listing{}, err
-	}
-
-	site, done, err := s.sources.Site(ctx, projectID)
-	if err != nil {
-		return Listing{}, err
-	}
-	defer done()
-
-	if _, err := site.Model(); err != nil {
-		return Listing{}, noModel(err)
-	}
-	collection, err := collectionOf(site, collectionKey)
-	if err != nil {
-		return Listing{}, err
-	}
-
-	changes, err := site.Changes(ctx)
-	if err != nil {
-		return Listing{}, err
-	}
-	added := map[string]bool{}
-	for _, change := range changes {
-		if change.Kind == gitsync.Added {
-			added[change.Path] = true
-		}
-	}
-
-	listing := Listing{
-		Collection: collection,
-		Items:      []CollectionItem{},
-		Folders:    []Folder{},
-		ShowsPaths: policy.Can(actor, policy.ActionSeeTechnicalDetail, resource),
-	}
-	counted := map[string]int{}
-	var order []string
-	waiting := waitingFrom(changes)
-
-	items, _ := model.Items(site.FS(), collection)
-	for _, item := range items {
-		shown := CollectionItem{
-			Key:       collection.Key + "/" + item.Key,
-			Title:     item.Title,
-			Folder:    item.Folder,
-			File:      item.File,
-			Bundle:    item.Bundle,
-			Status:    StatusPublished,
-			SortValue: item.SortValue,
-		}
-		if change, waiting := waitingFor(item, waiting); waiting {
-			shown.Waiting = true
-			shown.By = change.By
-			shown.Status = StatusChanged
-			if added[item.File] {
-				shown.Status = StatusNew
-			}
-		}
-		listing.Items = append(listing.Items, shown)
-
-		if item.Folder != "" {
-			top, _, _ := strings.Cut(item.Folder, "/")
-			if _, seen := counted[top]; !seen {
-				order = append(order, top)
-			}
-			counted[top]++
-		}
-	}
-	for _, name := range order {
-		listing.Folders = append(listing.Folders, Folder{Name: name, Count: counted[name]})
-	}
-	return listing, nil
-}
-
 func (s *Service) reachable(ctx context.Context, actor policy.Actor, action policy.Action, projectID uuid.UUID) (policy.Resource, error) {
 	resource, err := s.sources.Resource(ctx, projectID)
 	if err != nil {
@@ -250,4 +150,89 @@ func (s *Service) reachable(ctx context.Context, actor policy.Actor, action poli
 		return policy.Resource{}, httpapi.ErrNotAllowed
 	}
 	return resource, nil
+}
+
+const SearchLimit = 20
+
+type Found struct {
+	Key   string
+	Title string
+	Kind  string
+}
+
+type FoundGroup struct {
+	Title string
+	Items []Found
+}
+
+func (s *Service) Search(ctx context.Context, actor policy.Actor, projectID uuid.UUID, q string) ([]FoundGroup, error) {
+	resource, err := s.reachable(ctx, actor, policy.ActionReadContent, projectID)
+	if err != nil {
+		return nil, err
+	}
+	looking := strings.ToLower(strings.TrimSpace(q))
+	if looking == "" {
+		return []FoundGroup{}, nil
+	}
+
+	site, done, err := s.sources.Site(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer done()
+
+	m, err := site.Model()
+	if err != nil {
+		return nil, noModel(err)
+	}
+
+	menu := menuFor(m, site.FS(), map[string]changeBy{}, policy.Can(actor, policy.ActionSeeTechnicalDetail, resource))
+	groups := []FoundGroup{}
+	seen := map[string]bool{}
+	left := SearchLimit
+
+	add := func(title string, found Found) {
+		for i := range groups {
+			if groups[i].Title == title {
+				groups[i].Items = append(groups[i].Items, found)
+				return
+			}
+		}
+		groups = append(groups, FoundGroup{Title: title, Items: []Found{found}})
+	}
+
+	for _, group := range menu.Groups {
+		for _, entry := range group.Entries {
+			if left == 0 {
+				return groups, nil
+			}
+			if seen[entry.Kind+"/"+entry.Key] {
+				continue
+			}
+			seen[entry.Kind+"/"+entry.Key] = true
+
+			if entry.Kind == "single" {
+				if strings.Contains(strings.ToLower(entry.Title), looking) {
+					add(group.Title, Found{Key: entry.Key, Title: entry.Title, Kind: "single"})
+					left--
+				}
+				continue
+			}
+			collection, ok := m.Collection(entry.Key)
+			if !ok {
+				continue
+			}
+			items, _ := s.itemsOf(ctx, projectID, site, collection)
+			for _, item := range items {
+				if left == 0 {
+					break
+				}
+				if strings.Contains(strings.ToLower(item.Title), looking) {
+					add(entry.Title, Found{Key: collection.Key + "/" + item.Key, Title: item.Title, Kind: "item"})
+					left--
+				}
+			}
+		}
+	}
+	return groups, nil
 }

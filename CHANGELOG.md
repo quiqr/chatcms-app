@@ -20,6 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   version there; publishing waits until then.
 - The content screen follows the model's menu; a developer's section is shown
   only to implementers.
+- A content column beside every content screen, folding away in the editor;
+  a drawer on tablets and its own screens on a phone.
+- A collection view with search, folder tabs, sort, status badges and paging;
+  file names for implementers.
+- A new-item dialog that checks the web address before making anything.
+- The editor says "12 of 48" and steps to the previous and next item; a
+  "Show on website" switch for a draft field.
+- Quick find: Ctrl+K or Cmd+K opens any page by its title.
 
 ### Changed
 

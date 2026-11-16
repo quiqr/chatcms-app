@@ -1,6 +1,12 @@
 import { ArrowLeft, FileText, History, Image, Upload } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { NavLink } from "react-router";
+
+import { recall, remember } from "../lib/remember";
+import { ContentColumn } from "../routes/content/ContentColumn";
+import { ContentDrawer } from "../routes/content/ContentScreen";
+import { QuickFind } from "../routes/content/QuickFind";
+import { useIsWide } from "./useIsWide";
 
 import { Button } from "../components/ui/button";
 import { Segmented } from "../components/ui/segmented";
@@ -16,7 +22,11 @@ export type EditorLayout = "form" | "split" | "preview";
 export type EditorShellProps = {
   project: Project;
   viewer: { name: string };
-  breadcrumb: string;
+  title: string;
+  context?: ReactNode;
+  backTo?: string;
+  backLabel?: string;
+  stepper?: ReactNode;
   layout: EditorLayout;
   onLayoutChange: (layout: EditorLayout) => void;
   form: ReactNode;
@@ -24,7 +34,6 @@ export type EditorShellProps = {
 };
 
 const railEntries = [
-  { key: "content", label: "Content", icon: FileText },
   { key: "media", label: "Media", icon: Image },
   { key: "publish", label: "Publish", icon: Upload },
   { key: "history", label: "History", icon: History },
@@ -33,13 +42,32 @@ const railEntries = [
 export function EditorShell({
   project,
   viewer,
-  breadcrumb,
+  title,
+  context,
+  backTo,
+  backLabel,
+  stepper,
   layout,
   onLayoutChange,
   form,
   preview,
 }: EditorShellProps) {
-  const { organisation } = useHere();
+  const { organisation, who } = useHere();
+  const wide = useIsWide();
+  const foldKey = `chatcms.content.folded.${who.person.id}`;
+  const [folded, setFolded] = useState(() => recall(foldKey, false));
+  const [drawer, setDrawer] = useState(false);
+
+  function fold(next: boolean) {
+    setFolded(next);
+    remember(foldKey, next);
+  }
+
+  function showColumn() {
+    if (wide) fold(false);
+    else setDrawer(true);
+  }
+
   return (
     <div data-testid="editor-shell" className="flex min-h-dvh flex-wrap">
       <nav
@@ -47,6 +75,15 @@ export function EditorShell({
         data-testid="editor-rail"
         className="hidden w-16 shrink-0 flex-col items-center gap-2 border-r border-border bg-card py-3 sm:flex"
       >
+        <button
+          type="button"
+          aria-label={say("content-menu.show")}
+          aria-pressed={wide && !folded}
+          onClick={showColumn}
+          className="flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+        >
+          <FileText aria-hidden="true" className="size-5" />
+        </button>
         {railEntries.map((entry) => (
           <NavLink
             key={entry.key}
@@ -59,14 +96,34 @@ export function EditorShell({
         ))}
       </nav>
 
+      {wide && !folded && (
+        <aside
+          data-testid="editor-content-column"
+          className="w-64 shrink-0 overflow-y-auto border-r border-border bg-card p-4"
+        >
+          <ContentColumn project={project.slug} onHide={() => fold(true)} />
+        </aside>
+      )}
+      {drawer && <ContentDrawer project={project.slug} onClose={() => setDrawer(false)} />}
+      <QuickFind project={project.slug} />
+
       <div className="flex min-w-0 shrink grow-[999] basis-[560px] flex-col">
         <TopBar viewer={viewer}>
-          <Button variant="ghost" size="iconCompact" asChild aria-label={say("editor-shell.back-to-content")}>
-            <NavLink to={`/o/${organisation}/p/${project.slug}/content`}>
+          <Button
+            variant="ghost"
+            size="iconCompact"
+            asChild
+            aria-label={backLabel ?? say("editor-shell.back-to-content")}
+          >
+            <NavLink to={backTo ?? `/o/${organisation}/p/${project.slug}/content`}>
               <ArrowLeft aria-hidden="true" className="size-4" />
             </NavLink>
           </Button>
-          <h1 className="flex-1 truncate text-lg font-semibold">{breadcrumb}</h1>
+          <div className="flex min-w-0 flex-1 flex-col">
+            {context && <p className="truncate text-[13px] text-subtle-foreground">{context}</p>}
+            <h1 className="truncate text-lg font-semibold">{title}</h1>
+          </div>
+          {stepper}
           <SyncIndicator />
           <Segmented
             label={say("editor-shell.how-to-show-this-page")}

@@ -11,6 +11,7 @@ import { ProjectSwitcher } from "./ProjectSwitcher";
 import { SyncIndicator } from "./SyncIndicator";
 import type { Project } from "../lib/tenancy";
 import { say } from "../lib/say";
+import { QuickFind } from "../routes/content/QuickFind";
 
 export type PhoneShellProps = {
   project: Project;
@@ -56,6 +57,7 @@ export function PhoneShell({
       )}
 
       <main className="min-w-0 flex-1 overflow-x-clip p-4 pb-28">{children}</main>
+      <QuickFind project={project.slug} />
 
       {bottomBar ? (
         <div

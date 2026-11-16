@@ -19,6 +19,11 @@ type Item struct {
 	Title     string
 	SortValue string
 	Sorted    bool
+	Date      string
+	Author    string
+	Summary   string
+	Draft     bool
+	Thumbnail string
 }
 
 var contentExtensions = []string{"md", "html", "markdown", "qmd"}
@@ -164,7 +169,64 @@ func describeItem(fsys fs.FS, c Collection, item Item) Item {
 			item.Sorted = true
 		}
 	}
+	if value, ok := document.Fields.Get("date"); ok && value != nil {
+		item.Date = sortable(value)
+	}
+	item.Author = firstText(document.Fields, "author")
+	item.Summary = firstText(document.Fields, "summary", "description")
+	if value, ok := document.Fields.Get("draft"); ok {
+		item.Draft = value == true
+	}
+	if field := c.thumbnailField(); field != "" {
+		if text := firstText(document.Fields, field); text != "" {
+			item.Thumbnail = path.Base(text)
+		}
+	}
 	return item
+}
+
+func (c Collection) thumbnailField() string {
+	for _, field := range c.Fields {
+		if field.Type == "image-select" {
+			return field.Key
+		}
+	}
+	return ""
+}
+
+func (c Collection) HasThumbnails() bool {
+	return c.thumbnailField() != ""
+}
+
+func (c Collection) HasDraft() bool {
+	for _, field := range c.Fields {
+		if field.Key == "draft" {
+			return true
+		}
+	}
+	return false
+}
+
+func firstText(fields *frontmatter.Map, keys ...string) string {
+	for _, key := range keys {
+		value, ok := fields.Get(key)
+		if !ok || value == nil {
+			continue
+		}
+		switch typed := value.(type) {
+		case string:
+			if strings.TrimSpace(typed) != "" {
+				return strings.TrimSpace(typed)
+			}
+		case []any:
+			if len(typed) > 0 {
+				if text, ok := typed[0].(string); ok {
+					return text
+				}
+			}
+		}
+	}
+	return ""
 }
 
 func sortable(value any) string {

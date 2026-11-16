@@ -329,10 +329,17 @@ export type CollectionItem = {
   key: string;
   title: string;
   folder?: string;
-  status: "published" | "changed" | "new";
+  status: "published" | "changed" | "new" | "draft";
   by?: string;
+  date?: string;
+  author?: string;
+  summary?: string;
+  thumbnail?: string;
+  edited?: string;
   path?: string;
 };
+
+export type CollectionSort = "newest" | "oldest" | "title" | "edited" | "model";
 
 export type CollectionItems = {
   key: string;
@@ -340,15 +347,66 @@ export type CollectionItems = {
   itemName: string;
   items: CollectionItem[];
   total: number;
+  all: number;
+  sort: CollectionSort;
   folders: { name: string; label: string; count: number }[];
+  showsPaths: boolean;
+  hasImages: boolean;
+  around?: { index: number; previous?: string; next?: string };
 };
+
+export type ItemsQuery = {
+  q?: string;
+  folder?: string;
+  sort?: string;
+  page?: number;
+  pageSize?: number;
+  around?: string;
+};
+
+export type ItemAddress = { slug: string; folder?: string; address: string; free: boolean; file?: string };
+
+export type SearchResults = {
+  groups: { title: string; items: { key: string; title: string; kind: "single" | "item" }[] }[];
+};
+
+function queryString(query: Record<string, string | number | undefined>) {
+  const params = new URLSearchParams();
+  for (const [name, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "" && value !== 0) params.set(name, String(value));
+  }
+  const said = params.toString();
+  return said ? `?${said}` : "";
+}
 
 export function readContentMenu(organisation: string, name: string) {
   return get<ContentMenu>(`${project(organisation, name)}/content-menu`);
 }
 
-export function readCollectionItems(organisation: string, name: string, collection: string) {
-  return get<CollectionItems>(`${project(organisation, name)}/collections/${collection}/items`);
+export function readCollectionItems(organisation: string, name: string, collection: string, query: ItemsQuery = {}) {
+  return get<CollectionItems>(`${project(organisation, name)}/collections/${collection}/items${queryString(query)}`);
+}
+
+export function readItemAddress(
+  organisation: string,
+  name: string,
+  collection: string,
+  asked: { title: string; folder?: string; slug?: string },
+) {
+  return get<ItemAddress>(`${project(organisation, name)}/collections/${collection}/address${queryString(asked)}`);
+}
+
+export function createItem(
+  organisation: string,
+  name: string,
+  collection: string,
+  asked: { title: string; folder?: string; slug?: string },
+) {
+  return post<Page>(`${project(organisation, name)}/collections/${collection}/items`, asked);
+}
+
+export function searchContent(organisation: string, name: string, q: string) {
+  return get<SearchResults>(`${project(organisation, name)}/search${queryString({ q })}`);
 }
 
 export function createPage(organisation: string, name: string, section: string, title: string) {

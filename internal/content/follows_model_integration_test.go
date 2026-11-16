@@ -106,7 +106,7 @@ func TestTheMenuAndItemsThroughTheWholeStack(t *testing.T) {
 		t.Errorf("entries = %+v", entries)
 	}
 
-	items, err := h.web.CollectionItems(t.Context(), h.editor, "technative", "korenaar", "posts")
+	items, err := h.web.CollectionItems(t.Context(), h.editor, "technative", "korenaar", "posts", httpapi.ItemsQuery{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestTheMenuAndItemsThroughTheWholeStack(t *testing.T) {
 		t.Errorf("folders = %+v", items.Folders)
 	}
 
-	implementer, err := h.web.CollectionItems(t.Context(), h.builder, "technative", "korenaar", "posts")
+	implementer, err := h.web.CollectionItems(t.Context(), h.builder, "technative", "korenaar", "posts", httpapi.ItemsQuery{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestTheMenuAndItemsThroughTheWholeStack(t *testing.T) {
 		}
 	}
 
-	if _, err := h.web.CollectionItems(t.Context(), h.editor, "technative", "korenaar", "nothing"); err == nil {
+	if _, err := h.web.CollectionItems(t.Context(), h.editor, "technative", "korenaar", "nothing", httpapi.ItemsQuery{}); err == nil {
 		t.Error("a missing collection was listed")
 	}
 }

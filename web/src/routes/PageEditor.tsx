@@ -147,6 +147,7 @@ export function PageEditor({
   }
 
   withPicking((choose) => setChoosing(() => choose));
+  const draft = loaded.fields.find((control) => control.path === "draft" && control.type === "boolean");
 
   if (choosing) {
     return (
@@ -182,9 +183,27 @@ export function PageEditor({
         <Status state={state} />
       </header>
 
-      {loaded.fields.map((control) => (
-        <Draw key={control.path} control={control} onChange={change} />
-      ))}
+      {draft && (
+        <label className="flex items-start justify-between gap-4 rounded-lg border border-border bg-card p-3">
+          <span className="flex flex-col gap-0.5">
+            <span className="text-[15px] font-medium">{say("editor.show-on-website")}</span>
+            <span className="text-[13px] text-subtle-foreground">{say("editor.show-on-website-hint")}</span>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            checked={draft.value !== true}
+            onChange={(event) => change(draft.path, !event.target.checked)}
+            className="mt-1 size-5 shrink-0"
+          />
+        </label>
+      )}
+
+      {loaded.fields
+        .filter((control) => control !== draft)
+        .map((control) => (
+          <Draw key={control.path} control={control} onChange={change} />
+        ))}
 
       {loaded.hasBody ? (
         <BodyEditor value={loaded.body} onChange={changeBody} />

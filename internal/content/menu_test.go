@@ -141,7 +141,7 @@ func TestACollectionListsItsItemsWithStatusAndFolders(t *testing.T) {
 		{Path: "content/post/en/hi.md", Kind: gitsync.Added},
 	}
 
-	listing, err := service(t, &sources{site: working}, &syncer{}).Items(context.Background(), anEditor(project), project, "posts")
+	listing, err := service(t, &sources{site: working}, &syncer{}).Items(context.Background(), anEditor(project), project, "posts", content.Query{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,12 +160,12 @@ func TestACollectionListsItsItemsWithStatusAndFolders(t *testing.T) {
 		t.Errorf("folders = %+v", listing.Folders)
 	}
 
-	implementer, err := service(t, &sources{site: working}, &syncer{}).Items(context.Background(), anImplementer(project), project, "posts")
+	implementer, err := service(t, &sources{site: working}, &syncer{}).Items(context.Background(), anImplementer(project), project, "posts", content.Query{})
 	if err != nil || !implementer.ShowsPaths {
 		t.Errorf("an implementer: %v, shows paths %v", err, implementer.ShowsPaths)
 	}
 
-	if _, err := service(t, &sources{site: working}, &syncer{}).Items(context.Background(), anEditor(project), project, "nothing"); !errors.Is(err, httpapi.ErrMissing) {
+	if _, err := service(t, &sources{site: working}, &syncer{}).Items(context.Background(), anEditor(project), project, "nothing", content.Query{}); !errors.Is(err, httpapi.ErrMissing) {
 		t.Errorf("Items(nothing) error = %v, want ErrMissing", err)
 	}
 }

@@ -1,5 +1,6 @@
+import { ChevronLeft } from "lucide-react";
 import { useState } from "react";
-import { useParams } from "react-router";
+import { NavLink, useParams } from "react-router";
 
 import { Button } from "../components/ui/button";
 import { Segmented } from "../components/ui/segmented";
@@ -13,6 +14,7 @@ import { useIsPhone } from "../shells/useIsPhone";
 import { PageEditor } from "./PageEditor";
 import { Preview } from "./Preview";
 import { say } from "../lib/say";
+import { Stepper, usePlace } from "./content/usePlace";
 
 export function EditorPage() {
   const { organisation, who } = useHere();
@@ -23,6 +25,7 @@ export function EditorPage() {
   const [showing, setShowing] = useState<"edit" | "preview">("edit");
   const [opened, setOpened] = useState<{ title: string; section: string } | null>(null);
   const onAPhone = useIsPhone();
+  const place = usePlace(organisation, slug ?? "", page);
 
   if (loaded.state !== "ready") {
     return <p className="p-6 text-[15px] text-muted-foreground">{say("common.looking")}</p>;
@@ -36,7 +39,11 @@ export function EditorPage() {
         <EditorShell
           project={project}
           viewer={{ name: who.person.displayName || who.person.email }}
-          breadcrumb={opened ? `${opened.section} · ${opened.title}` : page}
+          title={opened ? opened.title : page}
+          context={place.context ?? opened?.section}
+          backTo={place.backTo}
+          backLabel={place.backLabel}
+          stepper={<Stepper place={place} />}
           layout={layout}
           onLayoutChange={setLayout}
           form={
@@ -67,6 +74,20 @@ export function EditorPage() {
       }
     >
       <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <NavLink
+            to={place.backTo ?? `/o/${organisation}/p/${slug}/content`}
+            aria-label={place.backLabel ?? say("editor-shell.back-to-content")}
+            className="flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-muted"
+          >
+            <ChevronLeft aria-hidden="true" className="size-5" />
+          </NavLink>
+          <div className="flex min-w-0 flex-1 flex-col">
+            {place.context && <p className="truncate text-[13px] text-subtle-foreground">{place.context}</p>}
+            <p className="truncate text-[15px] font-semibold">{opened ? opened.title : page}</p>
+          </div>
+          <Stepper place={place} />
+        </div>
         <Segmented
           label={say("editor.what-to-show")}
           className="grid grid-cols-2"
@@ -80,6 +101,7 @@ export function EditorPage() {
         {showing === "edit" ? (
           <PageEditor
             organisation={organisation}
+            headed={false}
             onOpened={setOpened}
             onSaved={() => setSaves((count) => count + 1)}
           />

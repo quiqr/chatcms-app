@@ -61,7 +61,9 @@ type NewPage struct {
 	// Section is the collection's key. Only a collection can grow.
 	Section string
 	// Title is what they typed. The file name comes from it.
-	Title string
+	Title  string
+	Folder string
+	Slug   string
 }
 
 // Create makes a page in a collection, with the title filled in and nothing
@@ -82,16 +84,13 @@ func (s *Service) Create(ctx context.Context, actor policy.Actor, projectID uuid
 		return Editable{}, err
 	}
 
-	slug := Slug(asked.Title)
-	if !usableSlug.MatchString(slug) {
-		return Editable{}, &httpapi.RefusedError{
-			Key:    "refused.page-needs-name-with-some",
-			Reason: "a page needs a name with some letters or numbers in it",
-		}
+	slug, folder, err := addressOf(site.FS(), collection, asked)
+	if err != nil {
+		return Editable{}, err
 	}
 
-	file := newItemFile(collection, slug)
-	if taken(site.FS(), collection, slug) {
+	file := newItemFile(collection, folder, slug)
+	if taken(site.FS(), collection, folder, slug) {
 		return Editable{}, &httpapi.RefusedError{
 			Key:    "refused.page-name-taken",
 			Reason: fmt.Sprintf("there is already a page called %q here", asked.Title),
@@ -118,7 +117,35 @@ func (s *Service) Create(ctx context.Context, actor policy.Actor, projectID uuid
 	}
 
 	s.syncSoon(ctx, projectID)
-	return s.after(ctx, site, collection.Key+"/"+slug)
+	return s.after(ctx, site, collection.Key+"/"+path.Join(folder, slug))
+}
+
+var usableFolder = regexp.MustCompile(`^[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*$`)
+
+func addressOf(fsys fs.FS, collection model.Collection, asked NewPage) (string, string, error) {
+	said := asked.Slug
+	if strings.TrimSpace(said) == "" {
+		said = asked.Title
+	}
+	slug := Slug(said)
+	if !usableSlug.MatchString(slug) {
+		return "", "", &httpapi.RefusedError{
+			Key:    "refused.page-needs-name-with-some",
+			Reason: "a page needs a name with some letters or numbers in it",
+		}
+	}
+
+	folder := strings.Trim(strings.TrimSpace(asked.Folder), "/")
+	if folder == "" {
+		return slug, "", nil
+	}
+	if !usableFolder.MatchString(folder) {
+		return "", "", httpapi.ErrMissing
+	}
+	if info, err := fs.Stat(fsys, path.Join(collection.Root(), folder)); err != nil || !info.IsDir() {
+		return "", "", httpapi.ErrMissing
+	}
+	return slug, folder, nil
 }
 
 func firstContent(title, file string) ([]byte, error) {
@@ -142,17 +169,17 @@ func isContentFile(file string) bool {
 	return false
 }
 
-func newItemFile(collection model.Collection, slug string) string {
+func newItemFile(collection model.Collection, folder, slug string) string {
 	if collection.UnderContent() {
-		return path.Join(collection.Root(), slug, "index."+extensionOf(collection))
+		return path.Join(collection.Root(), folder, slug, "index."+extensionOf(collection))
 	}
-	return path.Join(collection.Root(), slug+"."+extensionOf(collection))
+	return path.Join(collection.Root(), folder, slug+"."+extensionOf(collection))
 }
 
-func taken(fsys fs.FS, collection model.Collection, slug string) bool {
+func taken(fsys fs.FS, collection model.Collection, folder, slug string) bool {
 	for _, name := range []string{
-		path.Join(collection.Root(), slug+"."+extensionOf(collection)),
-		path.Join(collection.Root(), slug),
+		path.Join(collection.Root(), folder, slug+"."+extensionOf(collection)),
+		path.Join(collection.Root(), folder, slug),
 	} {
 		if _, err := fs.Stat(fsys, name); err == nil {
 			return true
@@ -422,4 +449,53 @@ func noModel(err error) error {
 		Reason: "this site's model cannot be read: " + err.Error(),
 		Detail: map[string]any{"why": err.Error()},
 	}
+}
+
+type Address struct {
+	Slug    string
+	Folder  string
+	Address string
+	Free    bool
+	File    string
+}
+
+func (s *Service) Address(ctx context.Context, actor policy.Actor, projectID uuid.UUID, asked NewPage) (Address, error) {
+	resource, err := s.reachable(ctx, actor, policy.ActionEditContent, projectID)
+	if err != nil {
+		return Address{}, err
+	}
+
+	site, done, err := s.sources.Site(ctx, projectID)
+	if err != nil {
+		return Address{}, err
+	}
+	defer done()
+
+	collection, err := collectionOf(site, asked.Section)
+	if err != nil {
+		return Address{}, err
+	}
+	slug, folder, err := addressOf(site.FS(), collection, asked)
+	if err != nil {
+		return Address{}, err
+	}
+
+	answer := Address{
+		Slug:    slug,
+		Folder:  folder,
+		Address: webAddress(collection, folder, slug),
+		Free:    !taken(site.FS(), collection, folder, slug),
+	}
+	if policy.Can(actor, policy.ActionSeeTechnicalDetail, resource) {
+		answer.File = newItemFile(collection, folder, slug)
+	}
+	return answer, nil
+}
+
+func webAddress(collection model.Collection, folder, slug string) string {
+	base := strings.TrimSpace(collection.PreviewURLBase)
+	if base == "" {
+		base = "/" + strings.TrimPrefix(strings.TrimPrefix(collection.Root(), "content"), "/")
+	}
+	return path.Join("/", base, folder, slug) + "/"
 }

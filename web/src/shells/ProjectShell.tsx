@@ -14,6 +14,7 @@ import { SyncIndicator, type SyncState } from "./SyncIndicator";
 import { TopBar } from "./TopBar";
 import type { Project } from "../lib/tenancy";
 import { say } from "../lib/say";
+import { QuickFind } from "../routes/content/QuickFind";
 
 export type ProjectShellProps = {
   project: Project;
@@ -109,6 +110,7 @@ export function ProjectShell({
         </TopBar>
 
         <main className="min-w-0 flex-1 p-8">{children}</main>
+        <QuickFind project={project.slug} />
       </div>
     </div>
   );

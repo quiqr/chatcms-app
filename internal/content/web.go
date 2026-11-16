@@ -248,27 +248,43 @@ func (w *Web) ContentMenu(ctx context.Context, who httpapi.Actor, organisation, 
 	return view, nil
 }
 
-func (w *Web) CollectionItems(ctx context.Context, who httpapi.Actor, organisation, project, collection string) (httpapi.CollectionItemsView, error) {
+func (w *Web) CollectionItems(ctx context.Context, who httpapi.Actor, organisation, project, collection string, query httpapi.ItemsQuery) (httpapi.CollectionItemsView, error) {
 	actor, id, err := w.reach(ctx, who, organisation, project)
 	if err != nil {
 		return httpapi.CollectionItemsView{}, err
 	}
-	listing, err := w.service.Items(ctx, actor, id, collection)
+	listing, err := w.service.Items(ctx, actor, id, collection, Query{
+		Q: query.Q, Folder: query.Folder, Sort: query.Sort,
+		Page: query.Page, PageSize: query.PageSize, Around: query.Around,
+	})
 	if err != nil {
 		return httpapi.CollectionItemsView{}, noModelIsRefusal(err)
 	}
 
 	view := httpapi.CollectionItemsView{
-		Key:      listing.Collection.Key,
-		Title:    titleOr(listing.Collection.Title, listing.Collection.Key),
-		ItemName: itemNameOf(listing.Collection),
-		Items:    make([]httpapi.CollectionItemView, 0, len(listing.Items)),
-		Total:    len(listing.Items),
-		Folders:  make([]httpapi.CollectionFolderView, 0, len(listing.Folders)),
+		Key:        listing.Collection.Key,
+		Title:      titleOr(listing.Collection.Title, listing.Collection.Key),
+		ItemName:   itemNameOf(listing.Collection),
+		Items:      make([]httpapi.CollectionItemView, 0, len(listing.Items)),
+		Total:      listing.Total,
+		All:        listing.All,
+		Sort:       listing.Sort,
+		Folders:    make([]httpapi.CollectionFolderView, 0, len(listing.Folders)),
+		ShowsPaths: listing.ShowsPaths,
+		HasImages:  listing.Collection.HasThumbnails(),
+	}
+	if listing.Around != nil {
+		view.Around = &httpapi.AroundView{
+			Index: listing.Around.Index, Previous: listing.Around.Previous, Next: listing.Around.Next,
+		}
 	}
 	for _, item := range listing.Items {
 		shown := httpapi.CollectionItemView{
 			Key: item.Key, Title: item.Title, Folder: item.Folder, Status: item.Status, By: item.By,
+			Date: item.Date, Author: item.Author, Summary: item.Summary, Thumbnail: item.Thumbnail,
+		}
+		if !item.Edited.IsZero() {
+			shown.Edited = item.Edited.Format(time.RFC3339)
 		}
 		if listing.ShowsPaths {
 			shown.Path = item.File
@@ -277,6 +293,63 @@ func (w *Web) CollectionItems(ctx context.Context, who httpapi.Actor, organisati
 	}
 	for _, folder := range listing.Folders {
 		view.Folders = append(view.Folders, httpapi.CollectionFolderView{Name: folder.Name, Label: folder.Name, Count: folder.Count})
+	}
+	return view, nil
+}
+
+func (w *Web) CreateItem(ctx context.Context, who httpapi.Actor, organisation, project, collection string, asked httpapi.NewItemRequest) (httpapi.PageView, error) {
+	actor, id, err := w.reach(ctx, who, organisation, project)
+	if err != nil {
+		return httpapi.PageView{}, err
+	}
+	made, err := w.service.Create(ctx, actor, id, NewPage{
+		Section: collection, Title: asked.Title, Folder: asked.Folder, Slug: asked.Slug,
+	})
+	var refused *httpapi.RefusedError
+	if errors.As(err, &refused) && refused.Key == "refused.page-name-taken" {
+		return httpapi.PageView{}, &httpapi.RefusedError{
+			Key:    "refused.item-address-taken",
+			Reason: "there is already an item at this address; change the title or the address",
+		}
+	}
+	if err != nil {
+		return httpapi.PageView{}, noModelIsRefusal(err)
+	}
+	return pageView(made), nil
+}
+
+func (w *Web) ItemAddress(ctx context.Context, who httpapi.Actor, organisation, project, collection string, asked httpapi.NewItemRequest) (httpapi.AddressView, error) {
+	actor, id, err := w.reach(ctx, who, organisation, project)
+	if err != nil {
+		return httpapi.AddressView{}, err
+	}
+	address, err := w.service.Address(ctx, actor, id, NewPage{
+		Section: collection, Title: asked.Title, Folder: asked.Folder, Slug: asked.Slug,
+	})
+	if err != nil {
+		return httpapi.AddressView{}, noModelIsRefusal(err)
+	}
+	return httpapi.AddressView{
+		Slug: address.Slug, Folder: address.Folder, Address: address.Address, Free: address.Free, File: address.File,
+	}, nil
+}
+
+func (w *Web) Search(ctx context.Context, who httpapi.Actor, organisation, project, q string) (httpapi.SearchView, error) {
+	actor, id, err := w.reach(ctx, who, organisation, project)
+	if err != nil {
+		return httpapi.SearchView{}, err
+	}
+	groups, err := w.service.Search(ctx, actor, id, q)
+	if err != nil {
+		return httpapi.SearchView{}, noModelIsRefusal(err)
+	}
+	view := httpapi.SearchView{Groups: make([]httpapi.SearchGroupView, 0, len(groups))}
+	for _, group := range groups {
+		shown := httpapi.SearchGroupView{Title: group.Title, Items: make([]httpapi.SearchItemView, 0, len(group.Items))}
+		for _, found := range group.Items {
+			shown.Items = append(shown.Items, httpapi.SearchItemView{Key: found.Key, Title: found.Title, Kind: found.Kind})
+		}
+		view.Groups = append(view.Groups, shown)
 	}
 	return view, nil
 }

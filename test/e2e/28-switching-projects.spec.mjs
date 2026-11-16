@@ -12,7 +12,7 @@ test("from one site to another, and back to all of them", async ({ signedIn: pag
     await expect(menu.getByRole("menuitem", { name: /Korenaar Bakery/ })).toHaveAttribute("aria-current", "true");
     await menu.getByRole("menuitem", { name: /Studio Noord/ }).click();
 
-    await expect(page).toHaveURL(/\/o\/technative\/p\/studio-noord\/content$/);
+    await expect(page).toHaveURL(/\/o\/technative\/p\/studio-noord\/content/);
   });
 
   await test.step("and every project is at the end of the same menu", async () => {

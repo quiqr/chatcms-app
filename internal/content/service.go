@@ -48,6 +48,7 @@ var (
 type Service struct {
 	sources Sources
 	sync    Syncer
+	cache   listings
 }
 
 func NewService(sources Sources, sync Syncer) (*Service, error) {
