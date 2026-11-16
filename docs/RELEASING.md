@@ -66,6 +66,10 @@ What changed for somebody using it, not what changed in the code. An entry
 nobody outside this repository could act on belongs in the OpenSpec archive,
 which is where the reasoning already is.
 
+An entry says what was done, compactly: at most two lines of at most 80
+characters, with no reasoning or history. `scripts/check-changelog.sh` holds
+every entry to that, and `nix flake check` runs it.
+
 Every archived change in `openspec/changes/archive/` is a release note waiting
 to be written: its proposal says why, in the words the change was argued in.
 

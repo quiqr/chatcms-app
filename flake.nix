@@ -220,6 +220,21 @@
         touch $out
       '';
 
+      mkChangelogCheck = { pkgs, ... }: pkgs.runCommand "chatcms-changelog"
+        {
+          nativeBuildInputs = [ pkgs.bash pkgs.gawk ];
+          src = nixpkgs.lib.fileset.toSource {
+            root = ./.;
+            fileset = nixpkgs.lib.fileset.unions [
+              ./CHANGELOG.md
+              ./scripts/check-changelog.sh
+            ];
+          };
+        } ''
+        bash $src/scripts/check-changelog.sh $src/CHANGELOG.md
+        touch $out
+      '';
+
       mkDevShell = { pkgs, system, ... }: pkgs.mkShell {
         name = "chatcms";
         packages = with pkgs; [
@@ -290,6 +305,7 @@
         sqlc = mkSqlcCheck args;
         dev-scripts = mkDevScriptsCheck args;
         release = mkReleaseCheck args;
+        changelog = mkChangelogCheck args;
       } // nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
         # A virtual machine can only be booted on Linux, so this check exists
         # there and not on a Mac, where the rest still runs.

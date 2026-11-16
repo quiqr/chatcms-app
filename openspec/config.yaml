@@ -35,7 +35,8 @@ rules:
     - Every task that adds behaviour names the test that proves it.
     - Include a task for adding the change's check to flake.nix when it
       produces a new buildable or runnable artifact.
-    - Include a task for updating CHANGELOG.md under [Unreleased].
+    - Include a task for updating CHANGELOG.md under [Unreleased], with each
+      entry at most two lines of at most 80 characters saying what was done.
 
 operations:
   apply:
