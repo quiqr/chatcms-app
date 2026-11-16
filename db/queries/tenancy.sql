@@ -161,3 +161,9 @@ SELECT person_id FROM project_members WHERE project_id = $1;
 
 -- name: SetProjectHugo :exec
 UPDATE projects SET hugo_version = $2, hugo_extended = $3, updated_at = now() WHERE id = $1;
+
+-- name: SetProjectHosted :exec
+UPDATE projects SET hosted = $2, updated_at = now() WHERE id = $1;
+
+-- name: ConnectProject :exec
+UPDATE projects SET remote = $2, hosted = FALSE, updated_at = now() WHERE id = $1;

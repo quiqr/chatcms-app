@@ -103,6 +103,36 @@ describe("the onboarding screen", () => {
     expect(screen.getByText("Ready to edit")).toBeInTheDocument();
   });
 
+  it("brings a Quiqr Desktop export in with no git address", async () => {
+    const asked: unknown[] = [];
+    const kept = { ...aReadySite, kind: "export", remote: undefined, hosted: true };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((path: string, options?: { method?: string; body?: string }) => {
+        if (options?.method === "POST" && path === `${base}/import`) {
+          asked.push(JSON.parse(String(options.body)));
+          return Promise.resolve({ ok: true, status: 201, json: async () => kept });
+        }
+        if (path === `${base}/site`) {
+          const body = asked.length > 0 ? kept : { kind: "none", isHugoSite: false, hasModel: false, ready: false, pages: 0, collections: 0 };
+          return Promise.resolve({ ok: true, status: 200, json: async () => body });
+        }
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ to: "main-line", form: "source", publicKey: "", advice: "" }) });
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("radio", { name: "From Quiqr Desktop" }));
+    expect(screen.getByText(/ChatCMS keeps the site until you connect it to git/)).toBeInTheDocument();
+    await fill(screen.getByLabelText("Folder holding the exported site"), "/srv/exports/korenaar");
+    await user.click(screen.getByRole("button", { name: "Bring it in" }));
+
+    expect(await screen.findByText("Ready to edit")).toBeInTheDocument();
+    expect(asked).toEqual([{ kind: "export", address: "/srv/exports/korenaar", remote: "" }]);
+    expect(await screen.findByText(/No key is needed while ChatCMS keeps the site/)).toBeInTheDocument();
+  });
+
   it("shows the key to copy and never a private one", async () => {
     vi.stubGlobal(
       "fetch",

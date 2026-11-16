@@ -28,6 +28,7 @@ type Sources interface {
 	// Resource says what a project is, in the terms the policy function
 	// asks about, so this package decides nothing about roles itself.
 	Resource(ctx context.Context, projectID uuid.UUID) (policy.Resource, error)
+	Kept(ctx context.Context, projectID uuid.UUID) (bool, error)
 }
 
 type Engine interface {
@@ -44,6 +45,11 @@ type Recorder interface {
 }
 
 var ErrIncomplete = errors.New("publish: the service is missing a part it needs")
+
+var ErrNotConnected = &httpapi.RefusedError{
+	Key:    "refused.site-not-connected",
+	Reason: "this site is not connected to a repository yet; connect it in the project settings",
+}
 
 type Service struct {
 	sources Sources
@@ -95,6 +101,13 @@ const DefaultListLength = 50
 func (s *Service) Run(ctx context.Context, actor policy.Actor, projectID uuid.UUID, note string) (Record, error) {
 	if err := s.allowed(ctx, actor, policy.ActionPublish, projectID); err != nil {
 		return Record{}, err
+	}
+	kept, err := s.sources.Kept(ctx, projectID)
+	if err != nil {
+		return Record{}, err
+	}
+	if kept {
+		return Record{}, ErrNotConnected
 	}
 
 	site, done, err := s.sources.Site(ctx, projectID)

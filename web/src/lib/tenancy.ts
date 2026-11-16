@@ -78,6 +78,7 @@ export type DeployKey = {
 export type SiteReport = {
   kind: string;
   remote?: string;
+  hosted?: boolean;
   isHugoSite: boolean;
   hasModel: boolean;
   ready: boolean;
@@ -123,6 +124,10 @@ export function importSite(
   body: { kind: string; address: string; remote?: string },
 ) {
   return post<SiteReport>(`${project(organisation, name)}/import`, body);
+}
+
+export function connectSite(organisation: string, name: string, remote: string) {
+  return put<SiteReport>(`${project(organisation, name)}/remote`, { remote });
 }
 
 export function testConnection(organisation: string, name: string) {

@@ -117,6 +117,9 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 	tenancyStore := tenancy.NewStore(db)
 	server.tenancy = tenancy.NewService(tenancyStore, server.auth)
 	server.tenancy.MakesCopies(wholesite.NewCopier(server.sites))
+	server.tenancy.ForgetsKeptSites(func(_ context.Context, projectID uuid.UUID) error {
+		return server.sites.Unhost(projectID.String())
+	})
 	server.tenancy.KnowsWhatTheyChose(server.auth)
 
 	adminStore := admin.NewStore(db)
@@ -173,6 +176,7 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 		Administration: server.admin,
 		Onboarding:     server.onboarding,
 		Templates:      server.onboarding,
+		Connect:        server.onboarding,
 		Publish:        server.publish,
 		History:        server.history,
 		Content:        server.content,
@@ -497,7 +501,7 @@ func (s *Server) startPublishing(ctx context.Context, tenancyStore *tenancy.Stor
 }
 
 func (s *Server) siteFor(ctx context.Context, projectID uuid.UUID) (fs.FS, error) {
-	repository, err := s.sites.Open(ctx, projectID.String())
+	repository, err := openSite(ctx, s.sites, projectID)
 	if err != nil {
 		return nil, err
 	}

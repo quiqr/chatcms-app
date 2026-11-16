@@ -32,7 +32,9 @@ half SHALL be available to show; the private half SHALL be stored encrypted.
 ### Requirement: A site arrives from a git repository, an export, or a template
 
 Importing SHALL accept a git repository address, a directory holding a site
-exported from the Quiqr desktop app, or a template from the template list.
+exported from the Quiqr desktop app, or a template from the template list. An
+export or a template MAY come without an address, and is then kept by ChatCMS
+until it is connected.
 
 #### Scenario: From a repository
 
@@ -70,6 +72,26 @@ exported from the Quiqr desktop app, or a template from the template list.
 - **WHEN** the same site is imported once as an export and once as the
   repository made from that export
 - **THEN** the two projects hold the same content
+
+#### Scenario: A template without an address
+
+- **WHEN** a template is chosen and no address is given
+- **THEN** the site starts as that template's files in one version named
+  after the template
+- **AND** the project SHALL say its site is kept by ChatCMS and not connected
+- **AND** no key SHALL be needed
+
+#### Scenario: An export without an address
+
+- **WHEN** a directory holding an exported site is given and no address
+- **THEN** the site becomes the project's content
+- **AND** the project SHALL say its site is kept by ChatCMS and not connected
+
+#### Scenario: A repository import without an address
+
+- **WHEN** a git import is asked for with no address
+- **THEN** importing SHALL be refused, because the address is where the site
+  comes from
 
 ### Requirement: What arrived is inspected and reported plainly
 

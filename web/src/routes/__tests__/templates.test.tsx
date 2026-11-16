@@ -236,7 +236,33 @@ describe("naming a project made from a template", () => {
     at("/o/technative/new/template/Summer", stepRoute);
 
     expect(await screen.findByRole("note")).toHaveTextContent("asks for Hugo 0.101.0 extended");
-    expect(screen.getByRole("button", { name: "Continue to the key" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
+  });
+
+  it("continues without a git address, copying the template in at once", async () => {
+    const calls = serve({
+      [templates]: { body: gallery() },
+      [projects]: { body: usage(1) },
+      [`POST ${projects}`]: {
+        status: 201,
+        body: { slug: "summer", name: "Summer", domain: "", yourRole: "implementer", youMay: [], unpublished: 0 },
+      },
+      [`POST ${projects}/summer/import`]: {
+        status: 201,
+        body: { kind: "template", hosted: true, isHugoSite: true, hasModel: true, ready: true, pages: 4, collections: 1 },
+      },
+    });
+    const user = userEvent.setup();
+    at("/o/technative/new/template/Summer", stepRoute);
+
+    await screen.findByRole("heading", { name: "Start from Summer" });
+    expect(screen.getByLabelText("Empty git address for your copy")).not.toBeRequired();
+    expect(screen.getByText(/Leave it empty and ChatCMS keeps the site/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(await screen.findByText("the setup screen")).toBeInTheDocument();
+    const imported = calls.find((call) => call.method === "POST" && call.path === `${projects}/summer/import`);
+    expect(imported?.body).toEqual({ kind: "template", address: "Summer", remote: "" });
   });
 
   it("says what is missing instead of greying the button out", async () => {
@@ -418,6 +444,54 @@ describe("copying the template in during setup", () => {
       address: "Summer",
       remote: "git@github.com:technative/recipes.git",
     });
+  });
+});
+
+describe("copying a kept template in during setup", () => {
+  const base = "/api/organisations/technative/projects/recipes";
+  const nothingYet = { kind: "none", isHugoSite: false, hasModel: false, ready: false, pages: 0, collections: 0 };
+  const kept = { kind: "template", hosted: true, isHugoSite: true, hasModel: true, ready: true, pages: 4, collections: 1 };
+
+  it("copies the template in at once, with no key", async () => {
+    const calls: Call[] = [];
+    let site: unknown = nothingYet;
+    serve(
+      {
+        [`${base}/key`]: { body: { publicKey: "", advice: "" } },
+        [`${base}/publishing`]: { body: { to: "main-line", form: "source" } },
+        get [`${base}/site`]() {
+          return { body: site };
+        },
+        [`POST ${base}/import`]: {
+          status: 201,
+          get body() {
+            site = kept;
+            return kept;
+          },
+        },
+      },
+      calls,
+    );
+    render(
+      <Inside>
+        <MemoryRouter initialEntries={["/o/technative/p/recipes/setup?template=Summer&remote="]}>
+          <Routes>
+            <Route path="/o/:organisation/p/:project/setup" element={<OnboardingPage />} />
+          </Routes>
+        </MemoryRouter>
+      </Inside>,
+    );
+    const user = userEvent.setup();
+
+    expect(await screen.findByText(/ChatCMS keeps the site until you connect it/)).toBeInTheDocument();
+    const copy = screen.getByRole("button", { name: "Copy the template in" });
+    expect(copy).toBeEnabled();
+    expect(screen.getByText(/No key is needed while ChatCMS keeps the site/)).toBeInTheDocument();
+    await user.click(copy);
+
+    expect(await screen.findByText("Ready to edit")).toBeInTheDocument();
+    const imported = calls.find((call) => call.method === "POST" && call.path === `${base}/import`);
+    expect(imported?.body).toEqual({ kind: "template", address: "Summer", remote: "" });
   });
 });
 

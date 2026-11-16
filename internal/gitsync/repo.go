@@ -52,6 +52,7 @@ type Repo interface {
 	Resolve(ctx context.Context, resolutions map[string][]byte) (SyncResult, error)
 	// Abandon gives up an exchange and restores the site as it was.
 	Abandon(ctx context.Context) error
+	MoveTo(ctx context.Context, remote string) error
 	// Close releases the working copy.
 	Close() error
 }

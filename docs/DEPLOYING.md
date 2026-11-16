@@ -53,9 +53,12 @@ database is worth nothing without it.
 | The master key | Without it every deploy key is unreadable | Wherever you keep secrets, separately from the database |
 | PostgreSQL | People, projects, roles, publishes, builds, and the picture on each account | `pg_dump`, as for any database |
 | `stateDir` | Working copies and thumbnails | Not strictly needed: working copies are clones and thumbnails are a cache. Backing it up only saves a re-clone. |
+| `stateDir/hosted/` | Sites kept by ChatCMS that are not connected to a repository yet | Back it up: until such a site is connected, this is the only copy of its versions. |
 
-Content is never only here. Every page, picture and version of a site is in
-the customer's own git remote, which is the point.
+Content is never only here, except for a site kept by ChatCMS. Every page,
+picture and version of a connected site is in the customer's own git remote,
+which is the point. A kept site lives in `stateDir/hosted/` until somebody
+connects it in the project settings.
 
 A person's picture is the exception, and is deliberately in the database
 rather than in any site: it belongs to the account, it crosses

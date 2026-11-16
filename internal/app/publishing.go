@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -44,7 +45,7 @@ func (c workingCopy) Model() (*model.Model, error) {
 }
 
 func (p publishSources) Site(ctx context.Context, projectID uuid.UUID) (publish.Site, func() error, error) {
-	repository, err := p.sites.Open(ctx, projectID.String())
+	repository, err := p.open(ctx, projectID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -57,6 +58,14 @@ func (p publishSources) Settings(ctx context.Context, projectID uuid.UUID) (work
 		return workflows.Settings{}, err
 	}
 	return workflows.Settings{ChatCMSBuilds: row.PublishForm == string(onboarding.PublishBuilt)}, nil
+}
+
+func (p publishSources) Kept(ctx context.Context, projectID uuid.UUID) (bool, error) {
+	row, err := p.queries.GetProject(ctx, pgUUID(projectID))
+	if err != nil {
+		return false, err
+	}
+	return row.Hosted, nil
 }
 
 func (p publishSources) BaseURL(ctx context.Context, projectID uuid.UUID) (string, error) {
@@ -118,7 +127,7 @@ type historyCopy struct {
 }
 
 func (h historySources) Site(ctx context.Context, projectID uuid.UUID) (history.Site, func() error, error) {
-	repository, err := h.sites.Open(ctx, projectID.String())
+	repository, err := h.open(ctx, projectID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -134,7 +143,7 @@ func (h historySources) Notes(ctx context.Context, projectID uuid.UUID) (map[str
 		return nil, err
 	}
 
-	repository, err := h.sites.Open(ctx, projectID.String())
+	repository, err := h.open(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +189,7 @@ type contentSources struct {
 }
 
 func (c contentSources) Site(ctx context.Context, projectID uuid.UUID) (content.Site, func() error, error) {
-	repository, err := c.sites.Open(ctx, projectID.String())
+	repository, err := c.open(ctx, projectID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -244,7 +253,7 @@ type mediaSources struct {
 }
 
 func (m mediaSources) Site(ctx context.Context, projectID uuid.UUID) (media.Site, func() error, error) {
-	repository, err := m.sites.Open(ctx, projectID.String())
+	repository, err := m.open(ctx, projectID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -260,7 +269,7 @@ type syncSources struct {
 }
 
 func (s syncSources) Site(ctx context.Context, projectID uuid.UUID) (sitesync.Site, func() error, error) {
-	repository, err := s.sites.Open(ctx, projectID.String())
+	repository, err := s.open(ctx, projectID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -280,7 +289,7 @@ func (s syncSources) Technical(ctx context.Context, projectID uuid.UUID) (sitesy
 		technical.Line = row.PublishBranch
 	}
 
-	repository, err := s.sites.Open(ctx, projectID.String())
+	repository, err := s.open(ctx, projectID)
 	if err == nil {
 		defer repository.Close()
 		if versions, err := repository.History(ctx, 1); err == nil && len(versions) > 0 {
@@ -303,3 +312,20 @@ func (p previewSources) Dir(ctx context.Context, projectID uuid.UUID) (string, e
 }
 
 var _ preview.Sources = previewSources{}
+
+func (p publishSources) open(ctx context.Context, projectID uuid.UUID) (gitsync.Repo, error) {
+	return openSite(ctx, p.sites, projectID)
+}
+
+var errNothingBroughtIn = &httpapi.RefusedError{
+	Key:    "refused.nothing-brought-in-yet",
+	Reason: "nothing has been brought into this site yet; finish setting it up first",
+}
+
+func openSite(ctx context.Context, sites *gitsync.Sites, projectID uuid.UUID) (gitsync.Repo, error) {
+	repository, err := sites.Open(ctx, projectID.String())
+	if errors.Is(err, gitsync.ErrNotAWorkingCopy) {
+		return nil, errNothingBroughtIn
+	}
+	return repository, err
+}

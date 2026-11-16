@@ -121,7 +121,9 @@ project entry at all.
 ## 6. Open decisions (assumed for now)
 
 1. The user supplies an empty repository (no ChatCMS-hosted repositories in
-   milestone 1).
+   milestone 1). Changed by `hosted-until-connected`: the address may be left
+   empty, and ChatCMS then keeps the site in `<state>/hosted/` until it is
+   connected to an empty repository in the project settings.
 2. The copy starts with a fresh git history and is not linked to the template
    for later updates.
 

@@ -35,6 +35,10 @@ func (s *sources) Settings(ctx context.Context, projectID uuid.UUID) (workflows.
 	return s.settings, nil
 }
 
+func (s *sources) Kept(ctx context.Context, projectID uuid.UUID) (bool, error) {
+	return false, nil
+}
+
 func (s *sources) BaseURL(ctx context.Context, projectID uuid.UUID) (string, error) {
 	return s.baseURL, nil
 }

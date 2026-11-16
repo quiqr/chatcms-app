@@ -29,6 +29,20 @@ func (q *Queries) BringProjectBack(ctx context.Context, id pgtype.UUID) error {
 	return err
 }
 
+const connectProject = `-- name: ConnectProject :exec
+UPDATE projects SET remote = $2, hosted = FALSE, updated_at = now() WHERE id = $1
+`
+
+type ConnectProjectParams struct {
+	ID     pgtype.UUID `json:"id"`
+	Remote string      `json:"remote"`
+}
+
+func (q *Queries) ConnectProject(ctx context.Context, arg ConnectProjectParams) error {
+	_, err := q.db.Exec(ctx, connectProject, arg.ID, arg.Remote)
+	return err
+}
+
 const countOrganisationAdmins = `-- name: CountOrganisationAdmins :one
 SELECT count(*) FROM organisation_members WHERE organisation_id = $1 AND role = 'admin'
 `
@@ -78,7 +92,7 @@ func (q *Queries) CreateOrganisation(ctx context.Context, arg CreateOrganisation
 }
 
 const createProject = `-- name: CreateProject :one
-INSERT INTO projects (organisation_id, slug, name, domain) VALUES ($1, $2, $3, $4) RETURNING id, organisation_id, slug, name, domain, created_at, updated_at, remote, source_kind, source_address, deploy_public_key, deploy_private_key, publish_to, publish_branch, publish_form, archived_at, hugo_version, hugo_extended
+INSERT INTO projects (organisation_id, slug, name, domain) VALUES ($1, $2, $3, $4) RETURNING id, organisation_id, slug, name, domain, created_at, updated_at, remote, source_kind, source_address, deploy_public_key, deploy_private_key, publish_to, publish_branch, publish_form, archived_at, hugo_version, hugo_extended, hosted
 `
 
 type CreateProjectParams struct {
@@ -115,6 +129,7 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 		&i.ArchivedAt,
 		&i.HugoVersion,
 		&i.HugoExtended,
+		&i.Hosted,
 	)
 	return i, err
 }
@@ -160,7 +175,7 @@ func (q *Queries) GetOrganisationBySlug(ctx context.Context, slug string) (Organ
 }
 
 const getProject = `-- name: GetProject :one
-SELECT id, organisation_id, slug, name, domain, created_at, updated_at, remote, source_kind, source_address, deploy_public_key, deploy_private_key, publish_to, publish_branch, publish_form, archived_at, hugo_version, hugo_extended FROM projects WHERE id = $1
+SELECT id, organisation_id, slug, name, domain, created_at, updated_at, remote, source_kind, source_address, deploy_public_key, deploy_private_key, publish_to, publish_branch, publish_form, archived_at, hugo_version, hugo_extended, hosted FROM projects WHERE id = $1
 `
 
 func (q *Queries) GetProject(ctx context.Context, id pgtype.UUID) (Project, error) {
@@ -185,12 +200,13 @@ func (q *Queries) GetProject(ctx context.Context, id pgtype.UUID) (Project, erro
 		&i.ArchivedAt,
 		&i.HugoVersion,
 		&i.HugoExtended,
+		&i.Hosted,
 	)
 	return i, err
 }
 
 const getProjectBySlug = `-- name: GetProjectBySlug :one
-SELECT projects.id, projects.organisation_id, projects.slug, projects.name, projects.domain, projects.created_at, projects.updated_at, projects.remote, projects.source_kind, projects.source_address, projects.deploy_public_key, projects.deploy_private_key, projects.publish_to, projects.publish_branch, projects.publish_form, projects.archived_at, projects.hugo_version, projects.hugo_extended FROM projects
+SELECT projects.id, projects.organisation_id, projects.slug, projects.name, projects.domain, projects.created_at, projects.updated_at, projects.remote, projects.source_kind, projects.source_address, projects.deploy_public_key, projects.deploy_private_key, projects.publish_to, projects.publish_branch, projects.publish_form, projects.archived_at, projects.hugo_version, projects.hugo_extended, projects.hosted FROM projects
 JOIN organisations ON organisations.id = projects.organisation_id
 WHERE organisations.slug = $1 AND projects.slug = $2
 `
@@ -222,6 +238,7 @@ func (q *Queries) GetProjectBySlug(ctx context.Context, arg GetProjectBySlugPara
 		&i.ArchivedAt,
 		&i.HugoVersion,
 		&i.HugoExtended,
+		&i.Hosted,
 	)
 	return i, err
 }
@@ -462,7 +479,7 @@ func (q *Queries) ListProjectMembershipsForPerson(ctx context.Context, personID 
 }
 
 const listProjectsInOrganisation = `-- name: ListProjectsInOrganisation :many
-SELECT id, organisation_id, slug, name, domain, created_at, updated_at, remote, source_kind, source_address, deploy_public_key, deploy_private_key, publish_to, publish_branch, publish_form, archived_at, hugo_version, hugo_extended FROM projects WHERE organisation_id = $1 ORDER BY name
+SELECT id, organisation_id, slug, name, domain, created_at, updated_at, remote, source_kind, source_address, deploy_public_key, deploy_private_key, publish_to, publish_branch, publish_form, archived_at, hugo_version, hugo_extended, hosted FROM projects WHERE organisation_id = $1 ORDER BY name
 `
 
 func (q *Queries) ListProjectsInOrganisation(ctx context.Context, organisationID pgtype.UUID) ([]Project, error) {
@@ -493,6 +510,7 @@ func (q *Queries) ListProjectsInOrganisation(ctx context.Context, organisationID
 			&i.ArchivedAt,
 			&i.HugoVersion,
 			&i.HugoExtended,
+			&i.Hosted,
 		); err != nil {
 			return nil, err
 		}
@@ -659,6 +677,20 @@ type SetProjectDeployKeyParams struct {
 
 func (q *Queries) SetProjectDeployKey(ctx context.Context, arg SetProjectDeployKeyParams) error {
 	_, err := q.db.Exec(ctx, setProjectDeployKey, arg.ID, arg.DeployPublicKey, arg.DeployPrivateKey)
+	return err
+}
+
+const setProjectHosted = `-- name: SetProjectHosted :exec
+UPDATE projects SET hosted = $2, updated_at = now() WHERE id = $1
+`
+
+type SetProjectHostedParams struct {
+	ID     pgtype.UUID `json:"id"`
+	Hosted bool        `json:"hosted"`
+}
+
+func (q *Queries) SetProjectHosted(ctx context.Context, arg SetProjectHostedParams) error {
+	_, err := q.db.Exec(ctx, setProjectHosted, arg.ID, arg.Hosted)
 	return err
 }
 

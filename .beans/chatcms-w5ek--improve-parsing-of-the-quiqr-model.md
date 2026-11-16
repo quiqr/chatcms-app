@@ -1,11 +1,11 @@
 ---
 # chatcms-w5ek
 title: improve parsing of the quiqr menu's
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-11-16T16:05:41Z
-updated_at: 2026-11-16T16:41:57Z
+updated_at: 2026-11-16T21:50:58Z
 ---
 
 This might be to big but what could be achieved right now:

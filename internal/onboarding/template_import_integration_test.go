@@ -165,19 +165,6 @@ func TestATemplateThatIsNotInTheList(t *testing.T) {
 	}
 }
 
-func TestATemplateNeedsARepository(t *testing.T) {
-	h := newHarness(t)
-	templateCatalogue(t, h)
-	project := h.projectWithKey(t, "bakery")
-
-	_, err := h.importer.Import(t.Context(), project.ID, onboarding.Request{
-		Kind: onboarding.SourceTemplate, Address: "Bakery",
-	})
-	if !errors.Is(err, onboarding.ErrNeedsARepository) {
-		t.Errorf("Import() error = %v, want ErrNeedsARepository", err)
-	}
-}
-
 func TestWithoutAGalleryNoTemplateCanBeChosen(t *testing.T) {
 	h := newHarness(t)
 	project := h.projectWithKey(t, "bakery")

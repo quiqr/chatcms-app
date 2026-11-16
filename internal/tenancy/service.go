@@ -31,6 +31,11 @@ type Service struct {
 	// preferences answers what somebody chose about how the application
 	// behaves, which rides along in the one answer a screen asks for.
 	preferences Preferences
+	forget      func(ctx context.Context, projectID uuid.UUID) error
+}
+
+func (s *Service) ForgetsKeptSites(forget func(ctx context.Context, projectID uuid.UUID) error) {
+	s.forget = forget
 }
 
 // Preferences is the little of identity that tenancy needs.
@@ -617,7 +622,13 @@ func (s *Service) RemoveProject(ctx context.Context, who httpapi.Actor, organisa
 	if err != nil {
 		return err
 	}
-	return s.store.RemoveProject(ctx, found.ID)
+	if err := s.store.RemoveProject(ctx, found.ID); err != nil {
+		return err
+	}
+	if s.forget != nil {
+		return s.forget(ctx, found.ID)
+	}
+	return nil
 }
 
 // Copies is what the service needs to make one site from another. It is an

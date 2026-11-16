@@ -106,6 +106,7 @@ type Project struct {
 	ArchivedAt       pgtype.Timestamptz `json:"archived_at"`
 	HugoVersion      string             `json:"hugo_version"`
 	HugoExtended     bool               `json:"hugo_extended"`
+	Hosted           bool               `json:"hosted"`
 }
 
 type ProjectMember struct {

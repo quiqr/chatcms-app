@@ -204,7 +204,7 @@ func newHarness(t *testing.T, builds bool) *harness {
 	}
 
 	service, err := publish.NewService(theSources{sites: sites, organisation: organisation.ID,
-		builds: builds, baseURL: "https://korenaar.example/"}, engine, publish.NewRecords(db.Queries))
+		builds: builds, baseURL: "https://korenaar.example/", queries: db.Queries}, engine, publish.NewRecords(db.Queries))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -245,6 +245,7 @@ type theSources struct {
 	organisation uuid.UUID
 	builds       bool
 	baseURL      string
+	queries      *store.Queries
 }
 
 func (s theSources) Site(ctx context.Context, projectID uuid.UUID) (publish.Site, func() error, error) {
@@ -267,6 +268,11 @@ func (s siteOf) Model() (*model.Model, error) {
 
 func (s theSources) Settings(ctx context.Context, projectID uuid.UUID) (workflows.Settings, error) {
 	return workflows.Settings{ChatCMSBuilds: s.builds}, nil
+}
+
+func (s theSources) Kept(ctx context.Context, projectID uuid.UUID) (bool, error) {
+	row, err := s.queries.GetProject(ctx, pgtype.UUID{Bytes: projectID, Valid: true})
+	return row.Hosted, err
 }
 
 func (s theSources) BaseURL(ctx context.Context, projectID uuid.UUID) (string, error) {
@@ -565,5 +571,39 @@ func TestPublishingNothingIsNotAFailure(t *testing.T) {
 	}
 	if record.ChangeCount != 0 {
 		t.Errorf("ChangeCount = %d, want nothing", record.ChangeCount)
+	}
+}
+
+func TestAKeptSiteIsNotPublishedUntilConnected(t *testing.T) {
+	h := newHarness(t, false)
+	setKept := func(kept bool) {
+		if _, err := h.db.Pool().Exec(t.Context(), `UPDATE projects SET hosted = $2 WHERE id = $1`,
+			pgtype.UUID{Bytes: h.project.ID, Valid: true}, kept); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	setKept(true)
+	h.edit(t, map[string]string{"content/news.md": "---\ntitle: News\n---\n"})
+	_, err := h.web.Publish(t.Context(), h.editor, "technative", "korenaar", "Too soon")
+	var refused *httpapi.RefusedError
+	if !errors.As(err, &refused) || refused.Key != "refused.site-not-connected" {
+		t.Fatalf("Publish() error = %v, want refused.site-not-connected", err)
+	}
+	history, err := h.web.PublishHistory(t.Context(), h.editor, "technative", "korenaar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(history) != 0 {
+		t.Errorf("history holds %d publishes after a refusal, want none", len(history))
+	}
+
+	setKept(false)
+	record, err := h.web.Publish(t.Context(), h.editor, "technative", "korenaar", "Now")
+	if err != nil {
+		t.Fatalf("Publish() after connecting error = %v", err)
+	}
+	if record.State != string(publish.Succeeded) {
+		t.Errorf("State = %q, want succeeded", record.State)
 	}
 }

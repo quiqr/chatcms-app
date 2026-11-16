@@ -7,7 +7,8 @@ import { useAsync } from "../lib/useAsync";
 import { changeProject, readProject, removeProject } from "../lib/tenancy";
 import { useHere } from "../lib/whoami";
 import { canSeeTechnicalDetail } from "../shells/roles";
-import { KeyPanel, PublishingPanel } from "./setup/Panels";
+import { PublishingPanel } from "./setup/Panels";
+import { ConnectPanel } from "./setup/ConnectPanel";
 import { HugoPanel } from "./setup/HugoPanel";
 import { say } from "../lib/say";
 import { whatWentWrong } from "../lib/api";
@@ -126,7 +127,7 @@ export function ProjectSettingsPage() {
       {canSeeTechnicalDetail(here.yourRole) && (
         <>
           <Panel title={say("project-settings.where-the-site-lives")}>
-            <KeyPanel organisation={organisation} project={project} onTrouble={setTrouble} />
+            <ConnectPanel organisation={organisation} project={project} onTrouble={setTrouble} />
           </Panel>
 
           <Panel title={say("project-settings.how-it-is-published")}>

@@ -29,6 +29,7 @@ type KeyLookup func(ctx context.Context, siteID string) (string, error)
 type Sites struct {
 	cfg    Config
 	root   string
+	hosted string
 	keyFor KeyLookup
 }
 
@@ -36,7 +37,7 @@ type Sites struct {
 // the configuration names, which is how the tests run against repositories on
 // disk that need none.
 func NewSites(cfg Config, root string, keyFor KeyLookup) *Sites {
-	return &Sites{cfg: cfg, root: root, keyFor: keyFor}
+	return &Sites{cfg: cfg, root: root, hosted: filepath.Join(filepath.Dir(root), "hosted"), keyFor: keyFor}
 }
 
 // configFor is the configuration for one site, carrying that site's own key.
@@ -318,4 +319,47 @@ func (s *Sites) RemoteIsEmpty(ctx context.Context, id, remote string) (bool, err
 		return false, classifyRemote(err)
 	}
 	return strings.TrimSpace(out) == "", nil
+}
+
+func (s *Sites) HostedPath(id string) (string, error) {
+	if err := checkSiteID(id); err != nil {
+		return "", err
+	}
+	return filepath.Join(s.hosted, id+".git"), nil
+}
+
+func (s *Sites) Host(ctx context.Context, id string) (string, error) {
+	path, err := s.HostedPath(id)
+	if err != nil {
+		return "", err
+	}
+	if err := s.cfg.validate(); err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(s.hosted, 0o700); err != nil {
+		return "", fmt.Errorf("preparing the kept repositories failed: %w", err)
+	}
+	if _, err := os.Stat(path); err == nil {
+		return "", ErrAlreadyAWorkingCopy
+	}
+	home, err := gitHome(path)
+	if err != nil {
+		return "", err
+	}
+	if _, err := newRunner(s.cfg, s.hosted, home).run(ctx,
+		"init", "--bare", "--initial-branch=main", path); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+func (s *Sites) Unhost(id string) error {
+	path, err := s.HostedPath(id)
+	if err != nil {
+		return err
+	}
+	if err := os.RemoveAll(path); err != nil {
+		return fmt.Errorf("removing the kept repository failed: %w", err)
+	}
+	return nil
 }

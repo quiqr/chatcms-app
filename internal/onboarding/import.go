@@ -61,6 +61,7 @@ var (
 
 	ErrRepositoryNotEmpty = errors.New("that repository is not empty; a template needs an empty one")
 	ErrNeedsARepository   = errors.New("a template needs an empty repository to be copied into")
+	ErrNeedsAnAddress     = errors.New("a site from git needs the address it comes from")
 )
 
 // branchShape is deliberately stricter than git, because a name that works
@@ -100,6 +101,7 @@ type Result struct {
 	Inspection Inspection `json:"inspection"`
 	Remote     string     `json:"remote"`
 	Kind       SourceKind `json:"kind"`
+	Hosted     bool       `json:"hosted"`
 }
 
 // Import brings a site in and says what arrived.
@@ -112,29 +114,57 @@ func (i *Importer) Import(ctx context.Context, projectID uuid.UUID, request Requ
 	var repository gitsync.Repo
 	var err error
 
+	hosted := remote == "" && (request.Kind == SourceTemplate || request.Kind == SourceExport)
+	sendTo := remote
+	if hosted {
+		if request.Kind == SourceExport {
+			if _, openErr := exportAt(address); openErr != nil {
+				return Result{}, openErr
+			}
+		} else if _, findErr := i.templates.Find(ctx, address); findErr != nil {
+			return Result{}, findErr
+		}
+		sendTo, err = i.sites.Host(ctx, siteID)
+		if err != nil {
+			return Result{}, err
+		}
+	}
+
 	switch request.Kind {
 	case SourceRepository:
+		if address == "" {
+			return Result{}, ErrNeedsAnAddress
+		}
 		if remote == "" {
 			remote = address
 		}
 		repository, err = i.sites.Clone(ctx, siteID, address)
 
 	case SourceTemplate:
-		repository, err = i.startFromTemplate(ctx, projectID, remote, address)
+		repository, err = i.startFromTemplate(ctx, projectID, sendTo, address, hosted)
 
 	case SourceExport:
 		content, openErr := exportAt(address)
 		if openErr != nil {
 			return Result{}, openErr
 		}
-		repository, err = i.sites.Create(ctx, siteID, remote, content, i.who,
+		repository, err = i.sites.Create(ctx, siteID, sendTo, content, i.who,
 			"Import the site from Quiqr Desktop")
+		if err == nil && hosted {
+			if _, err = repository.Publish(ctx); err != nil {
+				repository.Close()
+				i.forget(siteID)
+			}
+		}
 
 	default:
 		return Result{}, fmt.Errorf("%q is not a way to import a site", request.Kind)
 	}
 
 	if err != nil {
+		if hosted {
+			_ = i.sites.Unhost(siteID)
+		}
 		return Result{}, err
 	}
 	defer repository.Close()
@@ -147,15 +177,28 @@ func (i *Importer) Import(ctx context.Context, projectID uuid.UUID, request Requ
 	}); err != nil {
 		return Result{}, fmt.Errorf("recording where the site came from failed: %w", err)
 	}
+	if err := i.db.Queries.SetProjectHosted(ctx, store.SetProjectHostedParams{
+		ID:     pgtype.UUID{Bytes: projectID, Valid: true},
+		Hosted: hosted,
+	}); err != nil {
+		return Result{}, fmt.Errorf("recording where the site is kept failed: %w", err)
+	}
 
 	return Result{
 		Inspection: Inspect(repository.FS()),
 		Remote:     remote,
 		Kind:       request.Kind,
+		Hosted:     hosted,
 	}, nil
 }
 
-func (i *Importer) startFromTemplate(ctx context.Context, projectID uuid.UUID, remote, id string) (gitsync.Repo, error) {
+func (i *Importer) forget(siteID string) {
+	if dir, err := i.sites.Dir(siteID); err == nil {
+		_ = os.RemoveAll(dir)
+	}
+}
+
+func (i *Importer) startFromTemplate(ctx context.Context, projectID uuid.UUID, remote, id string, hosted bool) (gitsync.Repo, error) {
 	template, err := i.templates.Find(ctx, id)
 	if err != nil {
 		return nil, err
@@ -165,12 +208,14 @@ func (i *Importer) startFromTemplate(ctx context.Context, projectID uuid.UUID, r
 	}
 
 	siteID := projectID.String()
-	empty, err := i.sites.RemoteIsEmpty(ctx, siteID, remote)
-	if err != nil {
-		return nil, err
-	}
-	if !empty {
-		return nil, ErrRepositoryNotEmpty
+	if !hosted {
+		empty, err := i.sites.RemoteIsEmpty(ctx, siteID, remote)
+		if err != nil {
+			return nil, err
+		}
+		if !empty {
+			return nil, ErrRepositoryNotEmpty
+		}
 	}
 
 	scratch, err := os.MkdirTemp("", "chatcms-template-*")
@@ -191,9 +236,7 @@ func (i *Importer) startFromTemplate(ctx context.Context, projectID uuid.UUID, r
 
 	if _, err := repository.Publish(ctx); err != nil {
 		repository.Close()
-		if dir, dirErr := i.sites.Dir(siteID); dirErr == nil {
-			_ = os.RemoveAll(dir)
-		}
+		i.forget(siteID)
 		return nil, fmt.Errorf("sending the template to the repository failed: %w", err)
 	}
 

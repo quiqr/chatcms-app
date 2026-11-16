@@ -170,6 +170,35 @@ describe("the publish screen", () => {
     expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 
+  it("says plainly when the site is not connected yet", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((path: string, options?: RequestInit) => {
+        if (options?.method === "POST" && path === `${base}/publishes`) {
+          return Promise.resolve({
+            ok: false,
+            status: 409,
+            json: async () => ({
+              error: { code: "refused", key: "refused.site-not-connected", message: "this site is not connected" },
+            }),
+          });
+        }
+        return Promise.resolve({ ok: true, status: 200, json: async () => aReview });
+      }),
+    );
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Publish 2 changes" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This site is not connected yet, so it can't be published.",
+    );
+    expect(screen.getByRole("button", { name: "Publish 2 changes" })).toBeEnabled();
+    for (const word of gitWords) {
+      expect(readableText()).not.toMatch(new RegExp(`\\b${word}\\b`, "i"));
+    }
+  });
+
   it("keeps the raw output behind a disclosure and out of what an editor reads", async () => {
     vi.stubGlobal(
       "fetch",

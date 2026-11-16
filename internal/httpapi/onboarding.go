@@ -29,6 +29,7 @@ type KeyView struct {
 type ImportView struct {
 	Kind        string   `json:"kind"`
 	Remote      string   `json:"remote,omitempty"`
+	Hosted      bool     `json:"hosted"`
 	IsHugoSite  bool     `json:"isHugoSite"`
 	HasModel    bool     `json:"hasModel"`
 	Ready       bool     `json:"ready"`

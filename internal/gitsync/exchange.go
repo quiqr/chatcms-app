@@ -395,3 +395,38 @@ func (r *repo) applyRemembered(ctx context.Context, conflict *Conflict) (bool, e
 	}
 	return true, nil
 }
+
+func (r *repo) MoveTo(ctx context.Context, remote string) error {
+	lock := siteLock(r.dir)
+	lock.Lock()
+	defer lock.Unlock()
+
+	if r.exchangeInProgress() {
+		return ErrExchangeInProgress
+	}
+
+	before, err := r.git.run(ctx, "remote", "get-url", "origin")
+	hadOrigin := err == nil
+	before = strings.TrimSpace(before)
+
+	if hadOrigin {
+		_, err = r.git.run(ctx, "remote", "set-url", "origin", remote)
+	} else {
+		_, err = r.git.run(ctx, "remote", "add", "origin", remote)
+	}
+	if err != nil {
+		return err
+	}
+
+	if _, err := r.git.run(ctx, "push", "origin", "HEAD:refs/heads/"+r.branch); err != nil {
+		if hadOrigin {
+			r.git.succeeds(ctx, "remote", "set-url", "origin", before)
+		} else {
+			r.git.succeeds(ctx, "remote", "remove", "origin")
+		}
+		return unreachable(err)
+	}
+
+	r.git.succeeds(ctx, "fetch", "--prune", "origin")
+	return nil
+}

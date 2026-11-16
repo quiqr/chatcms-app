@@ -113,7 +113,9 @@ func (s *Service) ImportSite(ctx context.Context, who httpapi.Actor, organisatio
 		return httpapi.ImportView{}, importRefusal(err)
 	}
 
-	return importView(result.Kind, result.Remote, result.Inspection), nil
+	view := importView(result.Kind, result.Remote, result.Inspection)
+	view.Hosted = result.Hosted
+	return view, nil
 }
 
 func (s *Service) InspectSite(ctx context.Context, who httpapi.Actor, organisation, project string) (httpapi.ImportView, error) {
@@ -134,7 +136,9 @@ func (s *Service) InspectSite(ctx context.Context, who httpapi.Actor, organisati
 	if err != nil {
 		return httpapi.ImportView{}, err
 	}
-	return importView(SourceKind(row.SourceKind), row.Remote, inspection), nil
+	view := importView(SourceKind(row.SourceKind), row.Remote, inspection)
+	view.Hosted = row.Hosted
+	return view, nil
 }
 
 func (s *Service) TestConnection(ctx context.Context, who httpapi.Actor, organisation, project string) (httpapi.ConnectionView, error) {
@@ -146,6 +150,10 @@ func (s *Service) TestConnection(ctx context.Context, who httpapi.Actor, organis
 	row, err := s.db.Queries.GetProject(ctx, pgtype.UUID{Bytes: found.ID, Valid: true})
 	if err != nil {
 		return httpapi.ConnectionView{}, err
+	}
+
+	if row.Hosted {
+		return httpapi.ConnectionView{Message: "This site is kept in ChatCMS and not connected to a repository yet."}, nil
 	}
 
 	connection, err := s.importer.TestConnection(ctx, found.ID, row.Remote)
@@ -234,6 +242,12 @@ func templateRefusal(err error) error {
 		{ErrNoSuchTemplate, "refused.no-such-template"},
 		{ErrRepositoryNotEmpty, "refused.repository-not-empty"},
 		{ErrNeedsARepository, "refused.template-needs-a-repository"},
+		{ErrNeedsAnAddress, "refused.import-needs-an-address"},
+		{ErrNotKept, "refused.site-already-connected"},
+		{ErrConnectNotEmpty, "refused.connect-not-empty"},
+		{ErrConnectKeyRefused, "refused.connect-key-refused"},
+		{ErrConnectUnreachable, "refused.connect-unreachable"},
+		{ErrConnectNeedsAnAddress, "refused.connect-needs-an-address"},
 		{ErrGalleryOff, "refused.no-templates-here"},
 		{ErrGalleryUnavailable, "refused.template-list-unavailable"},
 	}
@@ -243,4 +257,15 @@ func templateRefusal(err error) error {
 		}
 	}
 	return nil
+}
+
+func (s *Service) ConnectSite(ctx context.Context, who httpapi.Actor, organisation, project, remote string) (httpapi.ImportView, error) {
+	found, err := s.reach(ctx, who, organisation, project, policy.ActionChangeSettings)
+	if err != nil {
+		return httpapi.ImportView{}, err
+	}
+	if err := s.importer.Connect(ctx, found.ID, remote); err != nil {
+		return httpapi.ImportView{}, importRefusal(err)
+	}
+	return s.InspectSite(ctx, who, organisation, project)
 }

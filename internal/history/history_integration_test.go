@@ -250,6 +250,10 @@ func (s theSources) Settings(ctx context.Context, projectID uuid.UUID) (workflow
 	return workflows.Settings{}, nil
 }
 
+func (s theSources) Kept(ctx context.Context, projectID uuid.UUID) (bool, error) {
+	return false, nil
+}
+
 func (s theSources) BaseURL(ctx context.Context, projectID uuid.UUID) (string, error) {
 	return "https://korenaar.example/", nil
 }

@@ -66,10 +66,12 @@ function FromTemplate({
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[15px]">
-        {say("onboarding.starting-from-template", { name: template, remote })}
+        {remote === ""
+          ? say("onboarding.starting-from-template-kept", { name: template })
+          : say("onboarding.starting-from-template", { name: template, remote })}
       </p>
       <div>
-        <Button variant="ink" onClick={onCopy} disabled={busy || !hasKey}>
+        <Button variant="ink" onClick={onCopy} disabled={busy || (remote !== "" && !hasKey)}>
           {busy ? say("onboarding.copying-the-template") : say("onboarding.copy-the-template-in")}
         </Button>
       </div>
@@ -113,14 +115,16 @@ export function OnboardingPage() {
   const report = site.state === "ready" ? site.value : undefined;
   const hasKey = key.state === "ready" && key.value.publicKey !== "";
   const arrived = Boolean(report && report.kind !== "none");
+  const kept = report?.hosted === true || (fromTemplate !== "" && templateRemote === "" && !arrived);
+  const keyDone = hasKey || kept;
   const templateMode = fromTemplate !== "" && !arrived;
   const current = templateMode
-    ? hasKey
+    ? keyDone
       ? "site"
       : "key"
     : !arrived
       ? "site"
-      : !hasKey
+      : !keyDone
         ? "key"
         : "publishing";
 
@@ -128,13 +132,13 @@ export function OnboardingPage() {
     ? [
         { key: "template", label: say("onboarding.template"), done: true },
         { key: "name", label: say("onboarding.name-and-repository"), done: true },
-        { key: "key", label: say("onboarding.key-for-the-git-host"), done: hasKey && arrived },
+        { key: "key", label: say("onboarding.key-for-the-git-host"), done: keyDone && arrived },
         { key: "publishing", label: say("project-settings.how-it-is-published"), done: arrived && publishing.state === "ready" },
         { key: "people", label: say("onboarding.invite-people"), done: false },
       ]
     : [
         { key: "site", label: say("onboarding.where-the-site-comes-from"), done: arrived },
-        { key: "key", label: say("onboarding.key-for-the-git-host"), done: hasKey },
+        { key: "key", label: say("onboarding.key-for-the-git-host"), done: keyDone },
         { key: "publishing", label: say("project-settings.how-it-is-published"), done: publishing.state === "ready" },
         { key: "people", label: say("onboarding.invite-people"), done: false },
       ];
@@ -194,7 +198,11 @@ export function OnboardingPage() {
             onSubmit={(event) => {
               event.preventDefault();
               void run(async () => {
-                await importSite(organisation, project, { kind: source, address });
+                await importSite(
+                  organisation,
+                  project,
+                  source === "export" ? { kind: source, address, remote: "" } : { kind: source, address },
+                );
                 reloadSite();
               });
             }}
@@ -206,6 +214,7 @@ export function OnboardingPage() {
                     ? say("onboarding.address-of-the-site-in-git")
                     : say("onboarding.folder-holding-the-exported-site")
                 }
+                hint={source === "export" ? say("onboarding.export-is-kept") : undefined}
                 className="font-mono text-sm"
                 required
                 value={address}
@@ -227,7 +236,11 @@ export function OnboardingPage() {
         </Section>
 
         <Section title={say("onboarding.key-for-the-git-host")} active={current === "key"}>
-          <KeyPanel organisation={organisation} project={project} onTrouble={setProblem} onKey={reloadKey} />
+          {kept ? (
+            <p className="text-[15px] text-muted-foreground">{say("onboarding.key-not-needed-while-kept")}</p>
+          ) : (
+            <KeyPanel organisation={organisation} project={project} onTrouble={setProblem} onKey={reloadKey} />
+          )}
         </Section>
 
         <Section title={say("onboarding.how-it-is-published")} active={current === "publishing"}>

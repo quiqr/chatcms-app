@@ -5,6 +5,7 @@ import { useParams } from "react-router";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Field } from "../components/ui/field";
+import { whatWentWrong } from "../lib/api";
 import { useAsync } from "../lib/useAsync";
 import { onADay } from "../lib/when";
 import { useHere } from "../lib/whoami";
@@ -201,6 +202,7 @@ export function PublishPage() {
   const [note, setNote] = useState("");
   const [publish, setPublish] = useState<Publish | null>(null);
   const [sending, setSending] = useState(false);
+  const [refused, setRefused] = useState("");
   const [refresh, setRefresh] = useState(0);
 
   const [review] = useAsync<Review>(
@@ -210,9 +212,12 @@ export function PublishPage() {
 
   async function send() {
     setSending(true);
+    setRefused("");
     try {
       setPublish(await publishNow(organisation, project, note));
       setNote("");
+    } catch (error: unknown) {
+      setRefused(whatWentWrong(error));
     } finally {
       setSending(false);
     }
@@ -275,6 +280,12 @@ export function PublishPage() {
         onChange={(event) => setNote(event.target.value)}
         placeholder={say("publish.spring-prices")}
       />
+
+      {refused && (
+        <p role="alert" className="rounded-md bg-destructive-soft px-3 py-2 text-sm text-destructive-foreground">
+          {refused}
+        </p>
+      )}
 
       <div className="sticky bottom-0 -mx-4 flex flex-col gap-2 border-t border-border bg-card px-4 py-3 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
         <Button onClick={send} disabled={sending || count === 0} className="w-full sm:w-fit">

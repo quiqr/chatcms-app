@@ -10,7 +10,7 @@ import { Field } from "../components/ui/field";
 import { whyThereIsNoRoom, type Usage } from "../components/ui/usage";
 import { whatWentWrong } from "../lib/api";
 import { plural, say } from "../lib/say";
-import { createProject, listProjects } from "../lib/tenancy";
+import { createProject, importSite, listProjects } from "../lib/tenancy";
 import {
   hugoLabel,
   listTemplates,
@@ -175,7 +175,18 @@ export function UseTemplatePage() {
     setTrouble("");
     try {
       const made = await createProject(target, { slug: slugFor(shownName), name: shownName.trim(), domain: "" });
-      goTo(templateSetupAddress(target, made.slug, template.id, remote.trim()));
+      const setup = templateSetupAddress(target, made.slug, template.id, remote.trim());
+      if (remote.trim() === "") {
+        try {
+          await importSite(target, made.slug, { kind: "template", address: template.id, remote: "" });
+        } catch {
+          goTo(setup);
+          return;
+        }
+        goTo(`/o/${target}/p/${made.slug}/setup`);
+        return;
+      }
+      goTo(setup);
     } catch (error: unknown) {
       setTrouble(whatWentWrong(error));
       setBusy(false);
@@ -303,7 +314,6 @@ export function UseTemplatePage() {
               label={say("onboarding.empty-repository-for-your-copy")}
               hint={say("onboarding.empty-repository-hint")}
               className="font-mono text-sm"
-              required
               value={remote}
               onChange={(event) => setRemote(event.target.value)}
             />
@@ -315,7 +325,11 @@ export function UseTemplatePage() {
                 <NavLink to={`/o/${fromAddress}/new/template`}>{say("onboarding.back")}</NavLink>
               </Button>
               <Button type="submit" disabled={busy || noRoom !== null}>
-                {say("onboarding.continue-to-deploy-key")}
+                {busy && remote.trim() === ""
+                  ? say("onboarding.copying-the-template")
+                  : remote.trim() === ""
+                    ? say("onboarding.continue-kept")
+                    : say("onboarding.continue-to-deploy-key")}
               </Button>
             </div>
           </form>

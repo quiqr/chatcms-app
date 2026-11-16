@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   settings.
 - `services.chatcms.templateFeed` sets the template feed, or switches the
   gallery off.
+- A template or Quiqr Desktop export can start without a git address; ChatCMS
+  keeps it until it is connected.
+- Project settings connect a kept site to an empty repository, sending every
+  version there; publishing waits until then.
+
+### Fixed
+
+- A project with nothing brought in yet says so on every screen, instead of
+  "Something went wrong".
 
 ## [0.1.0] - 2026-11-16
 
