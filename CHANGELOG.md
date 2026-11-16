@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- During development, the sign-in and forgot-password screens link to the
+  Mailpit inbox of the instance, so an invitation or reset mail is one click
+  away. It works from a phone too.
 - `scripts/dev-fe.sh` starts the frontend development server. It follows
   `CHATCMS_INSTANCE` and `CHATCMS_HOST` like the backend does, installs the
   frontend dependencies on a fresh checkout, and warns when no backend answers.

@@ -1,5 +1,6 @@
 import { Button } from "../components/ui/button";
 import { say, type Key } from "../lib/say";
+import { DevMailLink } from "./DevMailLink";
 
 const passphrase = "a long enough passphrase";
 
@@ -41,6 +42,7 @@ export default function DevSignIn({
           </Button>
         ))}
       </div>
+      <DevMailLink />
     </section>
   );
 }

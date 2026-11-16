@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { lazy, Suspense, useState, type FormEvent } from "react";
 import { NavLink } from "react-router";
 
 import { Button } from "../components/ui/button";
@@ -6,6 +6,8 @@ import { Field } from "../components/ui/field";
 import { requestPasswordReset } from "../lib/session";
 import { say } from "../lib/say";
 import { whatWentWrong } from "../lib/api";
+
+const DevMailBlock = import.meta.env.DEV ? lazy(() => import("./DevMailLink")) : null;
 
 /**
  * ForgotPasswordPage asks for an address and then says the same thing
@@ -80,6 +82,12 @@ export function ForgotPasswordPage() {
             {say("forgot-password.back-to-signing-in")}
           </NavLink>
         </form>
+      )}
+
+      {import.meta.env.DEV && DevMailBlock && (
+        <Suspense fallback={null}>
+          <DevMailBlock />
+        </Suspense>
       )}
     </main>
   );

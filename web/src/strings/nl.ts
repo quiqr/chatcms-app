@@ -207,6 +207,10 @@ export const nl: Strings = {
   "dev-sign-in.development-only": "Alleen in ontwikkeling",
   "dev-sign-in.sign-in-as-a-seeded": "Meld je aan als een van de testgebruikers, een per rol.",
 
+  // dev-mail
+  "dev-mail.mail-sent-by-this-instance": "Mail die deze instantie verstuurt, komt in Mailpit terecht.",
+  "dev-mail.open-the-inbox": "Open de inbox van deze instantie",
+
   // editor
   "editor.what-to-show": "Wat je wilt zien",
 

@@ -7,6 +7,9 @@ const apiTarget =
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  define: {
+    "import.meta.env.VITE_CHATCMS_INBOX_PORT": JSON.stringify(process.env.CHATCMS_INBOX_PORT ?? "8025"),
+  },
   server: {
     // The same setting the server reads, so that one variable makes both
     // halves reachable from another machine rather than only the half that

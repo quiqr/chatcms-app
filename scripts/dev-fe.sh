@@ -21,6 +21,8 @@
 #   CHATCMS_HOST        address to listen on, default 127.0.0.1
 #   CHATCMS_PORT        API port, default 8080, or 8081 for a named instance
 #   CHATCMS_WEB_PORT    frontend port, default 5173, or 5174 for a named instance
+#   CHATCMS_INBOX_PORT  Mailpit inbox port the sign-in screen links to, default
+#                       8025, or 8026 for a named instance
 #
 set -euo pipefail
 
@@ -56,6 +58,7 @@ fi
 
 export CHATCMS_PORT="$port"
 export CHATCMS_HOST="$host"
+export CHATCMS_INBOX_PORT="$inbox_port"
 
 cd "$root/web"
 exec npx vite --port "$web_port" --strictPort "$@"

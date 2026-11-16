@@ -204,6 +204,10 @@ export const en = {
   "dev-sign-in.development-only": "Development only",
   "dev-sign-in.sign-in-as-a-seeded": "Sign in as a seeded person, one per role.",
 
+  // dev-mail
+  "dev-mail.mail-sent-by-this-instance": "Mail this instance sends lands in Mailpit.",
+  "dev-mail.open-the-inbox": "Open the inbox of this instance",
+
   // editor
   "editor.what-to-show": "What to show",
 

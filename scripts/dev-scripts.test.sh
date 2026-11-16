@@ -43,7 +43,7 @@ setup() {
     rm -rf "${work:?}/repo" "${work:?}/bin" "${work:?}/log"
     mkdir -p "$work/repo/scripts" "$work/repo/web/node_modules" "$work/bin" "$work/log"
     cp "$here/dev-instance.sh" "$here/dev-fe.sh" "$here/dev-be.sh" "$work/repo/scripts/"
-    stub npx 'echo "args=$*" >"'"$work"'/log/npx"; echo "port=$CHATCMS_PORT host=$CHATCMS_HOST pwd=$PWD" >>"'"$work"'/log/npx"'
+    stub npx 'echo "args=$*" >"'"$work"'/log/npx"; echo "port=$CHATCMS_PORT host=$CHATCMS_HOST inbox=$CHATCMS_INBOX_PORT pwd=$PWD" >>"'"$work"'/log/npx"'
     stub npm 'echo "args=$* pwd=$PWD" >"'"$work"'/log/npm"'
     stub curl 'echo "$*" >"'"$work"'/log/curl"; exit "${CURL_EXIT:-0}"'
 }
@@ -66,7 +66,7 @@ expect_eq "host" "$(instance_values CHATCMS_HOST=0.0.0.0 | awk '{print $7}')" "0
 setup
 out="$(run_fe)"
 expect_contains "usual: vite port" "$(cat "$work/log/npx")" "args=vite --port 5173 --strictPort"
-expect_contains "usual: api port" "$(cat "$work/log/npx")" "port=8080 host=127.0.0.1 pwd=$work/repo/web"
+expect_contains "usual: api port" "$(cat "$work/log/npx")" "port=8080 host=127.0.0.1 inbox=8025 pwd=$work/repo/web"
 expect_contains "usual: probe" "$(cat "$work/log/curl")" "http://127.0.0.1:8080/"
 expect_absent "usual: no warning with a backend" "$out" "no backend"
 [ -e "$work/log/npm" ] && fail "npm ci ran although node_modules exists"
@@ -75,6 +75,7 @@ setup
 out="$(run_fe CHATCMS_INSTANCE=test CURL_EXIT=7)"
 expect_contains "named: vite port" "$(cat "$work/log/npx")" "args=vite --port 5174 --strictPort"
 expect_contains "named: api port" "$(cat "$work/log/npx")" "port=8081"
+expect_contains "named: inbox port" "$(cat "$work/log/npx")" "inbox=8026"
 expect_contains "named: warning" "$out" "no backend answers on port 8081"
 expect_contains "named: warning names the backend" "$out" "CHATCMS_INSTANCE=test scripts/dev-be.sh"
 
