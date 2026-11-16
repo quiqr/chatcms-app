@@ -84,6 +84,8 @@ cd web && npm run check:bundle     # after a build: no seeded sign-in in dist
 cd web && npm run test             # Vitest
 
 bash scripts/ship-change.sh <change> "<commit subject>"
+scripts/release.sh minor --dry-run # what the next release would be; see docs/RELEASING.md
+scripts/release.sh minor           # bump, date the changelog, gate, tag, push, GitHub release
 beans list --ready                 # the next epic that is not blocked
 beans roadmap                      # milestones and epics as Markdown
 openspec list                      # active change proposals

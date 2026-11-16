@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Releases. `scripts/release.sh patch|minor|major` bumps `VERSION`, dates
+  this changelog, runs the gate, tags, pushes and publishes a GitHub release.
+  A machine pins one with `github:quiqr/chatcms-app/v<version>`; see
+  `docs/RELEASING.md`.
 - During development, the sign-in and forgot-password screens link to the
   Mailpit inbox of the instance, so an invitation or reset mail is one click
   away. It works from a phone too.
@@ -49,6 +53,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   list is searched, filtered and paged by the server, a page at a time.
 
 ### Changed
+
+- The version lives in `VERSION` only, and a plain `go build` reports it too
+  rather than `dev`.
 
 - **Breaking for developers:** `scripts/dev.sh` is now `scripts/dev-be.sh`.
   A named instance's frontend no longer needs its ports typed by hand.

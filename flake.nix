@@ -5,7 +5,7 @@
 
   outputs = { self, nixpkgs }:
     let
-      version = "0.1.0";
+      version = nixpkgs.lib.fileContents ./VERSION;
 
       systems = [
         "x86_64-linux"
@@ -26,6 +26,9 @@
         fileset = nixpkgs.lib.fileset.unions [
           ./go.mod
           ./go.sum
+          ./VERSION
+          ./version.go
+          ./version_test.go
           ./cmd
           ./db
           ./internal
@@ -200,6 +203,23 @@
         touch $out
       '';
 
+      mkReleaseCheck = { pkgs, ... }: pkgs.runCommand "chatcms-release-script"
+        {
+          nativeBuildInputs = [ pkgs.bash pkgs.shellcheck pkgs.git ];
+          src = nixpkgs.lib.fileset.toSource {
+            root = ./.;
+            fileset = nixpkgs.lib.fileset.unions [
+              ./scripts/release.sh
+              ./scripts/release.test.sh
+            ];
+          };
+        } ''
+        cd $src
+        shellcheck scripts/release.sh scripts/release.test.sh
+        bash scripts/release.test.sh
+        touch $out
+      '';
+
       mkDevShell = { pkgs, system, ... }: pkgs.mkShell {
         name = "chatcms";
         packages = with pkgs; [
@@ -269,6 +289,7 @@
         frontend = mkWeb (args // { checked = true; });
         sqlc = mkSqlcCheck args;
         dev-scripts = mkDevScriptsCheck args;
+        release = mkReleaseCheck args;
       } // nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
         # A virtual machine can only be booted on Linux, so this check exists
         # there and not on a Mac, where the rest still runs.

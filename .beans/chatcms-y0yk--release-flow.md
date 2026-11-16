@@ -1,11 +1,11 @@
 ---
 # chatcms-y0yk
 title: release flow
-status: todo
+status: in-progress
 type: task
 priority: normal
 created_at: 2026-11-16T11:12:53Z
-updated_at: 2026-11-16T14:36:30Z
+updated_at: 2026-11-16T16:30:00Z
 parent: chatcms-27ng
 ---
 

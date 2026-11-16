@@ -29,6 +29,7 @@ nix flake check         # build, vet, tests, coverage gate
 | `docs/BRIEFING-M01.md`   | The milestone 01 brief and its acceptance tests  |
 | `docs/ARCHITECTURE.md`   | Package layout and the seams that must stay thin |
 | `docs/TESTING.md`        | Test layers, golden tests, the gate              |
+| `docs/RELEASING.md`      | Cutting a release and pinning one                |
 | `docs/QUIQR-MODEL.md`    | The model language, assembly rules and field types |
 | `docs/design/DESIGN.md`  | The UI spec and reference screens                |
 | `openspec/`              | Change proposals and specs                       |

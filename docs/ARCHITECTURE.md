@@ -41,7 +41,7 @@ projection: a cached, rebuildable view in Postgres of something git owns.
 | `internal/history`     | The timeline in plain language, what a version holds, and going back          |
 | `internal/jobs`        | Background job queue and worker, backed by Postgres. Knows nothing about sites |
 | `internal/store`       | sqlc-generated query code plus thin helpers. Generated; do not hand-edit.     |
-| `internal/version`     | The version string stamped by the build                                       |
+| `internal/version`     | The version string, from `VERSION` or stamped by the build                    |
 
 ## Seams that must stay thin
 

@@ -4,6 +4,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	chatcms "github.com/quiqr/chatcms-app"
 )
 
 func TestStringCarriesVersionAndPlatform(t *testing.T) {
@@ -16,8 +18,11 @@ func TestStringCarriesVersionAndPlatform(t *testing.T) {
 	}
 }
 
-func TestVersionDefaultsToDev(t *testing.T) {
-	if Version == "" {
-		t.Error("Version must never be empty; the build stamps it via ldflags")
+func TestVersionDefaultsToTheVersionFile(t *testing.T) {
+	if Version != chatcms.Version() {
+		t.Errorf("Version = %q, want the VERSION file's %q", Version, chatcms.Version())
+	}
+	if !strings.Contains(String(), chatcms.Version()) {
+		t.Errorf("String() = %q, want it to carry %q", String(), chatcms.Version())
 	}
 }
