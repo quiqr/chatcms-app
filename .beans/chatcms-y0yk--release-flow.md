@@ -5,7 +5,8 @@ status: in-progress
 type: task
 priority: normal
 created_at: 2026-11-16T11:12:53Z
-updated_at: 2026-11-16T16:30:00Z
+updated_at: 2026-11-16T17:00:00Z
+openspec-link: openspec/changes/archive/2026-11-16-release-flow
 parent: chatcms-27ng
 ---
 
