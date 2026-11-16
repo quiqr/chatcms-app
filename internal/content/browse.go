@@ -2,10 +2,6 @@ package content
 
 import (
 	"context"
-	"io/fs"
-	"path"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/quiqr/chatcms-app/internal/gitsync"
@@ -34,47 +30,62 @@ type Item struct {
 	At      time.Time
 }
 
-// Browse lists what a content creator can open, in the order the model asks
-// for, with a mark on anything not yet published.
-func Browse(ctx context.Context, site Site, waiting map[string]changeBy) []Section {
+// Browse lists what a content creator can open, in the order the model's
+// menu asks for, with a mark on anything not yet published.
+func Browse(ctx context.Context, site Site, waiting map[string]changeBy, technical bool) []Section {
 	m, err := site.Model()
 	if err != nil {
 		return nil
 	}
 
+	menu := menuFor(m, site.FS(), waiting, technical)
 	sections := []Section{}
+	pages := Section{Key: singlesSection, Title: "Pages"}
+	var collections []Section
+	seen := map[string]bool{}
 
-	pages := Section{Key: "pages", Title: "Pages"}
-	for _, single := range m.Singles {
-		if single.Hidden {
-			continue
+	for _, group := range menu.Groups {
+		for _, entry := range group.Entries {
+			if seen[entry.Kind+"/"+entry.Key] {
+				continue
+			}
+			seen[entry.Kind+"/"+entry.Key] = true
+
+			if entry.Kind == "single" {
+				single, _ := m.Single(entry.Key)
+				pages.Items = append(pages.Items, itemOf(single.Key, titleOr(single.Title, single.Key), single.File, waiting))
+				continue
+			}
+			collection, ok := m.Collection(entry.Key)
+			if !ok {
+				continue
+			}
+			section := Section{
+				Key:      collection.Key,
+				Title:    titleOr(collection.Title, collection.Key),
+				ItemName: itemNameOf(collection),
+			}
+			items, _ := model.Items(site.FS(), collection)
+			for _, found := range items {
+				item := Item{Key: collection.Key + "/" + found.Key, Title: found.Title}
+				if change, ok := waitingFor(found, waiting); ok {
+					item.Waiting, item.By, item.At = true, change.By, change.At
+				}
+				section.Items = append(section.Items, item)
+			}
+			section.Count = len(section.Items)
+			collections = append(collections, section)
 		}
-		pages.Items = append(pages.Items, itemOf(single.Key, titleOr(single.Title, single.Key), single.File, waiting))
 	}
+
 	pages.Count = len(pages.Items)
 	if pages.Count > 0 {
 		sections = append(sections, pages)
 	}
-
-	for _, collection := range m.Collections {
-		if collection.Hidden {
-			continue
-		}
-		section := Section{
-			Key:      collection.Key,
-			Title:    titleOr(collection.Title, collection.Key),
-			ItemName: itemNameOf(collection),
-		}
-		for _, name := range itemsIn(site.FS(), collection) {
-			key := collection.Key + "/" + strings.TrimSuffix(name, path.Ext(name))
-			file := path.Join(strings.TrimSuffix(collection.Folder, "/"), name)
-			section.Items = append(section.Items, itemOf(key, readable(name), file, waiting))
-		}
-		section.Count = len(section.Items)
-		sections = append(sections, section)
-	}
-	return sections
+	return append(sections, collections...)
 }
+
+const singlesSection = "singles"
 
 func itemNameOf(collection model.Collection) string {
 	if collection.ItemTitle != "" {
@@ -91,50 +102,6 @@ func itemOf(key, title, file string, waiting map[string]changeBy) Item {
 		item.At = change.At
 	}
 	return item
-}
-
-// itemsIn lists a collection's files, most recently named first by name so
-// that the order is the same every time.
-func itemsIn(fsys fs.FS, collection model.Collection) []string {
-	folder := strings.TrimSuffix(collection.Folder, "/")
-	if folder == "" {
-		return nil
-	}
-
-	entries, err := fs.ReadDir(fsys, folder)
-	if err != nil {
-		return nil
-	}
-
-	names := []string{}
-	for _, entry := range entries {
-		if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
-			continue
-		}
-		if collection.HideIndex && isIndex(entry.Name()) {
-			continue
-		}
-		if !editableFile(entry.Name()) {
-			continue
-		}
-		names = append(names, entry.Name())
-	}
-	sort.Strings(names)
-	return names
-}
-
-func isIndex(name string) bool {
-	stem := strings.TrimSuffix(name, path.Ext(name))
-	return stem == "index" || stem == "_index"
-}
-
-func editableFile(name string) bool {
-	switch strings.ToLower(path.Ext(name)) {
-	case ".md", ".markdown", ".html", ".yaml", ".yml", ".toml", ".json":
-		return true
-	default:
-		return false
-	}
 }
 
 // changeBy is who last changed a file and when, for the mark on an item.

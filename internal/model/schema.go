@@ -48,6 +48,7 @@ type Collection struct {
 	SortKey         string         `json:"sortkey,omitempty"`
 	Hidden          bool           `json:"hidden,omitempty"`
 	HideIndex       bool           `json:"hideIndex,omitempty"`
+	IncludeSubdirs  *bool          `json:"includeSubdirs,omitempty"`
 	PreviewURLBase  string         `json:"previewUrlBase,omitempty"`
 	HidePreviewIcon bool           `json:"hidePreviewIcon,omitempty"`
 	Fields          []Field        `json:"fields,omitempty"`
@@ -93,6 +94,10 @@ type Field struct {
 // absent means nesting, so the answer is not the same as the raw value.
 func (f Field) GroupsData() bool {
 	return f.GroupData == nil || *f.GroupData
+}
+
+func (c Collection) LooksBelow() bool {
+	return c.IncludeSubdirs == nil || *c.IncludeSubdirs
 }
 
 // Single returns the single with this key.

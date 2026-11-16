@@ -181,6 +181,7 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 		History:        server.history,
 		Content:        server.content,
 		Browse:         server.content,
+		Menu:           server.content,
 		Media:          server.media,
 		Sync:           server.standing,
 		Preview:        server.preview,

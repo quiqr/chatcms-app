@@ -168,6 +168,7 @@ export const en = {
 
   // content
   "content.cancel": "Cancel",
+  "content.collections": "Collections",
   "content.find-a-page": "Find a page",
   "content.it-will-go-from-your-site": "It will go from your site the next time you publish. Until then nothing changes for anybody reading it, and you can bring it back from your history.",
   "content.looking-at-what-is-here": "Looking at what is here…",
@@ -180,6 +181,7 @@ export const en = {
   "content.remove-2": "Remove…",
   "content.remove-page": "Remove “{title}”?",
   "content.removing": "Removing…",
+  "content.pages": "Pages",
   "content.rename": "Rename",
   "content.search": "Search",
   "content.show-more": "Show {count} more",

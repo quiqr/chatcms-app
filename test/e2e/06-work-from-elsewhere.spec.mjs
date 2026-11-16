@@ -21,7 +21,7 @@ test("work done outside ChatCMS arrives", async ({ signedIn: page, chatcms }, te
 
   await test.step("the page is there to edit", async () => {
     await page.goto(`${chatcms.url}/o/technative/p/korenaar/content`);
-    await expect(page.getByRole("button", { name: "From elsewhere", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Written elsewhere", exact: true })).toBeVisible();
   });
 
   await worksOnAPhone(page, testInfo);

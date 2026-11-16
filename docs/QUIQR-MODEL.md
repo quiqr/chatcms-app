@@ -148,27 +148,64 @@ After a successful merge the `_mergePartial` key is removed.
 
 ### A collection
 
-| Key                | Meaning                                              |
-| ------------------ | ---------------------------------------------------- |
-| `key`              | Identifier, unique among collections                 |
-| `title`            | Label                                                |
-| `folder`           | The folder whose files are the items                 |
-| `extension`        | File extension of the items                          |
-| `dataformat`       | Front matter format of the items                     |
-| `itemtitle`        | Singular name of an item, used in labels             |
-| `sortkey`          | Field the list is ordered by                         |
-| `hideIndex`        | Hide the folder's index file from the list           |
-| `previewUrlBase`   | Where items live on the built site                   |
-| `hidePreviewIcon`  | Hide the preview affordance                          |
-| `fields`           | The form                                             |
-| `build_actions`    | Build actions offered on an item                     |
-| `_mergePartial`    | Pull the rest of this definition from a partial      |
+| Key               | Meaning                                               |
+| ----------------- | ----------------------------------------------------- |
+| `key`             | Identifier, unique among collections                  |
+| `title`           | Label                                                 |
+| `folder`          | The folder whose files are the items                  |
+| `extension`       | File extension of the items                           |
+| `dataformat`      | Front matter format of the items                      |
+| `itemtitle`       | Singular name of an item, used in labels              |
+| `sortkey`         | Field the list is ordered by                          |
+| `hideIndex`       | Hide `_index.*`, a section's list page, from the list |
+| `includeSubdirs`  | `false` lists only the folder itself; default `true`  |
+| `previewUrlBase`  | Where items live on the built site                    |
+| `hidePreviewIcon` | Hide the preview affordance                           |
+| `fields`          | The form                                              |
+| `build_actions`   | Build actions offered on an item                      |
+| `_mergePartial`   | Pull the rest of this definition from a partial       |
+
+#### Which files are items
+
+ChatCMS lists a collection's items the way the desktop app's
+`listCollectionItems` does:
+
+- A collection whose folder is under `content/`, or whose `extension` is
+  `md`, `html`, `markdown` or `qmd`, lists files with those four extensions,
+  in its folder and every folder below it. With `includeSubdirs: false` it
+  lists only the folder itself.
+- `<name>/index.<ext>` is a page bundle: one item called `<name>`, and the
+  files beside it (pictures and the like) are not items.
+- `hideIndex: true` hides `_index.*` only. `index.*` of a bundle stays.
+- Any other collection is a data folder: every `json`, `toml`, `yaml` and `yml`
+  file below it is an item, and no folder is a bundle.
+- Files and folders whose names start with a dot are left out.
+
+An item's key is its collection's key and its path without the extension,
+with a bundle named by its folder: `posts/2024/spring-sale`. When a flat file
+and a bundle share a name, the flat file is listed and the model warnings say
+so. An item is shown by the `title` in its front matter, else by its name with
+hyphens as spaces. Items are sorted by the value of `sortkey`, ascending, then
+by path; an item without that field comes after those with it.
+
+A new item in a collection under `content/` is written as
+`<slug>/index.<ext>`, holding `---`, its title as YAML, `---` and an empty
+line, as the desktop app writes it. In a data folder it is `<slug>.<ext>`
+holding only the YAML. Renaming, copying and removing a bundle act on its
+whole folder.
 
 ### The menu
 
 A list of sections. Each section has a `title`, an optional `key`, an optional
-`matchRole`, and `menuItems`, a list of objects carrying the `key` of a single
-or collection.
+`matchRole`, an optional `disabled`, and `menuItems`, a list of objects
+carrying the `key` of a single or collection.
+
+The content screen shows the menu's sections in order. A section with
+`matchRole: siteDeveloper` is shown only to people who may see technical
+detail; any other `matchRole` hides nothing. A `disabled` section is not
+shown. A single in a hidden section can still be opened by its key. Without a
+menu, the singles are one group, "Pages", and the collections another,
+"Collections".
 
 ## Fields
 

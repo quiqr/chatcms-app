@@ -2,8 +2,6 @@ package model
 
 import (
 	"io/fs"
-	"path"
-	"strings"
 )
 
 // Navigation is what a content creator browses: the pages and collections of a
@@ -14,9 +12,10 @@ type Navigation struct {
 }
 
 type NavSection struct {
-	Key     string     `json:"key,omitempty"`
-	Title   string     `json:"title"`
-	Entries []NavEntry `json:"entries"`
+	Key       string     `json:"key,omitempty"`
+	Title     string     `json:"title"`
+	MatchRole string     `json:"matchRole,omitempty"`
+	Entries   []NavEntry `json:"entries"`
 }
 
 type NavEntry struct {
@@ -46,11 +45,13 @@ const (
 // Navigate derives the navigation from a model. Item counts are read through
 // fsys; pass nil to build the navigation without counting.
 func (m *Model) Navigate(fsys fs.FS) Navigation {
-	navigation := Navigation{}
-	counts := m.countItems(fsys)
+	counts, listed := m.countItems(fsys)
+	navigation := Navigation{Warnings: append(m.sharedKeys(), listed...)}
 
 	if len(m.Menu) > 0 {
-		navigation.Sections, navigation.Warnings = m.menuSections(counts)
+		sections, warnings := m.menuSections(counts)
+		navigation.Sections = sections
+		navigation.Warnings = append(navigation.Warnings, warnings...)
 		return navigation
 	}
 
@@ -88,7 +89,7 @@ func (m *Model) menuSections(counts map[string]int) ([]NavSection, []Warning) {
 			continue
 		}
 
-		section := NavSection{Key: declared.Key, Title: declared.Title}
+		section := NavSection{Key: declared.Key, Title: declared.Title, MatchRole: declared.MatchRole}
 		for _, item := range declared.MenuItems {
 			if single, ok := m.Single(item.Key); ok {
 				if single.Hidden {
@@ -134,49 +135,29 @@ func (m *Model) collectionEntry(collection Collection, counts map[string]int) Na
 	}
 }
 
-func (m *Model) countItems(fsys fs.FS) map[string]int {
+func (m *Model) countItems(fsys fs.FS) (map[string]int, []Warning) {
 	counts := make(map[string]int, len(m.Collections))
+	var warnings []Warning
 	for _, collection := range m.Collections {
-		counts[collection.Key] = m.countCollection(fsys, collection)
+		items, found := Items(fsys, collection)
+		counts[collection.Key] = len(items)
+		warnings = append(warnings, found...)
 	}
-	return counts
+	return counts, warnings
 }
 
-func (m *Model) countCollection(fsys fs.FS, collection Collection) int {
-	if fsys == nil || collection.Folder == "" {
-		return 0
-	}
-
-	entries, err := fs.ReadDir(fsys, path.Clean(strings.TrimSuffix(collection.Folder, "/")))
-	if err != nil {
-		return 0
-	}
-
-	extension := collection.Extension
-	if extension != "" && !strings.HasPrefix(extension, ".") {
-		extension = "." + extension
-	}
-
-	count := 0
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
+func (m *Model) sharedKeys() []Warning {
+	var warnings []Warning
+	for _, collection := range m.Collections {
+		if _, clash := m.Single(collection.Key); clash {
+			warnings = append(warnings, Warning{
+				File:    m.BaseFile,
+				Path:    "collections." + collection.Key,
+				Message: "a single and a collection are both called \"" + collection.Key + "\"",
+			})
 		}
-		name := entry.Name()
-		if extension != "" && !strings.HasSuffix(name, extension) {
-			continue
-		}
-		if collection.HideIndex && isIndexFile(name) {
-			continue
-		}
-		count++
 	}
-	return count
-}
-
-func isIndexFile(name string) bool {
-	base := strings.TrimSuffix(name, path.Ext(name))
-	return base == "index" || base == "_index"
+	return warnings
 }
 
 func titleOr(title, fallback string) string {

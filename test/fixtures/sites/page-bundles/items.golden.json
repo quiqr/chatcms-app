@@ -1,0 +1,127 @@
+{
+  "items": {
+    "notes": [
+      {
+        "key": "_index",
+        "file": "content/note/_index.md",
+        "title": "Notes list"
+      },
+      {
+        "key": "a-note",
+        "file": "content/note/a-note.md",
+        "title": "A note"
+      }
+    ],
+    "pages": [
+      {
+        "key": "about",
+        "file": "content/about.md",
+        "title": "About us"
+      }
+    ],
+    "posts": [
+      {
+        "key": "no-title-here",
+        "file": "content/post/no-title-here.md",
+        "title": "No title here"
+      },
+      {
+        "key": "autumn",
+        "file": "content/post/autumn/index.md",
+        "bundle": true,
+        "title": "Autumn"
+      },
+      {
+        "key": "2024/spring-sale",
+        "file": "content/post/2024/spring-sale/index.md",
+        "bundle": true,
+        "folder": "2024",
+        "title": "Spring sale"
+      },
+      {
+        "key": "en/hello",
+        "file": "content/post/en/hello.md",
+        "folder": "en",
+        "title": "Hello in English"
+      },
+      {
+        "key": "undated",
+        "file": "content/post/undated.md",
+        "title": "Undated"
+      }
+    ],
+    "team": [
+      {
+        "key": "anna",
+        "file": "data/team/anna.yaml",
+        "title": "Anna"
+      },
+      {
+        "key": "bram",
+        "file": "data/team/bram.yml",
+        "title": "Bram"
+      }
+    ]
+  },
+  "navigation": {
+    "sections": [
+      {
+        "key": "content",
+        "title": "Content",
+        "entries": [
+          {
+            "key": "home",
+            "title": "Home",
+            "kind": "page"
+          },
+          {
+            "key": "pages",
+            "title": "Pages",
+            "kind": "collection",
+            "itemName": "page",
+            "count": 1
+          },
+          {
+            "key": "posts",
+            "title": "Posts",
+            "kind": "collection",
+            "itemName": "post",
+            "count": 5
+          },
+          {
+            "key": "notes",
+            "title": "Notes",
+            "kind": "collection",
+            "itemName": "item",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "key": "people",
+        "title": "People",
+        "entries": [
+          {
+            "key": "team",
+            "title": "Team",
+            "kind": "collection",
+            "itemName": "item",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "key": "developer",
+        "title": "Developer",
+        "matchRole": "siteDeveloper",
+        "entries": [
+          {
+            "key": "readme",
+            "title": "README",
+            "kind": "page"
+          }
+        ]
+      }
+    ]
+  }
+}

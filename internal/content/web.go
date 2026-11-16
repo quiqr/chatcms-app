@@ -209,3 +209,74 @@ func (w *Web) DeletePage(ctx context.Context, who httpapi.Actor, organisation, p
 }
 
 var _ httpapi.BrowseService = (*Web)(nil)
+
+func (w *Web) ContentMenu(ctx context.Context, who httpapi.Actor, organisation, project string) (httpapi.ContentMenuView, error) {
+	actor, id, err := w.reach(ctx, who, organisation, project)
+	if err != nil {
+		return httpapi.ContentMenuView{}, err
+	}
+	menu, err := w.service.Menu(ctx, actor, id)
+	if err != nil {
+		return httpapi.ContentMenuView{}, noModelIsRefusal(err)
+	}
+
+	view := httpapi.ContentMenuView{
+		Groups:   make([]httpapi.MenuGroupView, 0, len(menu.Groups)),
+		Totals:   httpapi.MenuTotalsView{Singles: menu.Singles, Collections: menu.Collections},
+		Fallback: menu.Fallback,
+	}
+	for _, group := range menu.Groups {
+		shown := httpapi.MenuGroupView{Key: group.Key, Title: group.Title, Items: make([]httpapi.MenuEntryView, 0, len(group.Entries))}
+		for _, entry := range group.Entries {
+			item := httpapi.MenuEntryView{
+				Key: entry.Key, Kind: entry.Kind, Title: entry.Title,
+				ItemName: entry.ItemName, HasChanges: entry.HasChanges,
+			}
+			if entry.Kind == "collection" {
+				count := entry.Count
+				item.Count = &count
+			}
+			shown.Items = append(shown.Items, item)
+		}
+		view.Groups = append(view.Groups, shown)
+	}
+	if menu.Technical {
+		for _, warning := range menu.Warnings {
+			view.Warnings = append(view.Warnings, warning.Message)
+		}
+	}
+	return view, nil
+}
+
+func (w *Web) CollectionItems(ctx context.Context, who httpapi.Actor, organisation, project, collection string) (httpapi.CollectionItemsView, error) {
+	actor, id, err := w.reach(ctx, who, organisation, project)
+	if err != nil {
+		return httpapi.CollectionItemsView{}, err
+	}
+	listing, err := w.service.Items(ctx, actor, id, collection)
+	if err != nil {
+		return httpapi.CollectionItemsView{}, noModelIsRefusal(err)
+	}
+
+	view := httpapi.CollectionItemsView{
+		Key:      listing.Collection.Key,
+		Title:    titleOr(listing.Collection.Title, listing.Collection.Key),
+		ItemName: itemNameOf(listing.Collection),
+		Items:    make([]httpapi.CollectionItemView, 0, len(listing.Items)),
+		Total:    len(listing.Items),
+		Folders:  make([]httpapi.CollectionFolderView, 0, len(listing.Folders)),
+	}
+	for _, item := range listing.Items {
+		shown := httpapi.CollectionItemView{
+			Key: item.Key, Title: item.Title, Folder: item.Folder, Status: item.Status, By: item.By,
+		}
+		if listing.ShowsPaths {
+			shown.Path = item.File
+		}
+		view.Items = append(view.Items, shown)
+	}
+	for _, folder := range listing.Folders {
+		view.Folders = append(view.Folders, httpapi.CollectionFolderView{Name: folder.Name, Label: folder.Name, Count: folder.Count})
+	}
+	return view, nil
+}

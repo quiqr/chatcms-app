@@ -71,6 +71,8 @@ type webHarness struct {
 	project tenancy.Project
 	editor  httpapi.Actor
 	viewer  httpapi.Actor
+	builder httpapi.Actor
+	cfg     gitsync.Config
 }
 
 func gitBinary(t *testing.T) string {
@@ -87,6 +89,16 @@ func gitBinary(t *testing.T) string {
 }
 
 func newWebHarness(t *testing.T) *webHarness {
+	t.Helper()
+	return newWebHarnessFrom(t, fstest.MapFS{
+		"hugo.toml":             {Data: []byte("title = \"Korenaar\"\n")},
+		"quiqr/model/base.yaml": {Data: []byte(siteModel)},
+		"content/_index.md":     {Data: []byte(siteHomePage)},
+		"content/news/one.md":   {Data: []byte("---\ntitle: One\n---\n\nFirst.\n")},
+	})
+}
+
+func newWebHarnessFrom(t *testing.T, files fs.FS) *webHarness {
 	t.Helper()
 
 	db, err := store.Open(t.Context(), testsupport.Postgres(t))
@@ -127,6 +139,13 @@ func newWebHarness(t *testing.T) *webHarness {
 	if err := tenants.SetProjectRole(t.Context(), project.ID, wim.ID, policy.RoleViewer); err != nil {
 		t.Fatal(err)
 	}
+	bo, err := identity.People().Create(t.Context(), "bo@example.org", "Bo", "a long enough passphrase")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tenants.SetProjectRole(t.Context(), project.ID, bo.ID, policy.RoleImplementer); err != nil {
+		t.Fatal(err)
+	}
 
 	cfg := gitsync.Config{
 		GitBin: gitBinary(t),
@@ -139,12 +158,8 @@ func newWebHarness(t *testing.T) *webHarness {
 		t.Fatal(err)
 	}
 
-	repository, err := sites.Create(t.Context(), project.ID.String(), remote, fstest.MapFS{
-		"hugo.toml":             {Data: []byte("title = \"Korenaar\"\n")},
-		"quiqr/model/base.yaml": {Data: []byte(siteModel)},
-		"content/_index.md":     {Data: []byte(siteHomePage)},
-		"content/news/one.md":   {Data: []byte("---\ntitle: One\n---\n\nFirst.\n")},
-	}, gitsync.Identity{Name: "The Owner", Email: owner.Email}, "Bring the site in")
+	repository, err := sites.Create(t.Context(), project.ID.String(), remote, files,
+		gitsync.Identity{Name: "The Owner", Email: owner.Email}, "Bring the site in")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,8 +176,10 @@ func newWebHarness(t *testing.T) *webHarness {
 
 	return &webHarness{
 		sites: sites, web: web, project: project,
-		editor: httpapi.Actor{ID: anna.ID.String(), Email: anna.Email},
-		viewer: httpapi.Actor{ID: wim.ID.String(), Email: wim.Email},
+		editor:  httpapi.Actor{ID: anna.ID.String(), Email: anna.Email},
+		viewer:  httpapi.Actor{ID: wim.ID.String(), Email: wim.Email},
+		builder: httpapi.Actor{ID: bo.ID.String(), Email: bo.Email},
+		cfg:     cfg,
 	}
 }
 

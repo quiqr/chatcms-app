@@ -64,13 +64,13 @@ func TestCollectionCountsItems(t *testing.T) {
 		files["content/posts/"+name+".md"] = "---\ntitle: " + name + "\n---\n"
 	}
 	files["content/posts/notes.txt"] = "not an item"
-	files["content/posts/drafts/eight.md"] = "a directory is not an item"
+	files["content/posts/drafts/eight.md"] = "below the folder is an item too"
 
 	navigation := navigate(t, files)
 
 	entry := navigation.Sections[0].Entries[0]
-	if entry.Count == nil || *entry.Count != 7 {
-		t.Errorf("count = %v, want 7", entry.Count)
+	if entry.Count == nil || *entry.Count != 8 {
+		t.Errorf("count = %v, want 8", entry.Count)
 	}
 }
 
@@ -298,5 +298,35 @@ func TestEntryTitleFallsBackToTheKey(t *testing.T) {
 	}
 	if navigation.Sections[1].Entries[0].Title != "posts" {
 		t.Errorf("collection title = %q, want the key", navigation.Sections[1].Entries[0].Title)
+	}
+}
+
+func TestASingleAndACollectionSharingAKeyAreWarnedAbout(t *testing.T) {
+	navigation := navigate(t, map[string]string{
+		"quiqr/model/base.yaml": "singles:\n  - key: pages\n    file: content/_index.md\ncollections:\n  - key: pages\n    folder: content/\n",
+	})
+
+	if len(navigation.Warnings) != 1 || !strings.Contains(navigation.Warnings[0].Message, "pages") {
+		t.Errorf("warnings = %+v", navigation.Warnings)
+	}
+}
+
+func TestTheFallbackGroupsAreNamed(t *testing.T) {
+	navigation := navigate(t, map[string]string{
+		"quiqr/model/base.yaml": "singles:\n  - key: home\n    file: content/_index.md\ncollections:\n  - key: posts\n    folder: content/posts/\n",
+	})
+
+	if len(navigation.Sections) != 2 || navigation.Sections[0].Title != "Pages" || navigation.Sections[1].Title != "Collections" {
+		t.Errorf("sections = %+v", navigation.Sections)
+	}
+}
+
+func TestAMenuSectionCarriesItsRole(t *testing.T) {
+	navigation := navigate(t, map[string]string{
+		"quiqr/model/base.yaml": "singles:\n  - key: readme\n    file: quiqr/home/index.md\nmenu:\n  - key: dev\n    title: Developer\n    matchRole: siteDeveloper\n    menuItems:\n      - key: readme\n",
+	})
+
+	if len(navigation.Sections) != 1 || navigation.Sections[0].MatchRole != "siteDeveloper" {
+		t.Errorf("sections = %+v", navigation.Sections)
 	}
 }

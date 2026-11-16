@@ -307,16 +307,48 @@ export type ContentItem = {
   at?: string;
 };
 
-export type ContentSection = {
+export type MenuEntry = {
   key: string;
+  kind: "single" | "collection";
   title: string;
   itemName?: string;
-  count: number;
-  items: ContentItem[];
+  count?: number;
+  hasChanges: boolean;
 };
 
-export function readContent(organisation: string, name: string) {
-  return get<{ sections: ContentSection[] }>(`${project(organisation, name)}/content`);
+export type MenuGroup = { key: string; title: string; items: MenuEntry[] };
+
+export type ContentMenu = {
+  groups: MenuGroup[];
+  totals: { singles: number; collections: number };
+  fallback: boolean;
+  warnings?: string[];
+};
+
+export type CollectionItem = {
+  key: string;
+  title: string;
+  folder?: string;
+  status: "published" | "changed" | "new";
+  by?: string;
+  path?: string;
+};
+
+export type CollectionItems = {
+  key: string;
+  title: string;
+  itemName: string;
+  items: CollectionItem[];
+  total: number;
+  folders: { name: string; label: string; count: number }[];
+};
+
+export function readContentMenu(organisation: string, name: string) {
+  return get<ContentMenu>(`${project(organisation, name)}/content-menu`);
+}
+
+export function readCollectionItems(organisation: string, name: string, collection: string) {
+  return get<CollectionItems>(`${project(organisation, name)}/collections/${collection}/items`);
 }
 
 export function createPage(organisation: string, name: string, section: string, title: string) {

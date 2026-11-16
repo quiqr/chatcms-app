@@ -2,6 +2,7 @@ package content
 
 import (
 	"fmt"
+	"io/fs"
 	"path"
 	"sort"
 	"strings"
@@ -22,10 +23,11 @@ type Page struct {
 	// File is where it lives. It is never shown to a content creator.
 	File   string
 	Fields []model.Field
+	Bundle bool
 }
 
-// Locate works out which page a key names, using the model.
-func Locate(m *model.Model, key string) (Page, bool) {
+// Locate works out which page a key names, using the model and the files.
+func Locate(m *model.Model, fsys fs.FS, key string) (Page, bool) {
 	if m == nil || key == "" {
 		return Page{}, false
 	}
@@ -50,35 +52,20 @@ func Locate(m *model.Model, key string) (Page, bool) {
 		if collection.Key != section {
 			continue
 		}
-		name := itemFile(item, collection.Extension)
-		if name == "" {
+		found, ok := model.FindItem(fsys, collection, item)
+		if !ok {
 			return Page{}, false
 		}
 		return Page{
 			Key:     key,
-			Title:   readable(item),
+			Title:   found.Title,
 			Section: titleOr(collection.Title, collection.Key),
-			File:    path.Join(strings.TrimSuffix(collection.Folder, "/"), name),
+			File:    found.File,
 			Fields:  collection.Fields,
+			Bundle:  found.Bundle,
 		}, true
 	}
 	return Page{}, false
-}
-
-// itemFile turns an item's name into a file name, refusing anything that
-// could address a file outside the collection.
-func itemFile(item, extension string) string {
-	if item == "" || item == "." || item == ".." ||
-		strings.ContainsAny(item, `/\:`) || strings.Contains(item, "..") {
-		return ""
-	}
-	if extension == "" {
-		extension = "md"
-	}
-	if strings.HasSuffix(item, "."+extension) {
-		return item
-	}
-	return item + "." + extension
 }
 
 func titleOr(title, key string) string {

@@ -130,7 +130,7 @@ func load(ctx context.Context, site Site, key string) (Page, *forms.Form, error)
 		}
 	}
 
-	page, found := Locate(m, key)
+	page, found := Locate(m, site.FS(), key)
 	if !found || page.File == "" {
 		return Page{}, nil, httpapi.ErrMissing
 	}

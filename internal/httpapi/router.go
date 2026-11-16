@@ -46,6 +46,7 @@ type Options struct {
 	Onboarding OnboardingService
 	Templates  TemplateService
 	Connect    ConnectService
+	Menu       MenuService
 	// Publish serves the review of what changed and the act of publishing.
 	Publish PublishService
 	// History serves what was published when, and going back to a version.
@@ -163,6 +164,10 @@ func New(opts Options) http.Handler {
 
 	if opts.Connect != nil {
 		connectHandlers(mux, opts.Connect)
+	}
+
+	if opts.Menu != nil {
+		menuHandlers(mux, opts.Menu)
 	}
 
 	if opts.Onboarding != nil {

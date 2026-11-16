@@ -138,6 +138,7 @@ func decodeCollection(file string, index int, tree map[string]any) (Collection, 
 		SortKey:         r.str("sortkey"),
 		Hidden:          r.boolean("hidden"),
 		HideIndex:       r.boolean("hideIndex"),
+		IncludeSubdirs:  r.booleanPtr("includeSubdirs"),
 		PreviewURLBase:  r.str("previewUrlBase"),
 		HidePreviewIcon: r.boolean("hidePreviewIcon"),
 	}

@@ -18,11 +18,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keeps it until it is connected.
 - Project settings connect a kept site to an empty repository, sending every
   version there; publishing waits until then.
+- The content screen follows the model's menu; a developer's section is shown
+  only to implementers.
+
+### Changed
+
+- Collections list items as Quiqr Desktop does: subfolders, page bundles,
+  `hideIndex`, `sortkey`, and titles from front matter.
+- A new item under `content/` is a page bundle, `<slug>/index.md`; renaming,
+  copying and removing a bundle move its whole folder.
 
 ### Fixed
 
 - A project with nothing brought in yet says so on every screen, instead of
   "Something went wrong".
+- A model with a collection called `pages` no longer clashes with the Pages
+  group.
 
 ## [0.1.0] - 2026-11-16
 

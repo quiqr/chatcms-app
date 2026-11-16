@@ -7,25 +7,38 @@ import { Inside } from "./here";import { afterEach, beforeEach, describe, expect
 
 import { ContentPage } from "../ContentPage";
 
-const theSections = {
-  sections: [
+const base = "/api/organisations/technative/projects/korenaar";
+
+const theMenu = {
+  groups: [
     {
       key: "pages",
       title: "Pages",
-      count: 1,
-      items: [{ key: "home", title: "Home page" }],
-    },
-    {
-      key: "news",
-      title: "News",
-      itemName: "article",
-      count: 2,
       items: [
-        { key: "news/one", title: "One", waiting: true, by: "Anna", at: "2026-03-01T09:00:00Z" },
-        { key: "news/two", title: "Two" },
+        { key: "home", kind: "single", title: "Home page", hasChanges: false },
+        { key: "news", kind: "collection", title: "News", itemName: "article", count: 2, hasChanges: true },
       ],
     },
   ],
+  totals: { singles: 1, collections: 1 },
+  fallback: true,
+};
+
+const theNews = {
+  key: "news",
+  title: "News",
+  itemName: "article",
+  total: 2,
+  folders: [],
+  items: [
+    { key: "news/one", title: "One", status: "changed", by: "Anna" },
+    { key: "news/two", title: "Two", status: "published" },
+  ],
+};
+
+const theSections = {
+  [`${base}/content-menu`]: theMenu,
+  [`${base}/collections/news/items`]: theNews,
 };
 
 function server(answers: Record<string, unknown>, sent?: (path: string, method: string, body: unknown) => void) {
@@ -55,8 +68,6 @@ function renderPage() {
   );
 }
 
-const base = "/api/organisations/technative/projects/korenaar";
-
 beforeEach(() => {
   document.cookie = "chatcms_request_token=a-token; path=/";
 });
@@ -67,17 +78,17 @@ afterEach(() => {
 
 describe("the content browser", () => {
   it("lists the pages and the collections with their counts", async () => {
-    vi.stubGlobal("fetch", server({ [`${base}/content`]: theSections }));
+    vi.stubGlobal("fetch", server(theSections));
     renderPage();
 
     expect(await screen.findByRole("heading", { name: /Pages/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /News/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Home page" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "One" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "One" })).toBeInTheDocument();
   });
 
   it("marks a page that has not been published", async () => {
-    vi.stubGlobal("fetch", server({ [`${base}/content`]: theSections }));
+    vi.stubGlobal("fetch", server(theSections));
     renderPage();
 
     expect(await screen.findByText("Not published")).toBeInTheDocument();
@@ -85,7 +96,7 @@ describe("the content browser", () => {
   });
 
   it("names the new button after what the collection holds", async () => {
-    vi.stubGlobal("fetch", server({ [`${base}/content`]: theSections }));
+    vi.stubGlobal("fetch", server(theSections));
     renderPage();
 
     expect(await screen.findByRole("button", { name: /New article/ })).toBeInTheDocument();
@@ -98,7 +109,7 @@ describe("the content browser", () => {
       "fetch",
       server(
         {
-          [`${base}/content`]: theSections,
+          ...theSections,
           [`POST ${base}/content`]: { key: "news/spring-prices", title: "Spring prices", fields: [], body: "", section: "News", hasBody: true },
         },
         (path, method, body) => sent.push([path, method, body]),
@@ -119,7 +130,7 @@ describe("the content browser", () => {
     vi.stubGlobal(
       "fetch",
       server(
-        { [`${base}/content`]: theSections, [`POST ${base}/rename/news/one`]: { key: "news/the-first" } },
+        { ...theSections, [`POST ${base}/rename/news/one`]: { key: "news/the-first" } },
         (path, method, body) => sent.push([path, method, body]),
       ),
     );
@@ -139,7 +150,7 @@ describe("the content browser", () => {
     vi.stubGlobal(
       "fetch",
       server(
-        { [`${base}/content`]: theSections, [`POST ${base}/rename/news/one`]: { key: "news/one-again" } },
+        { ...theSections, [`POST ${base}/rename/news/one`]: { key: "news/one-again" } },
         (path, method, body) => sent.push([path, method, body]),
       ),
     );
@@ -158,7 +169,7 @@ describe("the content browser", () => {
     const sent: Array<[string, string, unknown]> = [];
     vi.stubGlobal(
       "fetch",
-      server({ [`${base}/content`]: theSections }, (path, method, body) => sent.push([path, method, body])),
+      server(theSections, (path, method, body) => sent.push([path, method, body])),
     );
     renderPage();
 
@@ -177,7 +188,7 @@ describe("the content browser", () => {
     const sent: Array<[string, string, unknown]> = [];
     vi.stubGlobal(
       "fetch",
-      server({ [`${base}/content`]: theSections }, (path, method, body) => sent.push([path, method, body])),
+      server(theSections, (path, method, body) => sent.push([path, method, body])),
     );
     renderPage();
 
@@ -190,7 +201,7 @@ describe("the content browser", () => {
   });
 
   it("offers nothing to change on a page the model names", async () => {
-    vi.stubGlobal("fetch", server({ [`${base}/content`]: theSections }));
+    vi.stubGlobal("fetch", server(theSections));
     renderPage();
 
     await screen.findByRole("button", { name: "Home page" });
@@ -198,7 +209,7 @@ describe("the content browser", () => {
   });
 
   it("narrows the list as you search", async () => {
-    vi.stubGlobal("fetch", server({ [`${base}/content`]: theSections }));
+    vi.stubGlobal("fetch", server(theSections));
     renderPage();
 
     await userEvent.type(await screen.findByLabelText("Search"), "two");
@@ -208,7 +219,7 @@ describe("the content browser", () => {
   });
 
   it("uses no git word anywhere an editor reads", async () => {
-    vi.stubGlobal("fetch", server({ [`${base}/content`]: theSections }));
+    vi.stubGlobal("fetch", server(theSections));
     renderPage();
 
     await screen.findByRole("button", { name: "Home page" });
@@ -216,5 +227,59 @@ describe("the content browser", () => {
     for (const word of ["commit", "branch", "push", "merge", "repository", "git", "sha", "head"]) {
       expect(words).not.toContain(word);
     }
+  });
+
+  it("shows the groups of the model's menu in its order", async () => {
+    vi.stubGlobal(
+      "fetch",
+      server({
+        [`${base}/content-menu`]: {
+          groups: [
+            { key: "site", title: "Our site", items: [{ key: "home", kind: "single", title: "Home page", hasChanges: false }] },
+            { key: "blog", title: "Writing", items: [{ key: "posts", kind: "collection", title: "Posts", itemName: "post", count: 1, hasChanges: false }] },
+          ],
+          totals: { singles: 1, collections: 1 },
+          fallback: false,
+        },
+        [`${base}/collections/posts/items`]: {
+          key: "posts", title: "Posts", itemName: "post", total: 1, folders: [{ name: "2024", label: "2024", count: 1 }],
+          items: [{ key: "posts/2024/spring-sale", title: "Spring sale", folder: "2024", status: "published" }],
+        },
+      }),
+    );
+    renderPage();
+
+    const groups = await screen.findAllByRole("region");
+    expect(groups.map((group) => group.getAttribute("aria-label"))).toEqual(["Our site", "Writing"]);
+    expect(await screen.findByRole("button", { name: "Spring sale" })).toBeInTheDocument();
+    expect(screen.queryByText("Pages")).not.toBeInTheDocument();
+  });
+
+  it("opens an item of a page bundle by its key", async () => {
+    vi.stubGlobal(
+      "fetch",
+      server({
+        [`${base}/content-menu`]: {
+          groups: [{ key: "blog", title: "Writing", items: [{ key: "posts", kind: "collection", title: "Posts", itemName: "post", count: 1, hasChanges: false }] }],
+          totals: { singles: 0, collections: 1 },
+          fallback: false,
+        },
+        [`${base}/collections/posts/items`]: {
+          key: "posts", title: "Posts", itemName: "post", total: 1, folders: [],
+          items: [{ key: "posts/2024/spring-sale", title: "Spring sale", status: "published" }],
+        },
+      }),
+    );
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Spring sale" }));
+    expect(await screen.findByText("the editor")).toBeInTheDocument();
+  });
+
+  it("names the fallback groups in the reader's language", async () => {
+    vi.stubGlobal("fetch", server(theSections));
+    renderPage();
+
+    expect(await screen.findByRole("region", { name: "Pages" })).toBeInTheDocument();
   });
 });

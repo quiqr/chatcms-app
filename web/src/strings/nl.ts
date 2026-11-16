@@ -171,6 +171,7 @@ export const nl: Strings = {
 
   // content
   "content.cancel": "Annuleren",
+  "content.collections": "Verzamelingen",
   "content.find-a-page": "Een pagina zoeken",
   "content.it-will-go-from-your-site": "De pagina verdwijnt van je site zodra je publiceert. Tot die tijd verandert er niets voor wie hem leest, en je kunt hem terughalen uit je geschiedenis.",
   "content.looking-at-what-is-here": "Kijken wat hier staat…",
@@ -183,6 +184,7 @@ export const nl: Strings = {
   "content.remove-2": "Verwijderen…",
   "content.remove-page": "“{title}” verwijderen?",
   "content.removing": "Verwijderen…",
+  "content.pages": "Pagina's",
   "content.rename": "Hernoemen",
   "content.search": "Zoeken",
   "content.show-more": "Nog {count} tonen",

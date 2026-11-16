@@ -53,7 +53,7 @@ func TestTheBrowserListsPagesAndCollections(t *testing.T) {
 		t.Fatalf("List() error = %v", err)
 	}
 
-	pages, found := sectionNamed(sections, "pages")
+	pages, found := sectionNamed(sections, "singles")
 	if !found || len(pages.Items) != 1 || pages.Items[0].Title != "Home page" {
 		t.Fatalf("pages = %+v", pages)
 	}
@@ -94,7 +94,7 @@ func TestAnItemWaitingToBePublishedIsMarked(t *testing.T) {
 		t.Errorf("By = %q, want who changed it", news.Items[0].By)
 	}
 
-	pages, _ := sectionNamed(sections, "pages")
+	pages, _ := sectionNamed(sections, "singles")
 	if pages.Items[0].Waiting {
 		t.Error("a page with nothing waiting is marked anyway")
 	}
@@ -114,7 +114,7 @@ func TestAPageIsMade(t *testing.T) {
 	if page.Key != "news/spring-prices" {
 		t.Errorf("Key = %q, want it named from the title", page.Key)
 	}
-	written, wrote := src.site.saved[0].Writes["content/news/spring-prices.md"]
+	written, wrote := src.site.saved[0].Writes["content/news/spring-prices/index.md"]
 	if !wrote {
 		t.Fatalf("wrote %v", src.site.saved[0].Writes)
 	}

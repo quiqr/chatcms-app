@@ -19,12 +19,12 @@ test("a page is made, edited and removed", async ({ signedIn: page, chatcms }, t
 
   await test.step("it is listed, and marked as not published", async () => {
     await page.goto(`${chatcms.url}/o/technative/p/korenaar/content`);
-    await expect(page.getByRole("button", { name: "Autumn prices", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Summer prices", exact: true })).toBeVisible();
     await expect(page.getByText("Not published").first()).toBeVisible();
   });
 
   await test.step("removing asks first, and says what will happen", async () => {
-    await page.getByRole("button", { name: "What to do with Autumn prices" }).click();
+    await page.getByRole("button", { name: "What to do with Summer prices" }).click();
     await page.getByRole("button", { name: "Remove…" }).click();
 
     const asking = page.getByRole("dialog");
@@ -32,7 +32,7 @@ test("a page is made, edited and removed", async ({ signedIn: page, chatcms }, t
     await expect(asking).toContainText("bring it back");
 
     await asking.getByRole("button", { name: "Yes, remove it" }).click();
-    await expect(page.getByRole("button", { name: "Autumn prices", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Summer prices", exact: true })).toHaveCount(0);
   });
 
   await worksOnAPhone(page, testInfo);

@@ -1,0 +1,81 @@
+hugover: 0.101.0
+serve:
+  - key: default
+    hugoHidePreviewSite: false
+singles:
+  - key: home
+    title: Home
+    file: content/_index.md
+    fields:
+      - key: title
+        type: string
+  - key: readme
+    title: README
+    file: quiqr/home/index.md
+    fields:
+      - key: mainContent
+        type: markdown
+collections:
+  - key: pages
+    title: Pages
+    itemtitle: page
+    folder: content/
+    extension: md
+    dataformat: yaml
+    hideIndex: true
+    includeSubdirs: false
+    fields:
+      - key: title
+        type: string
+  - key: posts
+    title: Posts
+    itemtitle: post
+    folder: content/post/
+    extension: md
+    dataformat: yaml
+    hideIndex: true
+    sortkey: date
+    fields:
+      - key: title
+        type: string
+      - key: date
+        type: date
+  - key: notes
+    title: Notes
+    folder: content/note/
+    extension: md
+    dataformat: yaml
+    includeSubdirs: false
+    fields:
+      - key: title
+        type: string
+  - key: team
+    title: Team
+    folder: data/team/
+    extension: yaml
+    dataformat: yaml
+    fields:
+      - key: name
+        type: string
+menu:
+  - key: content
+    title: Content
+    menuItems:
+      - key: home
+      - key: pages
+      - key: posts
+      - key: notes
+  - key: people
+    title: People
+    menuItems:
+      - key: team
+  - key: developer
+    title: Developer
+    matchRole: siteDeveloper
+    menuItems:
+      - key: readme
+  - key: old
+    title: Old
+    disabled: true
+    menuItems:
+      - key: notes

@@ -9,7 +9,7 @@ test("a project starts from a template in the gallery", async ({ signedIn: page,
 
     await expect(page.getByRole("heading", { name: "Start from a template" })).toBeVisible();
     await expect(page.getByRole("article", { name: "Bakery" })).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText("1 template", { exact: true })).toBeVisible();
+    await expect(page.getByText("2 templates", { exact: true })).toBeVisible();
 
     await page.getByPlaceholder("Search name, description or author").fill("spaceship");
     await expect(page.getByText('No templates match "spaceship".')).toBeVisible();

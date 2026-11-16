@@ -206,6 +206,10 @@ export class Harness {
       ),
     );
 
+    const bundles = join(root, "bundles.git");
+    this.makeTheBundleTemplate(git, join(root, "bundles-work"), bundles);
+    mkdirSync(join(root, "templates", "Bundles"), { recursive: true });
+
     this.templates = createServer((request, response) => {
       const path = normalize(decodeURIComponent(new URL(request.url, "http://x").pathname));
       if (path === "/templates.json") {
@@ -223,6 +227,16 @@ export class Harness {
               ScreenshotImageType: "png",
               SourceLink: `${this.templatesUrl}/bakery.git`,
             },
+            {
+              QuiqrEtalageName: "Bundles",
+              NormalizedName: "Bundles",
+              QuiqrEtalageDescription: "A journal whose posts are page bundles, with a menu.",
+              QuiqrEtalageAuthor: "The acceptance suite",
+              QuiqrEtalageLicense: "MIT",
+              HugoVersion: "0.101.0",
+              QuiqrModel: "base collections menu",
+              SourceLink: `${this.templatesUrl}/bundles.git`,
+            },
           ]),
         );
         return;
@@ -237,6 +251,71 @@ export class Harness {
     });
     await new Promise((listening) => this.templates.listen(0, "127.0.0.1", listening));
     this.templatesUrl = `http://127.0.0.1:${this.templates.address().port}`;
+  }
+
+  makeTheBundleTemplate(git, work, bare) {
+    const files = {
+      "hugo.toml": "baseURL = 'https://journal.example'\ntitle = 'Journal'\n",
+      "quiqr/model/base.yaml": [
+        "hugover: 0.101.0",
+        "singles:",
+        "  - key: home",
+        "    title: Home",
+        "    file: content/_index.md",
+        "    fields:",
+        "      - key: title",
+        "        type: string",
+        "  - key: readme",
+        "    title: Developer notes",
+        "    file: quiqr/home/index.md",
+        "    fields:",
+        "      - key: mainContent",
+        "        type: markdown",
+        "collections:",
+        "  - key: posts",
+        "    title: Posts",
+        "    itemtitle: post",
+        "    folder: content/post/",
+        "    extension: md",
+        "    dataformat: yaml",
+        "    hideIndex: true",
+        "    sortkey: date",
+        "    fields:",
+        "      - key: title",
+        "        type: string",
+        "      - key: date",
+        "        type: date",
+        "      - key: mainContent",
+        "        type: markdown",
+        "menu:",
+        "  - key: journal",
+        "    title: Journal",
+        "    menuItems:",
+        "      - key: home",
+        "      - key: posts",
+        "  - key: developer",
+        "    title: Developer",
+        "    matchRole: siteDeveloper",
+        "    menuItems:",
+        "      - key: readme",
+        "",
+      ].join("\n"),
+      "content/_index.md": "---\ntitle: Journal\n---\n\nWelcome.\n",
+      "content/post/_index.md": "---\ntitle: All posts\n---\n",
+      "content/post/2024/spring-sale/index.md": "---\ntitle: Spring sale\ndate: 2024-03-01\n---\n\nPlums are in.\n",
+      "content/post/2024/spring-sale/cover.svg": "<svg xmlns='http://www.w3.org/2000/svg' width='4' height='4'/>\n",
+      "content/post/autumn/index.md": "---\ntitle: Autumn walk\ndate: 2023-10-01\n---\n\nLeaves.\n",
+      "quiqr/home/index.md": "Notes for whoever builds this site.\n",
+    };
+    for (const [name, content] of Object.entries(files)) {
+      mkdirSync(join(work, name, ".."), { recursive: true });
+      writeFileSync(join(work, name), content);
+    }
+    sh(git, ["-C", work, "init", "--initial-branch=main"]);
+    sh(git, ["-C", work, "add", "--all"]);
+    sh(git, ["-C", work, "-c", "user.name=Suite", "-c", "user.email=suite@example.org", "commit", "--message=The journal"]);
+    sh(git, ["clone", "--bare", work, bare]);
+    sh(git, ["-C", bare, "update-server-info"]);
   }
 
   emptyRemote(name) {

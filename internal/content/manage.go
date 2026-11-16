@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/quiqr/chatcms-app/internal/frontmatter"
 	"github.com/quiqr/chatcms-app/internal/gitsync"
 	"github.com/quiqr/chatcms-app/internal/httpapi"
 	"github.com/quiqr/chatcms-app/internal/model"
@@ -89,13 +90,18 @@ func (s *Service) Create(ctx context.Context, actor policy.Actor, projectID uuid
 		}
 	}
 
-	file := path.Join(strings.TrimSuffix(collection.Folder, "/"), slug+"."+extensionOf(collection))
-	if _, err := fs.Stat(site.FS(), file); err == nil {
+	file := newItemFile(collection, slug)
+	if taken(site.FS(), collection, slug) {
 		return Editable{}, &httpapi.RefusedError{
 			Key:    "refused.page-name-taken",
 			Reason: fmt.Sprintf("there is already a page called %q here", asked.Title),
 			Detail: map[string]any{"title": asked.Title},
 		}
+	}
+
+	first, err := firstContent(asked.Title, file)
+	if err != nil {
+		return Editable{}, err
 	}
 
 	who, err := s.who(ctx, actor)
@@ -106,7 +112,7 @@ func (s *Service) Create(ctx context.Context, actor policy.Actor, projectID uuid
 	if _, err := site.Save(ctx, gitsync.Save{
 		Message: "Add " + asked.Title,
 		Author:  who,
-		Writes:  map[string][]byte{file: firstContent(asked.Title)},
+		Writes:  map[string][]byte{file: first},
 	}); err != nil {
 		return Editable{}, err
 	}
@@ -115,10 +121,44 @@ func (s *Service) Create(ctx context.Context, actor policy.Actor, projectID uuid
 	return s.after(ctx, site, collection.Key+"/"+slug)
 }
 
-// firstContent is what a new page holds: its title and nothing else, in the
-// shape the reference implementation writes.
-func firstContent(title string) []byte {
-	return []byte("---\ntitle: " + title + "\n---\n\n")
+func firstContent(title, file string) ([]byte, error) {
+	fields := frontmatter.NewMap()
+	fields.Set("title", title)
+	header, err := frontmatter.EmitYAML(fields)
+	if err != nil {
+		return nil, err
+	}
+	if isContentFile(file) {
+		return []byte("---\n" + string(header) + "---\n\n"), nil
+	}
+	return header, nil
+}
+
+func isContentFile(file string) bool {
+	switch strings.ToLower(strings.TrimPrefix(path.Ext(file), ".")) {
+	case "md", "html", "markdown", "qmd":
+		return true
+	}
+	return false
+}
+
+func newItemFile(collection model.Collection, slug string) string {
+	if collection.UnderContent() {
+		return path.Join(collection.Root(), slug, "index."+extensionOf(collection))
+	}
+	return path.Join(collection.Root(), slug+"."+extensionOf(collection))
+}
+
+func taken(fsys fs.FS, collection model.Collection, slug string) bool {
+	for _, name := range []string{
+		path.Join(collection.Root(), slug+"."+extensionOf(collection)),
+		path.Join(collection.Root(), slug),
+	} {
+		if _, err := fs.Stat(fsys, name); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func extensionOf(collection model.Collection) string {
@@ -195,11 +235,20 @@ func (s *Service) moveOrCopy(
 		}
 	}
 
-	to := path.Join(strings.TrimSuffix(collection.Folder, "/"), slug+"."+extensionOf(collection))
+	within := path.Dir(strings.TrimPrefix(key, collection.Key+"/"))
+	if within == "." {
+		within = ""
+	}
+	parent := path.Dir(page.File)
+	to := path.Join(parent, slug+path.Ext(page.File))
+	if page.Bundle {
+		parent = path.Dir(parent)
+		to = path.Join(parent, slug, path.Base(page.File))
+	}
 	if to == page.File {
 		return s.after(ctx, site, key)
 	}
-	if _, err := fs.Stat(site.FS(), to); err == nil {
+	if nameTaken(site.FS(), parent, slug, path.Ext(page.File)) {
 		return Editable{}, &httpapi.RefusedError{
 			Key:    "refused.page-name-taken",
 			Reason: fmt.Sprintf("there is already a page called %q here", title),
@@ -229,11 +278,26 @@ func (s *Service) moveOrCopy(
 		Author: who,
 		Writes: map[string][]byte{to: written},
 	}
+	moved := []string{page.File}
+	if page.Bundle {
+		alongside, err := bundleFiles(site.FS(), page.File)
+		if err != nil {
+			return Editable{}, err
+		}
+		for _, file := range alongside {
+			data, err := fs.ReadFile(site.FS(), file)
+			if err != nil {
+				return Editable{}, err
+			}
+			save.Writes[path.Join(path.Dir(to), strings.TrimPrefix(file, path.Dir(page.File)+"/"))] = data
+			moved = append(moved, file)
+		}
+	}
 	if keepTheOldOne {
 		save.Message = "Copy " + page.Title + " to " + title
 	} else {
 		save.Message = "Rename " + page.Title + " to " + title
-		save.Deletes = []string{page.File}
+		save.Deletes = moved
 	}
 
 	if _, err := site.Save(ctx, save); err != nil {
@@ -241,7 +305,30 @@ func (s *Service) moveOrCopy(
 	}
 
 	s.syncSoon(ctx, projectID)
-	return s.after(ctx, site, collection.Key+"/"+slug)
+	return s.after(ctx, site, collection.Key+"/"+path.Join(within, slug))
+}
+
+func nameTaken(fsys fs.FS, parent, slug, extension string) bool {
+	for _, name := range []string{path.Join(parent, slug+extension), path.Join(parent, slug)} {
+		if _, err := fs.Stat(fsys, name); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func bundleFiles(fsys fs.FS, index string) ([]string, error) {
+	var files []string
+	err := fs.WalkDir(fsys, path.Dir(index), func(name string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !entry.IsDir() && name != index {
+			files = append(files, name)
+		}
+		return nil
+	})
+	return files, err
 }
 
 // Delete removes a page. Only an item of a collection can go: a page the model
@@ -278,10 +365,18 @@ func (s *Service) Delete(ctx context.Context, actor policy.Actor, projectID uuid
 		return err
 	}
 
+	removed := []string{page.File}
+	if page.Bundle {
+		alongside, err := bundleFiles(site.FS(), page.File)
+		if err != nil {
+			return err
+		}
+		removed = append(removed, alongside...)
+	}
 	if _, err := site.Save(ctx, gitsync.Save{
 		Message: "Remove " + page.Title,
 		Author:  who,
-		Deletes: []string{page.File},
+		Deletes: removed,
 	}); err != nil {
 		return err
 	}
@@ -293,7 +388,8 @@ func (s *Service) Delete(ctx context.Context, actor policy.Actor, projectID uuid
 // List is the content browser: every section with its items, and a mark on
 // anything not yet published.
 func (s *Service) List(ctx context.Context, actor policy.Actor, projectID uuid.UUID) ([]Section, error) {
-	if err := s.allowed(ctx, actor, policy.ActionReadContent, projectID); err != nil {
+	resource, err := s.reachable(ctx, actor, policy.ActionReadContent, projectID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -311,7 +407,7 @@ func (s *Service) List(ctx context.Context, actor policy.Actor, projectID uuid.U
 	if err != nil {
 		return nil, err
 	}
-	return Browse(ctx, site, waitingFrom(changes)), nil
+	return Browse(ctx, site, waitingFrom(changes), policy.Can(actor, policy.ActionSeeTechnicalDetail, resource)), nil
 }
 
 func noModel(err error) error {

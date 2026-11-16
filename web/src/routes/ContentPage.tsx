@@ -12,10 +12,14 @@ import { say } from "../lib/say";
 import {
   createPage,
   deletePage,
-  readContent,
+  readCollectionItems,
+  readContentMenu,
   renamePage,
+  type CollectionItems,
   type ContentItem,
-  type ContentSection,
+  type ContentMenu,
+  type MenuEntry,
+  type MenuGroup,
 } from "../lib/tenancy";
 import { whatWentWrong } from "../lib/api";
 
@@ -186,21 +190,105 @@ function Row({
   );
 }
 
+function CollectionBlock({
+  entry,
+  looking,
+  refresh,
+  onOpen,
+  onAsk,
+}: {
+  entry: MenuEntry;
+  looking: string;
+  refresh: number;
+  onOpen: (key: string) => void;
+  onAsk: (asking: Asking) => void;
+}) {
+  const { organisation } = useHere();
+  const { project = "" } = useParams();
+  const [limit, setLimit] = useState(atATime);
+  const [listing] = useAsync<CollectionItems>(
+    () => readCollectionItems(organisation, project, entry.key),
+    [organisation, project, entry.key, refresh],
+  );
+
+  const items: ContentItem[] =
+    listing.state === "ready"
+      ? listing.value.items.map((item) => ({
+          key: item.key,
+          title: item.title,
+          waiting: item.status !== "published",
+          by: item.by,
+        }))
+      : [];
+  const matching = items.filter((item) => (looking === "" ? true : item.title.toLowerCase().includes(looking)));
+  const shown = matching.slice(0, limit);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h4 className="text-[15px] font-semibold">
+          {entry.title}
+          <span className="ml-2 text-sm font-normal text-subtle-foreground">{entry.count ?? 0}</span>
+        </h4>
+        <Button
+          variant="ghost"
+          onClick={() => onAsk({ what: "new", section: entry.key, itemName: entry.itemName ?? "" })}
+        >
+          <Plus aria-hidden="true" className="size-4" />
+          {say("content.new")} {entry.itemName}
+        </Button>
+      </div>
+
+      {listing.state === "failed" && <p className="text-[15px]">{listing.message}</p>}
+      {listing.state === "ready" &&
+        (matching.length === 0 ? (
+          <p className="text-[15px] text-subtle-foreground">
+            {looking === "" ? say("content.nothing-here-yet") : say("content.nothing-here-matches-that")}
+          </p>
+        ) : (
+          <ul className="flex flex-col">
+            {shown.map((item) => (
+              <Row key={item.key} item={item} canChange onOpen={() => onOpen(item.key)} onAsk={onAsk} />
+            ))}
+          </ul>
+        ))}
+
+      {matching.length > shown.length && (
+        <button
+          type="button"
+          onClick={() => setLimit(limit + atATime)}
+          className="flex min-h-11 w-fit items-center text-sm font-medium text-primary"
+        >
+          {say("content.show-more", { count: Math.min(atATime, matching.length - shown.length) })}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function groupTitle(menu: ContentMenu, group: MenuGroup) {
+  if (!menu.fallback) return group.title;
+  return group.key === "collections" ? say("content.collections") : say("content.pages");
+}
+
 export function ContentPage() {
   const { organisation } = useHere();
   const { project = "" } = useParams();
   const goTo = useNavigate();
   const [refresh, setRefresh] = useState(0);
   const [search, setSearch] = useState("");
-  const [showing, setShowing] = useState<Record<string, number>>({});
   const [asking, setAsking] = useState<Asking | null>(null);
   const [busy, setBusy] = useState(false);
   const [trouble, setTrouble] = useState("");
 
-  const [content] = useAsync<{ sections: ContentSection[] }>(
-    () => readContent(organisation, project),
+  const [menu] = useAsync<ContentMenu>(
+    () => readContentMenu(organisation, project),
     [organisation, project, refresh],
   );
+
+  function open(key: string) {
+    goTo(`/o/${organisation}/p/${project}/content/${key}`);
+  }
 
   async function act(title: string) {
     if (!asking) return;
@@ -209,7 +297,7 @@ export function ContentPage() {
     try {
       if (asking.what === "new") {
         const made = await createPage(organisation, project, asking.section, title);
-        goTo(`/o/${organisation}/p/${project}/content/${made.key}`);
+        open(made.key);
         return;
       }
       if (asking.what === "delete") {
@@ -226,11 +314,11 @@ export function ContentPage() {
     }
   }
 
-  if (content.state === "loading") {
+  if (menu.state === "loading") {
     return <p className="text-[15px] text-subtle-foreground">{say("content.looking-at-what-is-here")}</p>;
   }
-  if (content.state === "failed") {
-    return <p className="text-[15px]">{content.message}</p>;
+  if (menu.state === "failed") {
+    return <p className="text-[15px]">{menu.message}</p>;
   }
 
   const looking = search.trim().toLowerCase();
@@ -253,63 +341,39 @@ export function ContentPage() {
         onChange={(event) => setSearch(event.target.value)}
       />
 
-      {content.value.sections.map((section) => {
-        const matching = section.items.filter((item) =>
-          looking === "" ? true : item.title.toLowerCase().includes(looking),
+      {menu.value.groups.map((group) => {
+        const singles = group.items.filter(
+          (entry) => entry.kind === "single" && (looking === "" || entry.title.toLowerCase().includes(looking)),
         );
-        const limit = showing[section.key] ?? atATime;
-        const shown = matching.slice(0, limit);
+        const collections = group.items.filter((entry) => entry.kind === "collection");
 
         return (
-          <div key={section.key} className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-[15px] font-semibold">
-                {section.title}
-                <span className="ml-2 text-sm font-normal text-subtle-foreground">
-                  {section.count}
-                </span>
-              </h3>
-              {section.itemName && (
-                <Button
-                  variant="ghost"
-                  onClick={() =>
-                    setAsking({ what: "new", section: section.key, itemName: section.itemName! })
-                  }
-                >
-                  <Plus aria-hidden="true" className="size-4" />
-                  {say("content.new")} {section.itemName}
-                </Button>
-              )}
-            </div>
-
-            {matching.length === 0 ? (
-              <p className="text-[15px] text-subtle-foreground">
-                {looking === "" ? say("content.nothing-here-yet") : say("content.nothing-here-matches-that")}
-              </p>
-            ) : (
+          <section key={group.key} aria-label={groupTitle(menu.value, group)} className="flex flex-col gap-3">
+            <h3 className="text-base font-semibold">{groupTitle(menu.value, group)}</h3>
+            {singles.length > 0 && (
               <ul className="flex flex-col">
-                {shown.map((item) => (
+                {singles.map((entry) => (
                   <Row
-                    key={item.key}
-                    item={item}
-                    canChange={section.key !== "pages"}
-                    onOpen={() => goTo(`/o/${organisation}/p/${project}/content/${item.key}`)}
+                    key={entry.key}
+                    item={{ key: entry.key, title: entry.title, waiting: entry.hasChanges }}
+                    canChange={false}
+                    onOpen={() => open(entry.key)}
                     onAsk={setAsking}
                   />
                 ))}
               </ul>
             )}
-
-            {matching.length > shown.length && (
-              <button
-                type="button"
-                onClick={() => setShowing({ ...showing, [section.key]: limit + atATime })}
-                className="flex min-h-11 w-fit items-center text-sm font-medium text-primary"
-              >
-                {say("content.show-more", { count: Math.min(atATime, matching.length - shown.length) })}
-              </button>
-            )}
-          </div>
+            {collections.map((entry) => (
+              <CollectionBlock
+                key={entry.key}
+                entry={entry}
+                looking={looking}
+                refresh={refresh}
+                onOpen={open}
+                onAsk={setAsking}
+              />
+            ))}
+          </section>
         );
       })}
     </section>
