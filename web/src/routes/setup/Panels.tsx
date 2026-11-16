@@ -28,10 +28,12 @@ export function KeyPanel({
   organisation,
   project,
   onTrouble,
+  onKey,
 }: {
   organisation: string;
   project: string;
   onTrouble: (said: string) => void;
+  onKey?: () => void;
 }) {
   const [key, reloadKey] = useAsync(() => readKey(organisation, project), [organisation, project]);
   const [connection, setConnection] = useState<Connection | null>(null);
@@ -85,6 +87,7 @@ export function KeyPanel({
               onClick={() => void run(async () => {
                 await makeKey(organisation, project);
                 reloadKey();
+        onKey?.();
               })}
             >
               {hasKey ? say("panels.make-a-new-key") : say("panels.make-a-key")}

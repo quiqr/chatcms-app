@@ -1,0 +1,193 @@
+[
+  {
+    "HugoVersion": "extended_0.101.0",
+    "HugoTheme": "",
+    "QuiqrFormsEndPoints": 0,
+    "QuiqrModel": "base collections menu singles",
+    "QuiqrEtalageName": "Bexer Remix",
+    "QuiqrEtalageDescription": "Flexible Template suitable for small and large websites. Many contents blocks available.",
+    "QuiqrEtalageHomepage": "https://github.com/wearetechnative/quiqr-template-bexer-remix",
+    "QuiqrEtalageDemoUrl": "",
+    "QuiqrEtalageLicense": "Apache",
+    "QuiqrEtalageLicenseURL": "https://github.com/wearetechnative/quiqr-template-bexer-remix/blob/main/LICENSE",
+    "QuiqrEtalageAuthor": "TechNative",
+    "QuiqrEtalageAuthorHomepage": "https://technative.eu",
+    "QuiqrEtalageScreenshots": [
+      "quiqr/etalage/screenshots/Screenshot from 2024-02-09 19-24-26.png"
+    ],
+    "ScreenshotImageType": "png",
+    "SourceLink": "https://github.com/wearetechnative/quiqr-template-bexer-remix",
+    "NormalizedName": "Bexer-Remix"
+  },
+  {
+    "HugoVersion": "0.111.3",
+    "HugoTheme": "",
+    "QuiqrFormsEndPoints": 0,
+    "QuiqrModel": "base collections menu singles",
+    "QuiqrEtalageName": "KitchenSink",
+    "QuiqrEtalageDescription": "Template with every available field type. For learning the Quiqr Model",
+    "QuiqrEtalageHomepage": "https://github.com/quiqr/quiqr-template-kitchen-sink",
+    "QuiqrEtalageDemoUrl": "",
+    "QuiqrEtalageLicense": "MIT",
+    "QuiqrEtalageLicenseURL": "https://github.com/quiqr/quiqr-template-kitchen-sink/blob/main/LICENSE",
+    "QuiqrEtalageAuthor": "Pim Snel",
+    "QuiqrEtalageAuthorHomepage": "https://github.com/mipmip",
+    "QuiqrEtalageScreenshots": [
+      "quiqr/etalage/screenshots/quiqr-generated-screenshot.jpg"
+    ],
+    "ScreenshotImageType": "jpg",
+    "SourceLink": "https://github.com/quiqr/quiqr-template-kitchen-sink",
+    "NormalizedName": "KitchenSink"
+  },
+  {
+    "HugoVersion": "extended_0.76.5",
+    "HugoTheme": "Paper",
+    "QuiqrFormsEndPoints": 0,
+    "QuiqrModel": "base collections menu singles",
+    "QuiqrEtalageName": "Paper",
+    "QuiqrEtalageDescription": "The famous paper theme with a Quiqr CMS layer",
+    "QuiqrEtalageHomepage": "https://github.com/mipmip/quiqr-paper-themed-template",
+    "QuiqrEtalageDemoUrl": "https://mipmip.github.io/quiqr-paper-themed-template/",
+    "QuiqrEtalageLicense": "MIT",
+    "QuiqrEtalageLicenseURL": "https://github.com/mipmip/quiqr-paper-themed-template/blob/main/LICENSE",
+    "QuiqrEtalageAuthor": "Steve Francia, Nanxiaobei and Pim Snel",
+    "QuiqrEtalageAuthorHomepage": "https://pimsnel.com",
+    "QuiqrEtalageScreenshots": [
+      "quiqr/etalage/screenshots/paperscreen.png"
+    ],
+    "ScreenshotImageType": "png",
+    "SourceLink": "https://github.com/mipmip/quiqr-paper-themed-template",
+    "NormalizedName": "Paper"
+  },
+  {
+    "QuiqrEtalageName": "No Source",
+    "NormalizedName": "No-Source",
+    "QuiqrEtalageDescription": "An entry without a source repository, kept to prove it is dropped.",
+    "ScreenshotImageType": "png",
+    "SourceLink": ""
+  },
+  {
+    "HugoVersion": "extended_0.101.0",
+    "HugoTheme": "hugo-scroll",
+    "QuiqrFormsEndPoints": 0,
+    "QuiqrModel": "base collections menu singles",
+    "QuiqrEtalageName": "Scroll",
+    "QuiqrEtalageDescription": "Quiqr template based on the Hugo Scroll theme for pretty, quick and simple single-page websites.",
+    "QuiqrEtalageHomepage": "https://github.com/mipmip/quiqr-scroll-template/",
+    "QuiqrEtalageDemoUrl": "https://mipmip.github.io/quiqr-scroll-template/",
+    "QuiqrEtalageLicense": "MIT",
+    "QuiqrEtalageLicenseURL": "https://github.com/mipmip/quiqr-scroll-template/blob/main/LICENSE",
+    "QuiqrEtalageAuthor": "Pim Snel, @zjedi, Jan Raasch",
+    "QuiqrEtalageAuthorHomepage": "https://pimsnel.com",
+    "QuiqrEtalageScreenshots": [
+      "quiqr/etalage/screenshots/quiqr-generated-screenshot.jpg",
+      "quiqr/etalage/screenshots/screenshot2.png"
+    ],
+    "ScreenshotImageType": "jpg",
+    "SourceLink": "https://github.com/mipmip/quiqr-scroll-template",
+    "NormalizedName": "Scroll"
+  },
+  {
+    "HugoVersion": "extended_0.101.0",
+    "HugoTheme": "summer-qremix",
+    "QuiqrFormsEndPoints": 0,
+    "QuiqrModel": "base collections menu singles",
+    "QuiqrEtalageName": "Summer",
+    "QuiqrEtalageDescription": "Simple fresh looking recipe site, ported from Jekyll to Hugo",
+    "QuiqrEtalageHomepage": "https://github.com/mipmip/summer-qremix",
+    "QuiqrEtalageDemoUrl": "https://mipmip.github.io/summer-qremix/",
+    "QuiqrEtalageLicense": "MIT",
+    "QuiqrEtalageLicenseURL": "https://github.com/mipmip/summer-qremix/blob/main/LICENSE",
+    "QuiqrEtalageAuthor": "Connor Bär (Ported by Pim Snel)",
+    "QuiqrEtalageAuthorHomepage": "https://github.com/connor-baer",
+    "QuiqrEtalageScreenshots": [
+      "quiqr/etalage/screenshots/quiqr-generated-screenshot.jpg"
+    ],
+    "ScreenshotImageType": "jpg",
+    "SourceLink": "https://github.com/mipmip/summer-qremix",
+    "NormalizedName": "Summer"
+  },
+  {
+    "HugoVersion": "0.101.0",
+    "HugoTheme": "UILite",
+    "QuiqrFormsEndPoints": 0,
+    "QuiqrModel": "base collections menu singles",
+    "QuiqrEtalageName": "UILite",
+    "QuiqrEtalageDescription": "Hugo UILite portfolio theme is designed especially for designers and developers who need a good-looking portfolio website without much efforts.",
+    "QuiqrEtalageHomepage": "https://github.com/mipmip/quiqr-uilite-template",
+    "QuiqrEtalageDemoUrl": "https://mipmip.github.io/quiqr-uilite-template/",
+    "QuiqrEtalageLicense": "MIT",
+    "QuiqrEtalageLicenseURL": "https://github.com/mipmip/quiqr-uilite-template/blob/main/LICENSE",
+    "QuiqrEtalageAuthor": "Multiple",
+    "QuiqrEtalageAuthorHomepage": "",
+    "QuiqrEtalageScreenshots": [
+      "quiqr/etalage/screenshots/screenshot.png"
+    ],
+    "ScreenshotImageType": "png",
+    "SourceLink": "https://github.com/mipmip/quiqr-uilite-template",
+    "NormalizedName": "UILite"
+  },
+  {
+    "HugoVersion": "0.88.1",
+    "HugoTheme": "hugo-webslides",
+    "QuiqrFormsEndPoints": 0,
+    "QuiqrModel": "base singles",
+    "QuiqrEtalageName": "Webslides Quiqr in a nutshell",
+    "QuiqrEtalageDescription": "The slides of Pim’s Lightning Talk at the Hugo Conf 2022",
+    "QuiqrEtalageHomepage": "https://github.com/quiqr/quiqr-hugoconf2022-webslides",
+    "QuiqrEtalageDemoUrl": "",
+    "QuiqrEtalageLicense": "CC0-1.0",
+    "QuiqrEtalageLicenseURL": "https://github.com/quiqr/quiqr-hugoconf2022-webslides/blob/main/LICENSE",
+    "QuiqrEtalageAuthor": "Pim Snel",
+    "QuiqrEtalageAuthorHomepage": "https://pimsnel.com",
+    "QuiqrEtalageScreenshots": [
+      "quiqr/etalage/screenshots/quiqr-generated-screenshot.jpg"
+    ],
+    "ScreenshotImageType": "jpg",
+    "SourceLink": "https://github.com/quiqr/quiqr-hugoconf2022-webslides",
+    "NormalizedName": "Webslides-Quiqr-in-a-nutshell"
+  },
+  {
+    "HugoVersion": "0.101.0",
+    "HugoTheme": "XMin",
+    "QuiqrFormsEndPoints": 0,
+    "QuiqrModel": "base collections menu singles",
+    "QuiqrEtalageName": "Xmin",
+    "QuiqrEtalageDescription": "Minimal but clean and complete hugo theme remixed as Quiqr Template",
+    "QuiqrEtalageHomepage": "https://github.com/mipmip/quiqr-xmin-template",
+    "QuiqrEtalageDemoUrl": "https://mipmip.github.io/quiqr-xmin-template/",
+    "QuiqrEtalageLicense": "MIT",
+    "QuiqrEtalageLicenseURL": "https://github.com/mipmip/quiqr-xmin-template/blob/main/LICENSE",
+    "QuiqrEtalageAuthor": "Yihui Xie, Pim Snel",
+    "QuiqrEtalageAuthorHomepage": "https://yihui.org/",
+    "QuiqrEtalageScreenshots": [
+      "quiqr/etalage/screenshots/quiqr-generated-screenshot.jpg"
+    ],
+    "ScreenshotImageType": "jpg",
+    "SourceLink": "https://github.com/mipmip/quiqr-xmin-template",
+    "NormalizedName": "Xmin"
+  },
+  {
+    "HugoVersion": "extended_0.90.1",
+    "HugoTheme": "yag",
+    "QuiqrFormsEndPoints": 0,
+    "QuiqrModel": "base collections menu singles",
+    "QuiqrEtalageName": "Yet Another Gallery",
+    "QuiqrEtalageDescription": "Stylish template for Video and Image galleries",
+    "QuiqrEtalageHomepage": "https://github.com/mipmip/quiqr-yet-another-gallery-template",
+    "QuiqrEtalageDemoUrl": "https://mipmip.github.io/quiqr-yet-another-gallery-template/",
+    "QuiqrEtalageLicense": "Creative Commons Attribution 3.0 Unported",
+    "QuiqrEtalageLicenseURL": "https://github.com/mipmip/quiqr-yet-another-gallery-template/blob/main/LICENSE.md",
+    "QuiqrEtalageAuthor": "Pim Snel",
+    "QuiqrEtalageAuthorHomepage": "https://github.com/mipmip",
+    "QuiqrEtalageScreenshots": [
+      "quiqr/etalage/screenshots/quiqr-generated-screenshot.jpg",
+      "quiqr/etalage/screenshots/screenshot2.png",
+      "quiqr/etalage/screenshots/screenshot3.png",
+      "quiqr/etalage/screenshots/screenshot4.png"
+    ],
+    "ScreenshotImageType": "jpg",
+    "SourceLink": "https://github.com/mipmip/quiqr-yet-another-gallery-template",
+    "NormalizedName": "Yet-Another-Gallery"
+  }
+]

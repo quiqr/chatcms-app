@@ -59,6 +59,7 @@ type Server struct {
 	tenancy    *tenancy.Service
 	admin      *admin.Web
 	onboarding *onboarding.Service
+	templates  *onboarding.Catalogue
 	builds     *builds.Service
 	workflows  *workflows.Engine
 	publish    *publish.Web
@@ -122,9 +123,12 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 	server.admin = admin.NewWeb(admin.NewService(adminStore, tenancyStore, server.auth))
 	appointTheFirstAdministrator(ctx, adminStore, cfg.FirstAdministrator, logger)
 
-	server.onboarding = onboarding.NewService(db, tenancyStore, server.keys,
-		onboarding.NewImporter(db, server.sites, server.keys,
-			gitsync.Identity{Name: "Quiqr ChatCMS", Email: "chatcms@" + hostOf(cfg.BaseURL)}))
+	importer := onboarding.NewImporter(db, server.sites, server.keys,
+		gitsync.Identity{Name: "Quiqr ChatCMS", Email: "chatcms@" + hostOf(cfg.BaseURL)})
+	server.templates = onboarding.NewCatalogue(db, cfg.TemplateFeed, cfg.StateDir, nil)
+	importer.UseTemplates(server.templates)
+	server.onboarding = onboarding.NewService(db, tenancyStore, server.keys, importer)
+	server.onboarding.UseTemplates(server.templates, installedHugo(ctx, cfg.HugoBin, logger))
 
 	if err := server.startBuilds(ctx); err != nil {
 		db.Close()
@@ -140,6 +144,10 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 	server.worker = jobs.NewWorker(server.queue, jobs.WorkerOptions{Logger: logger})
 	registerSyncJob(server.worker, server.sites, logger)
 	registerMailJob(server.worker, cfg.MailSettings(), logger)
+	registerTemplateJob(server.worker, server.queue, server.templates, logger)
+	if err := server.templates.Start(ctx, server.queue); err != nil {
+		logger.ErrorContext(ctx, "the template list could not be scheduled", "error", err)
+	}
 
 	// Sending goes through the queue, so that nobody waits on a mail server
 	// and a slow one cannot lose an invitation.
@@ -164,6 +172,7 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 		Account:        server.auth,
 		Administration: server.admin,
 		Onboarding:     server.onboarding,
+		Templates:      server.onboarding,
 		Publish:        server.publish,
 		History:        server.history,
 		Content:        server.content,

@@ -239,30 +239,6 @@ func TestAnExportAndItsRepositoryAgree(t *testing.T) {
 	}
 }
 
-func TestImportFromATemplate(t *testing.T) {
-	h := newHarness(t)
-	project := h.project(t, "korenaar")
-
-	onboarding.Templates["a-bakery"] = remoteHolding(t, h.gitCfg, aSite(t))
-	t.Cleanup(func() { delete(onboarding.Templates, "a-bakery") })
-
-	result, err := h.importer.Import(t.Context(), project.ID, onboarding.Request{
-		Kind: onboarding.SourceTemplate, Address: "a-bakery",
-	})
-	if err != nil {
-		t.Fatalf("Import() error = %v, want nil", err)
-	}
-	if !result.Inspection.Ready() {
-		t.Errorf("inspection = %+v", result.Inspection)
-	}
-
-	if _, err := h.importer.Import(t.Context(), h.project(t, "other").ID, onboarding.Request{
-		Kind: onboarding.SourceTemplate, Address: "no-such-template",
-	}); !errors.Is(err, onboarding.ErrNoSuchTemplate) {
-		t.Errorf("an unknown template gave %v, want ErrNoSuchTemplate", err)
-	}
-}
-
 func TestProjectRecordsItsSource(t *testing.T) {
 	h := newHarness(t)
 	project := h.project(t, "korenaar")

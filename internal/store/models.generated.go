@@ -104,6 +104,8 @@ type Project struct {
 	PublishBranch    string             `json:"publish_branch"`
 	PublishForm      string             `json:"publish_form"`
 	ArchivedAt       pgtype.Timestamptz `json:"archived_at"`
+	HugoVersion      string             `json:"hugo_version"`
+	HugoExtended     bool               `json:"hugo_extended"`
 }
 
 type ProjectMember struct {
@@ -138,4 +140,11 @@ type Session struct {
 	RevokedAt  pgtype.Timestamptz `json:"revoked_at"`
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 	ActingAs   pgtype.UUID        `json:"acting_as"`
+}
+
+type TemplateFeed struct {
+	ID        bool               `json:"id"`
+	FeedUrl   string             `json:"feed_url"`
+	Templates []byte             `json:"templates"`
+	FetchedAt pgtype.Timestamptz `json:"fetched_at"`
 }

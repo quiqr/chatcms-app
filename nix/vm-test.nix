@@ -91,5 +91,9 @@ pkgs.testers.runNixOSTest {
         assert "CHATCMS_GIT_BIN=/nix/store" in environment, environment
         assert "CHATCMS_HUGO_BIN=/nix/store" in environment, environment
         assert "CHATCMS_BWRAP_BIN=/nix/store" in environment, environment
+
+    with subtest("the template feed defaults to the community feed"):
+        environment = machine.succeed("systemctl show chatcms.service -p Environment")
+        assert "CHATCMS_TEMPLATE_FEED=https://quiqr.github.io/quiqr-community-templates/templates.json" in environment, environment
   '';
 }

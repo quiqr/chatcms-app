@@ -182,6 +182,16 @@ in
       description = "Provides prlimit, which bounds the memory a build may use.";
     };
 
+    templateFeed = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = "https://quiqr.github.io/quiqr-community-templates/templates.json";
+      example = "https://templates.example.org/templates.json";
+      description = ''
+        The template feed a new project can start from, in the format of the
+        Quiqr community feed. Null switches the template gallery off.
+      '';
+    };
+
     buildTimeout = lib.mkOption {
       type = lib.types.str;
       default = "10m";
@@ -292,6 +302,7 @@ in
           lib.concatStringsSep ":" (map (tool: "${tool}/bin") cfg.workflowTools);
         CHATCMS_CHECK_TIMEOUT = cfg.checkTimeout;
         CHATCMS_CHECK_MEMORY = cfg.checkMemory;
+        CHATCMS_TEMPLATE_FEED = if cfg.templateFeed == null then "off" else cfg.templateFeed;
       } // lib.optionalAttrs (cfg.firstAdministrator != null) {
         CHATCMS_FIRST_ADMINISTRATOR = cfg.firstAdministrator;
       } // lib.optionalAttrs (cfg.mail.host != null) {

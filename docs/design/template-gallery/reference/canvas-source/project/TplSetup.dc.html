@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quiqr ChatCMS — Use a template</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F7F7F5}
+a{color:#0B6BAA}a:hover{color:#08578C}
+</style>
+</helmet>
+<div style="min-height: 100vh; font-family: Geist, ui-sans-serif, system-ui, sans-serif; color: #18181B; background: #F7F7F5">
+  <header style="background: #FFFFFF; border-bottom: 1px solid #E5E5E2">
+    <div style="max-width: 1240px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; gap: 14px">
+      <a href="TplGallery.dc.html" aria-label="Back to templates" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid #E5E5E2; display: flex; align-items: center; justify-content: center; color: #3F3F46"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></a>
+      <div style="display: flex; flex-direction: column"><span style="font-size: 12px; color: #6B6B73">TechNative · New project</span><span style="font-size: 15px; font-weight: 600">Start from Summer</span></div>
+    </div>
+  </header>
+
+  <main style="max-width: 1240px; margin: 0 auto; padding: 28px 24px 64px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+    <nav aria-label="Setup steps" style="flex: 1 1 190px; display: flex; flex-direction: column; gap: 4px">
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; font-size: 14px; color: #3F3F46"><span style="width: 24px; height: 24px; border-radius: 50%; background: #0B6BAA; display: flex; align-items: center; justify-content: center; flex: none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Template</div>
+      <div aria-current="step" style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; background: #FFFFFF; border: 1px solid #E5E5E2"><span style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid #0B6BAA; color: #0B6BAA; font-size: 12px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex: none">2</span>Name &amp; repository</div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; font-size: 14px; color: #6B6B73"><span style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #D4D4D0; font-size: 12px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex: none">3</span>Deploy key</div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; font-size: 14px; color: #6B6B73"><span style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #D4D4D0; font-size: 12px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex: none">4</span>Publishing</div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; font-size: 14px; color: #6B6B73"><span style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #D4D4D0; font-size: 12px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex: none">5</span>Invite people</div>
+    </nav>
+
+    <section aria-label="Chosen template" style="flex: 1 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #E5E5E2; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column">
+      <div style="position: relative; aspect-ratio: 16 / 10; background: #F6D9A8; display: flex; align-items: center; justify-content: center">
+        <span style="font-size: 28px; font-weight: 700; color: #5A3410; letter-spacing: -0.02em">Summer</span>
+        <span style="position: absolute; left: 10px; bottom: 10px; font-size: 11px; font-weight: 500; color: #3F3F46; background: rgba(255,255,255,.85); border-radius: 6px; padding: 2px 7px">screenshot.jpg</span>
+      </div>
+      <div style="padding: 18px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <h2 style="margin: 0; font-size: 18px; font-weight: 600">Summer</h2>
+          <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #52525B">Simple fresh looking recipe site, ported from Jekyll to Hugo</p>
+        </div>
+        <dl style="margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; font-size: 13px">
+          <dt style="color: #6B6B73">Author</dt><dd style="margin: 0"><a href="#">Connor Bär</a> (ported by Pim Snel)</dd>
+          <dt style="color: #6B6B73">Licence</dt><dd style="margin: 0"><a href="#">MIT</a></dd>
+          <dt style="color: #6B6B73">Content model</dt><dd style="margin: 0; display: flex; flex-wrap: wrap; gap: 4px"><span style="background: #F1F1EE; border-radius: 6px; padding: 1px 7px">base</span><span style="background: #F1F1EE; border-radius: 6px; padding: 1px 7px">collections</span><span style="background: #F1F1EE; border-radius: 6px; padding: 1px 7px">menu</span><span style="background: #F1F1EE; border-radius: 6px; padding: 1px 7px">singles</span></dd>
+          <dt style="color: #6B6B73">Forms</dt><dd style="margin: 0">None</dd>
+          <dt style="color: #6B6B73">Hugo</dt><dd style="margin: 0">0.101.0 extended · theme <span style="font-family: 'Geist Mono', monospace; font-size: 12px">summer-qremix</span></dd>
+          <dt style="color: #6B6B73">Source</dt><dd style="margin: 0; overflow-wrap: anywhere"><a href="#">github.com/mipmip/summer-qremix</a></dd>
+        </dl>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <a href="#" style="height: 36px; display: inline-flex; align-items: center; padding: 0 12px; border: 1px solid #E5E5E2; border-radius: 8px; font-size: 13px; font-weight: 500; color: #18181B; text-decoration: none">Live demo ↗</a>
+          <a href="TplGallery.dc.html" style="height: 36px; display: inline-flex; align-items: center; padding: 0 12px; font-size: 13px; font-weight: 500; text-decoration: none">Choose another template</a>
+        </div>
+      </div>
+    </section>
+
+    <form style="flex: 1.4 1 420px; min-width: 0; background: #FFFFFF; border: 1.5px solid #0B6BAA; border-radius: 14px; box-shadow: 0 0 0 4px #E6F2FB; padding: 22px 24px; display: flex; flex-direction: column; gap: 20px">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <h2 style="margin: 0; font-size: 17px; font-weight: 600">Name &amp; repository</h2>
+        <p style="margin: 0; font-size: 14px; color: #52525B">ChatCMS copies Summer into a repository of your own. Your copy is independent: later changes to the template don’t reach it.</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <label for="pname" style="font-size: 14px; font-weight: 500">Project name</label>
+        <input id="pname" type="text" value="Recipes" style="height: 42px; padding: 0 12px; border: 1px solid #D9D9D5; border-radius: 8px; font: inherit; font-size: 15px">
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <label for="porg" style="font-size: 14px; font-weight: 500">Organisation</label>
+        <select id="porg" style="height: 42px; padding: 0 10px; border: 1px solid #D9D9D5; border-radius: 8px; font: inherit; font-size: 15px; background: #FFFFFF"><option>TechNative · 4 of 5 projects</option><option>Studio Noord · no limit</option></select>
+        <span style="font-size: 13px; color: #92400E">This uses the last free project in TechNative.</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <label for="prepo" style="font-size: 14px; font-weight: 500">Empty repository for your copy</label>
+        <input id="prepo" type="text" value="git@github.com:technative/recipes.git" style="height: 42px; padding: 0 12px; border: 1px solid #D9D9D5; border-radius: 8px; font-family: 'Geist Mono', monospace; font-size: 13px">
+        <span style="font-size: 13px; line-height: 1.5; color: #52525B">Create it first on GitHub, GitLab or Forgejo, without a README. Next you’ll add a deploy key so ChatCMS can push the template into it.</span>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: #F7F7F5; font-size: 13px; line-height: 1.5; color: #3F3F46">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#52525B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 2px"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg>
+        <span>Builds with Hugo 0.101.0 extended, the version this template asks for. You can change it later in project settings.</span>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; border-top: 1px solid #EDEDEA; padding-top: 18px">
+        <a href="TplGallery.dc.html" style="height: 40px; display: inline-flex; align-items: center; padding: 0 16px; border: 1px solid #E5E5E2; border-radius: 8px; font-size: 14px; font-weight: 500; color: #18181B; text-decoration: none">Back</a>
+        <a href="Onboarding.dc.html" style="height: 40px; display: inline-flex; align-items: center; padding: 0 18px; border-radius: 8px; background: #0B6BAA; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">Continue to deploy key</a>
+      </div>
+    </form>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

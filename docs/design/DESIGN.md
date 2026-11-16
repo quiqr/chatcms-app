@@ -189,6 +189,13 @@ people). Right, three section cards:
    builds with Hugo). Note that custom build steps will live in
    `quiqr/workflows/` (editor comes later). Back / Continue to invite people.
 
+### 5.3a Start from a template: `template-gallery`
+The gallery of community templates and the "Name & place in git" step that
+follows it have a hand-off of their own in `docs/design/template-gallery/`:
+`TEMPLATE-GALLERY.md` for the spec, `reference/` for the screens at 1440 and
+390 px. ChatCMS builds with the installation's Hugo for now; the template's
+version is stored on the project and shown.
+
 ### 5.4 People & roles — `people`
 Top bar segmented control: This project / Organisation. Invite row (email,
 role select: Editor / Viewer / Implementer, Send invite). Table: person

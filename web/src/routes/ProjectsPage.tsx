@@ -1,6 +1,6 @@
 import { Ban, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { NavLink, useNavigate, useParams } from "react-router";
+import { NavLink, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -117,6 +117,12 @@ function NewProject({
         value={domain}
         onChange={(event) => setDomain(event.target.value)}
       />
+      <NavLink
+        to={`/o/${organisation}/new/template`}
+        className="inline-flex min-h-11 items-center text-[15px] text-primary"
+      >
+        {say("onboarding.start-from-a-template")}
+      </NavLink>
       <div className="flex flex-wrap gap-2">
         <Button onClick={make} disabled={busy || slug === ""}>
           {busy ? say("projects.making-it") : say("projects.make-it-and-set-it-up")}
@@ -133,7 +139,8 @@ export function ProjectsPage() {
   const { organisation: fromAddress } = useParams();
   const goTo = useNavigate();
   const [search, setSearch] = useState("");
-  const [making, setMaking] = useState(false);
+  const [asked] = useSearchParams();
+  const [making, setMaking] = useState(asked.has("new"));
 
   // Who is looking and what they may switch to is already known: asking
   // again here would be a second answer that can disagree with the first.
@@ -233,9 +240,12 @@ export function ProjectsPage() {
             <ProjectCard key={project.slug} organisation={current ?? ""} project={project} />
           ))}
 
-          <div className="flex min-h-[132px] items-center justify-center rounded-xl border border-dashed border-input p-4 text-center text-[15px] text-subtle-foreground">
+          <NavLink
+            to={`/o/${current}/new/template`}
+            className="flex min-h-[132px] items-center justify-center rounded-xl border border-dashed border-input p-4 text-center text-[15px] text-subtle-foreground hover:border-primary hover:text-primary"
+          >
             {say("projects.import-a-site-or-start-from")}
-          </div>
+          </NavLink>
         </div>
       )}
     </OrganisationShell>

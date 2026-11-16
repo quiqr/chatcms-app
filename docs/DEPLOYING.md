@@ -159,6 +159,13 @@ The ones that matter most often:
 | `checkMemory`, `checkTimeout` | What a site's own check may use |
 | `previewIdle`, `previewsAtOnce` | How long an unused preview is kept, and how many run |
 | `workflowTools` | What a site's check step may run. Fixed and pinned. |
+| `templateFeed` | Which templates a new project can start from. `null` switches the gallery off. |
+
+The template gallery reads the Quiqr community feed by default. The server
+fetches it hourly and keeps the last good copy, so the gallery keeps working
+while the feed is down. A machine without internet access shows the gallery
+as unavailable, and importing from git keeps working. A feed of your own
+uses the same format; its templates must be reachable over `https`.
 
 ## Behind a reverse proxy
 

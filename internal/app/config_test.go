@@ -423,3 +423,38 @@ func TestAnInvalidCheckMemoryNamesItsOwnVariable(t *testing.T) {
 		t.Errorf("Variable = %q, want CHATCMS_CHECK_MEMORY", configErr.Variable)
 	}
 }
+
+func TestTheTemplateFeed(t *testing.T) {
+	base := map[string]string{
+		"CHATCMS_DATABASE_URL":    "postgres:///chatcms",
+		"CHATCMS_SECRET_KEY_FILE": "/run/secrets/master-key",
+	}
+	with := func(value string) (Config, error) {
+		pairs := map[string]string{}
+		for k, v := range base {
+			pairs[k] = v
+		}
+		if value != "<unset>" {
+			pairs["CHATCMS_TEMPLATE_FEED"] = value
+		}
+		return LoadConfig(lookupFrom(pairs))
+	}
+
+	for value, want := range map[string]string{
+		"<unset>":                             "https://quiqr.github.io/quiqr-community-templates/templates.json",
+		"off":                                 "",
+		"https://templates.example/feed.json": "https://templates.example/feed.json",
+	} {
+		cfg, err := with(value)
+		if err != nil || cfg.TemplateFeed != want {
+			t.Errorf("CHATCMS_TEMPLATE_FEED=%q gave %q, %v; want %q", value, cfg.TemplateFeed, err, want)
+		}
+	}
+
+	for _, bad := range []string{"file:///etc/feed.json", "templates.json"} {
+		var configErr *ConfigError
+		if _, err := with(bad); !errors.As(err, &configErr) || configErr.Variable != "CHATCMS_TEMPLATE_FEED" {
+			t.Errorf("CHATCMS_TEMPLATE_FEED=%q gave %v, want a configuration error", bad, err)
+		}
+	}
+}

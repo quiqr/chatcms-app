@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -57,12 +58,10 @@ var (
 	// ErrExportUnreadable says the directory given as an export cannot be
 	// read.
 	ErrExportUnreadable = errors.New("that directory could not be read")
-)
 
-// Templates are the sites ChatCMS can start from. A template is a repository,
-// so starting from one is importing, and there is one import path rather than
-// two.
-var Templates = map[string]string{}
+	ErrRepositoryNotEmpty = errors.New("that repository is not empty; a template needs an empty one")
+	ErrNeedsARepository   = errors.New("a template needs an empty repository to be copied into")
+)
 
 // branchShape is deliberately stricter than git, because a name that works
 // everywhere is worth more than one that works here.
@@ -70,14 +69,19 @@ var branchShape = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._/-]*[A-Za-z0-9]$`)
 
 // Importer brings a site into a project.
 type Importer struct {
-	db    *store.DB
-	sites *gitsync.Sites
-	keys  *Keys
-	who   gitsync.Identity
+	db        *store.DB
+	sites     *gitsync.Sites
+	keys      *Keys
+	who       gitsync.Identity
+	templates *Catalogue
 }
 
 func NewImporter(db *store.DB, sites *gitsync.Sites, keys *Keys, who gitsync.Identity) *Importer {
 	return &Importer{db: db, sites: sites, keys: keys, who: who}
+}
+
+func (i *Importer) UseTemplates(catalogue *Catalogue) {
+	i.templates = catalogue
 }
 
 // Request says what to import and from where.
@@ -116,11 +120,7 @@ func (i *Importer) Import(ctx context.Context, projectID uuid.UUID, request Requ
 		repository, err = i.sites.Clone(ctx, siteID, address)
 
 	case SourceTemplate:
-		template, known := Templates[address]
-		if !known {
-			return Result{}, fmt.Errorf("%w: %q", ErrNoSuchTemplate, address)
-		}
-		repository, err = i.sites.Clone(ctx, siteID, template)
+		repository, err = i.startFromTemplate(ctx, projectID, remote, address)
 
 	case SourceExport:
 		content, openErr := exportAt(address)
@@ -153,6 +153,59 @@ func (i *Importer) Import(ctx context.Context, projectID uuid.UUID, request Requ
 		Remote:     remote,
 		Kind:       request.Kind,
 	}, nil
+}
+
+func (i *Importer) startFromTemplate(ctx context.Context, projectID uuid.UUID, remote, id string) (gitsync.Repo, error) {
+	template, err := i.templates.Find(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if remote == "" {
+		return nil, ErrNeedsARepository
+	}
+
+	siteID := projectID.String()
+	empty, err := i.sites.RemoteIsEmpty(ctx, siteID, remote)
+	if err != nil {
+		return nil, err
+	}
+	if !empty {
+		return nil, ErrRepositoryNotEmpty
+	}
+
+	scratch, err := os.MkdirTemp("", "chatcms-template-*")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(scratch)
+
+	files := filepath.Join(scratch, "files")
+	if err := i.sites.Snapshot(ctx, template.SourceURL, files); err != nil {
+		return nil, fmt.Errorf("fetching the template %s failed: %w", template.Name, err)
+	}
+
+	repository, err := i.sites.Create(ctx, siteID, remote, os.DirFS(files), i.who, "Start from "+template.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := repository.Publish(ctx); err != nil {
+		repository.Close()
+		if dir, dirErr := i.sites.Dir(siteID); dirErr == nil {
+			_ = os.RemoveAll(dir)
+		}
+		return nil, fmt.Errorf("sending the template to the repository failed: %w", err)
+	}
+
+	if err := i.db.Queries.SetProjectHugo(ctx, store.SetProjectHugoParams{
+		ID:           pgtype.UUID{Bytes: projectID, Valid: true},
+		HugoVersion:  template.HugoVersion,
+		HugoExtended: template.Extended,
+	}); err != nil {
+		repository.Close()
+		return nil, err
+	}
+	return repository, nil
 }
 
 // Inspect says what a project's working copy holds, without importing.

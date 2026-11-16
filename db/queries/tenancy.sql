@@ -158,3 +158,6 @@ UPDATE projects SET archived_at = NULL, updated_at = now() WHERE id = $1;
 
 -- name: ListProjectMemberIDs :many
 SELECT person_id FROM project_members WHERE project_id = $1;
+
+-- name: SetProjectHugo :exec
+UPDATE projects SET hugo_version = $2, hugo_extended = $3, updated_at = now() WHERE id = $1;

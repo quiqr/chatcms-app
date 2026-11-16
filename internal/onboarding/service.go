@@ -17,10 +17,12 @@ import (
 // Service answers the HTTP layer's questions about setting a project up. It
 // asks internal/policy whether the person may, and never decides itself.
 type Service struct {
-	db       *store.DB
-	tenancy  *tenancy.Store
-	keys     *Keys
-	importer *Importer
+	db        *store.DB
+	tenancy   *tenancy.Store
+	keys      *Keys
+	importer  *Importer
+	templates *Catalogue
+	hugo      Hugo
 }
 
 func NewService(db *store.DB, tenancyStore *tenancy.Store, keys *Keys, importer *Importer) *Service {
@@ -202,9 +204,12 @@ func importView(kind SourceKind, remote string, inspection Inspection) httpapi.I
 // importRefusal turns a failure an implementer can act on into one the HTTP
 // layer shows, and leaves anything else as it is.
 func importRefusal(err error) error {
+	if refusal := templateRefusal(err); refusal != nil {
+		return refusal
+	}
+
 	switch {
 	case errors.Is(err, ErrUnusableBranchName),
-		errors.Is(err, ErrNoSuchTemplate),
 		errors.Is(err, ErrExportUnreadable),
 		errors.Is(err, ErrNoKeyYet):
 		return &httpapi.RefusedError{Reason: err.Error()}
@@ -216,6 +221,25 @@ func importRefusal(err error) error {
 			Key:    "refused.import-failed",
 			Reason: fmt.Sprintf("the site could not be imported: %v", err),
 			Detail: map[string]any{"why": err.Error()},
+		}
+	}
+	return nil
+}
+
+func templateRefusal(err error) error {
+	keys := []struct {
+		err error
+		key string
+	}{
+		{ErrNoSuchTemplate, "refused.no-such-template"},
+		{ErrRepositoryNotEmpty, "refused.repository-not-empty"},
+		{ErrNeedsARepository, "refused.template-needs-a-repository"},
+		{ErrGalleryOff, "refused.no-templates-here"},
+		{ErrGalleryUnavailable, "refused.template-list-unavailable"},
+	}
+	for _, known := range keys {
+		if errors.Is(err, known.err) {
+			return &httpapi.RefusedError{Key: known.key, Reason: known.err.Error()}
 		}
 	}
 	return nil

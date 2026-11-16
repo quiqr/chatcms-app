@@ -3,9 +3,10 @@
 // takes nothing from the machine it runs on beyond the programs Nix pins, so
 // the suite says the same thing in the gate as on a developer's laptop.
 import { execFileSync, spawn } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, normalize } from "node:path";
 import { randomBytes } from "node:crypto";
 
 const sh = (command, args, options = {}) =>
@@ -19,6 +20,7 @@ export class Harness {
     this.state = join(this.root, "state");
     this.server = null;
     this.mailpit = null;
+    this.templates = null;
     this.mailLog = "";
     this.sendsMail = false;
     this.whyNoMail = "";
@@ -69,6 +71,7 @@ export class Harness {
     this.smtpPort = this.port + 3000;
     this.inboxPort = this.port + 6000;
     await this.startTheInbox();
+    await this.startTheTemplates();
 
     this.server = spawn(process.env.CHATCMS_BIN ?? "chatcmsd", [], {
       env: {
@@ -87,6 +90,7 @@ export class Harness {
         // Mailpit has no certificate, and asking for one would mean nothing
         // could be sent at all.
         CHATCMS_MAIL_STARTTLS: "no",
+        CHATCMS_TEMPLATE_FEED: `${this.templatesUrl}/templates.json`,
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -184,6 +188,63 @@ export class Harness {
     throw new Error(`the server did not answer in time:\n${this.log}`);
   }
 
+  async startTheTemplates() {
+    const git = process.env.CHATCMS_GIT_BIN ?? "git";
+    const root = join(this.root, "templates");
+    const bakery = join(root, "bakery.git");
+    mkdirSync(join(root, "templates", "Bakery"), { recursive: true });
+
+    const site = join(this.state, "dev-remotes");
+    const seeded = sh("ls", [site]).trim().split("\n")[0];
+    sh(git, ["clone", "--bare", join(site, seeded), bakery]);
+    sh(git, ["-C", bakery, "update-server-info"]);
+    writeFileSync(
+      join(root, "templates", "Bakery", "screenshot.png"),
+      Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+        "base64",
+      ),
+    );
+
+    this.templates = createServer((request, response) => {
+      const path = normalize(decodeURIComponent(new URL(request.url, "http://x").pathname));
+      if (path === "/templates.json") {
+        response.setHeader("Content-Type", "application/json");
+        response.end(
+          JSON.stringify([
+            {
+              QuiqrEtalageName: "Bakery",
+              NormalizedName: "Bakery",
+              QuiqrEtalageDescription: "A small bakery with a homepage and a model.",
+              QuiqrEtalageAuthor: "The acceptance suite",
+              QuiqrEtalageLicense: "MIT",
+              HugoVersion: "extended_0.101.0",
+              QuiqrModel: "base singles",
+              ScreenshotImageType: "png",
+              SourceLink: `${this.templatesUrl}/bakery.git`,
+            },
+          ]),
+        );
+        return;
+      }
+      const file = join(root, path);
+      if (!file.startsWith(root) || !existsSync(file) || !statSync(file).isFile()) {
+        response.statusCode = 404;
+        response.end();
+        return;
+      }
+      response.end(readFileSync(file));
+    });
+    await new Promise((listening) => this.templates.listen(0, "127.0.0.1", listening));
+    this.templatesUrl = `http://127.0.0.1:${this.templates.address().port}`;
+  }
+
+  emptyRemote(name) {
+    const remote = join(this.state, "dev-remotes", `${name}.git`);
+    sh(process.env.CHATCMS_GIT_BIN ?? "git", ["init", "--bare", "--initial-branch=main", remote]);
+    return remote;
+  }
+
   // onTheRemote asks the customer's own remote what it holds, which is how a
   // test checks that publishing actually published.
   onTheRemote(project, ...args) {
@@ -224,6 +285,9 @@ export class Harness {
     if (this.mailpit && this.mailpit.exitCode === null) {
       this.mailpit.kill("SIGTERM");
       await new Promise((done) => this.mailpit.on("exit", done));
+    }
+    if (this.templates) {
+      await new Promise((closed) => this.templates.close(closed));
     }
     try {
       sh("pg_ctl", ["-D", this.pgdata, "stop", "-m", "immediate"]);

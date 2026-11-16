@@ -680,7 +680,7 @@ func (q *Queries) StopAdministrating(ctx context.Context, id pgtype.UUID) (Perso
 const updateProject = `-- name: UpdateProject :one
 UPDATE projects SET name = $2, domain = $3, updated_at = now()
 WHERE id = $1
-RETURNING id, organisation_id, slug, name, domain, created_at, updated_at, remote, source_kind, source_address, deploy_public_key, deploy_private_key, publish_to, publish_branch, publish_form, archived_at
+RETURNING id, organisation_id, slug, name, domain, created_at, updated_at, remote, source_kind, source_address, deploy_public_key, deploy_private_key, publish_to, publish_branch, publish_form, archived_at, hugo_version, hugo_extended
 `
 
 type UpdateProjectParams struct {
@@ -709,6 +709,8 @@ func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) (P
 		&i.PublishBranch,
 		&i.PublishForm,
 		&i.ArchivedAt,
+		&i.HugoVersion,
+		&i.HugoExtended,
 	)
 	return i, err
 }

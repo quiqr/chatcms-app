@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quiqr ChatCMS — Template gallery</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F7F7F5}
+a{color:#0B6BAA}a:hover{color:#08578C}
+</style>
+
+<style>
+html,body{background:#F7F7F5}
+.qp-screens{position:fixed;right:calc(12px + env(safe-area-inset-right, 0px));bottom:calc(16px + env(safe-area-inset-bottom, 0px));z-index:50;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;background:#18181B;color:#FAFAFA;font:500 13px Geist,ui-sans-serif,system-ui,sans-serif;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.qp-screens:hover{color:#FFFFFF;background:#27272A}
+.qp-screens:focus-visible{outline:2px solid #37B6FF;outline-offset:2px}
+</style>
+</head>
+<body>
+
+<div style="min-height: 100vh; font-family: Geist, ui-sans-serif, system-ui, sans-serif; color: #18181B; background: #F7F7F5">
+  <header style="background: #FFFFFF; border-bottom: 1px solid #E5E5E2">
+    <div style="max-width: 1240px; margin: 0 auto; padding: 12px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px">
+      <div style="display: flex; align-items: center; gap: 10px">
+        <img src="logo.svg" alt="Quiqr" style="height: 26px; width: auto; display: block;">
+        <span style="font-size: 16px; color: #52525B">ChatCMS</span>
+      </div>
+      <nav aria-label="Breadcrumb" style="flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 14px; color: #52525B">
+        <span aria-hidden="true" style="color: #D4D4D0">/</span><a href="projects.html" style="color: #52525B; text-decoration: none">TechNative</a>
+        <span aria-hidden="true" style="color: #D4D4D0">/</span><a href="onboarding.html" style="color: #52525B; text-decoration: none">New project</a>
+        <span aria-hidden="true" style="color: #D4D4D0">/</span><span style="color: #18181B; font-weight: 500">Choose a template</span>
+      </nav>
+      <span style="width: 34px; height: 34px; border-radius: 50%; background: #E6F2FB; color: #0A5A8F; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center">PS</span>
+    </div>
+  </header>
+
+  <main style="max-width: 1240px; margin: 0 auto; padding: 32px 24px 64px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
+    <div role="tablist" aria-label="How to start" style="display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: #F1F1EE; border-radius: 10px; align-self: flex-start">
+      <a href="onboarding.html" role="tab" aria-selected="false" style="height: 34px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 7px; font-size: 13px; color: #52525B; text-decoration: none">Import Git repository</a>
+      <a href="onboarding.html" role="tab" aria-selected="false" style="height: 34px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 7px; font-size: 13px; color: #52525B; text-decoration: none">From Quiqr Desktop</a>
+      <span role="tab" aria-selected="true" style="height: 34px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 7px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(16,24,40,.08); font-size: 13px; font-weight: 500">Start from a template</span>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px">
+      <div style="flex: 1 1 360px; display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-size: 28px; font-weight: 650; letter-spacing: -0.025em">Start from a template</h1>
+        <p style="margin: 0; font-size: 15px; color: #52525B">Ready-made Hugo sites with Quiqr forms, shared by the Quiqr community. You get your own copy to change.</p>
+      </div>
+      <label style="height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid #E5E5E2; border-radius: 8px; background: #FFFFFF; flex: 0 1 300px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6B73" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search templates</span>
+        <input type="search" value="" onChange="" placeholder="Search name, description or author" style="border: 0; outline: 0; font: inherit; font-size: 14px; flex: 1; min-width: 0; background: transparent">
+      </label>
+    </div>
+
+    
+      <div aria-busy="true" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(270px, 100%), 1fr)); gap: 18px">
+        
+          <div style="background: #FFFFFF; border: 1px solid #E5E5E2; border-radius: 14px; overflow: hidden">
+            <div style="aspect-ratio: 16 / 10; background: #EFEFEC"></div>
+            <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 8px"><span style="height: 12px; width: 50%; border-radius: 6px; background: #EDEDEA"></span><span style="height: 10px; width: 90%; border-radius: 5px; background: #F1F1EE"></span></div>
+          </div>
+        
+          <div style="background: #FFFFFF; border: 1px solid #E5E5E2; border-radius: 14px; overflow: hidden">
+            <div style="aspect-ratio: 16 / 10; background: #EFEFEC"></div>
+            <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 8px"><span style="height: 12px; width: 50%; border-radius: 6px; background: #EDEDEA"></span><span style="height: 10px; width: 90%; border-radius: 5px; background: #F1F1EE"></span></div>
+          </div>
+        
+          <div style="background: #FFFFFF; border: 1px solid #E5E5E2; border-radius: 14px; overflow: hidden">
+            <div style="aspect-ratio: 16 / 10; background: #EFEFEC"></div>
+            <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 8px"><span style="height: 12px; width: 50%; border-radius: 6px; background: #EDEDEA"></span><span style="height: 10px; width: 90%; border-radius: 5px; background: #F1F1EE"></span></div>
+          </div>
+        
+          <div style="background: #FFFFFF; border: 1px solid #E5E5E2; border-radius: 14px; overflow: hidden">
+            <div style="aspect-ratio: 16 / 10; background: #EFEFEC"></div>
+            <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 8px"><span style="height: 12px; width: 50%; border-radius: 6px; background: #EDEDEA"></span><span style="height: 10px; width: 90%; border-radius: 5px; background: #F1F1EE"></span></div>
+          </div>
+        
+          <div style="background: #FFFFFF; border: 1px solid #E5E5E2; border-radius: 14px; overflow: hidden">
+            <div style="aspect-ratio: 16 / 10; background: #EFEFEC"></div>
+            <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 8px"><span style="height: 12px; width: 50%; border-radius: 6px; background: #EDEDEA"></span><span style="height: 10px; width: 90%; border-radius: 5px; background: #F1F1EE"></span></div>
+          </div>
+        
+          <div style="background: #FFFFFF; border: 1px solid #E5E5E2; border-radius: 14px; overflow: hidden">
+            <div style="aspect-ratio: 16 / 10; background: #EFEFEC"></div>
+            <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 8px"><span style="height: 12px; width: 50%; border-radius: 6px; background: #EDEDEA"></span><span style="height: 10px; width: 90%; border-radius: 5px; background: #F1F1EE"></span></div>
+          </div>
+        
+      </div>
+    
+
+    
+
+    
+  </main>
+</div>
+
+
+</body>
+</html>

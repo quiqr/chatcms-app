@@ -283,3 +283,39 @@ func InitBareForDevelopment(ctx context.Context, cfg Config, path string) error 
 		"init", "--bare", "--initial-branch=main", path)
 	return err
 }
+
+func (s *Sites) Snapshot(ctx context.Context, source, into string) error {
+	if err := s.cfg.validate(); err != nil {
+		return err
+	}
+	home, err := gitHome(into)
+	if err != nil {
+		return err
+	}
+	_, err = newRunner(s.cfg, filepath.Dir(into), home).run(ctx,
+		"-c", "protocol.allow=never",
+		"-c", "protocol.file.allow=never",
+		"-c", "protocol.https.allow=always",
+		"-c", "protocol.http.allow=always",
+		"clone", "--single-branch", "--", source, into)
+	if err != nil {
+		return unreachable(err)
+	}
+	return nil
+}
+
+func (s *Sites) RemoteIsEmpty(ctx context.Context, id, remote string) (bool, error) {
+	cfg, err := s.configFor(ctx, id)
+	if err != nil {
+		return false, err
+	}
+	home, err := gitHome(filepath.Join(s.root, id, "working-copy"))
+	if err != nil {
+		return false, err
+	}
+	out, err := newRunner(cfg, home, home).run(ctx, "ls-remote", "--", remote)
+	if err != nil {
+		return false, classifyRemote(err)
+	}
+	return strings.TrimSpace(out) == "", nil
+}

@@ -1,6 +1,5 @@
-import { Check } from "lucide-react";
 import { useState } from "react";
-import { useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -8,6 +7,7 @@ import { Field } from "../components/ui/field";
 import { Segmented } from "../components/ui/segmented";
 import { useAsync } from "../lib/useAsync";
 import { KeyPanel, PublishingPanel } from "./setup/Panels";
+import { Steps, type Step } from "./setup/Steps";
 import { useHere } from "../lib/whoami";
 import { say } from "../lib/say";
 import {
@@ -18,37 +18,6 @@ import {
   type SiteReport,
 } from "../lib/tenancy";
 import { whatWentWrong } from "../lib/api";
-
-type Step = { key: string; label: string; done: boolean };
-
-function Steps({ steps, current }: { steps: Step[]; current: string }) {
-  return (
-    <ol className="flex flex-col gap-1">
-      {steps.map((step) => (
-        <li
-          key={step.key}
-          aria-current={step.key === current ? "step" : undefined}
-          className={
-            "flex min-h-11 items-center gap-2.5 rounded-lg px-3 text-[15px] " +
-            (step.key === current ? "bg-muted font-medium" : "text-muted-foreground")
-          }
-        >
-          <span
-            aria-hidden="true"
-            className={
-              "inline-flex size-5 items-center justify-center rounded-full text-xs " +
-              (step.done ? "bg-success-soft text-success-foreground" : "bg-muted")
-            }
-          >
-            {step.done ? <Check className="size-3" /> : ""}
-          </span>
-          {step.label}
-          {step.done && <span className="sr-only">{say("onboarding.done")}</span>}
-        </li>
-      ))}
-    </ol>
-  );
-}
 
 function Section({
   title,
@@ -81,13 +50,44 @@ function siteSummary(report: SiteReport) {
   return report.problem ?? "Something is missing.";
 }
 
+function FromTemplate({
+  template,
+  remote,
+  hasKey,
+  busy,
+  onCopy,
+}: {
+  template: string;
+  remote: string;
+  hasKey: boolean;
+  busy: boolean;
+  onCopy: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-[15px]">
+        {say("onboarding.starting-from-template", { name: template, remote })}
+      </p>
+      <div>
+        <Button variant="ink" onClick={onCopy} disabled={busy || !hasKey}>
+          {busy ? say("onboarding.copying-the-template") : say("onboarding.copy-the-template-in")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function OnboardingPage() {
   const { organisation } = useHere();
   const { project = "" } = useParams();
+  const goTo = useNavigate();
+  const [asked] = useSearchParams();
+  const fromTemplate = asked.get("template") ?? "";
+  const templateRemote = asked.get("remote") ?? "";
 
   const [site, reloadSite] = useAsync(() => readSite(organisation, project), [organisation, project]);
   // Read here only to say which step is done; the panels load their own.
-  const [key] = useAsync(() => readKey(organisation, project), [organisation, project]);
+  const [key, reloadKey] = useAsync(() => readKey(organisation, project), [organisation, project]);
   const [publishing] = useAsync(
     () => readPublishing(organisation, project),
     [organisation, project],
@@ -112,14 +112,32 @@ export function OnboardingPage() {
 
   const report = site.state === "ready" ? site.value : undefined;
   const hasKey = key.state === "ready" && key.value.publicKey !== "";
-  const current = !report || report.kind === "none" ? "site" : !hasKey ? "key" : "publishing";
+  const arrived = Boolean(report && report.kind !== "none");
+  const templateMode = fromTemplate !== "" && !arrived;
+  const current = templateMode
+    ? hasKey
+      ? "site"
+      : "key"
+    : !arrived
+      ? "site"
+      : !hasKey
+        ? "key"
+        : "publishing";
 
-  const steps: Step[] = [
-    { key: "site", label: say("onboarding.where-the-site-comes-from"), done: Boolean(report && report.kind !== "none") },
-    { key: "key", label: say("onboarding.key-for-the-git-host"), done: hasKey },
-    { key: "publishing", label: say("project-settings.how-it-is-published"), done: publishing.state === "ready" },
-    { key: "people", label: say("onboarding.invite-people"), done: false },
-  ];
+  const steps: Step[] = fromTemplate
+    ? [
+        { key: "template", label: say("onboarding.template"), done: true },
+        { key: "name", label: say("onboarding.name-and-repository"), done: true },
+        { key: "key", label: say("onboarding.key-for-the-git-host"), done: hasKey && arrived },
+        { key: "publishing", label: say("project-settings.how-it-is-published"), done: arrived && publishing.state === "ready" },
+        { key: "people", label: say("onboarding.invite-people"), done: false },
+      ]
+    : [
+        { key: "site", label: say("onboarding.where-the-site-comes-from"), done: arrived },
+        { key: "key", label: say("onboarding.key-for-the-git-host"), done: hasKey },
+        { key: "publishing", label: say("project-settings.how-it-is-published"), done: publishing.state === "ready" },
+        { key: "people", label: say("onboarding.invite-people"), done: false },
+      ];
 
   return (
     <div className="flex flex-wrap items-start gap-6">
@@ -135,10 +153,35 @@ export function OnboardingPage() {
         )}
 
         <Section title={say("onboarding.where-the-site-comes-from")} active={current === "site"}>
+          {templateMode ? (
+            <FromTemplate
+              template={fromTemplate}
+              remote={templateRemote}
+              hasKey={hasKey}
+              busy={busy}
+              onCopy={() =>
+                void run(async () => {
+                  await importSite(organisation, project, {
+                    kind: "template",
+                    address: fromTemplate,
+                    remote: templateRemote,
+                  });
+                  reloadSite();
+                })
+              }
+            />
+          ) : (
+          <>
           <Segmented
             label={say("onboarding.where-the-site-comes-from")}
             value={source}
-            onValueChange={setSource}
+            onValueChange={(value) => {
+              if (value === "template") {
+                goTo(`/o/${organisation}/new/template`);
+                return;
+              }
+              setSource(value);
+            }}
             options={[
               { value: "repository", label: say("onboarding.a-site-already-in-git") },
               { value: "export", label: say("onboarding.from-quiqr-desktop") },
@@ -161,9 +204,7 @@ export function OnboardingPage() {
                 label={
                   source === "repository"
                     ? say("onboarding.address-of-the-site-in-git")
-                    : source === "export"
-                      ? say("onboarding.folder-holding-the-exported-site")
-                      : say("onboarding.name-of-the-template")
+                    : say("onboarding.folder-holding-the-exported-site")
                 }
                 className="font-mono text-sm"
                 required
@@ -175,6 +216,8 @@ export function OnboardingPage() {
               {say("onboarding.bring-it-in")}
             </Button>
           </form>
+          </>
+          )}
 
           <p className="mt-3 text-[13px] text-subtle-foreground">
             {site.state === "loading" ? say("common.looking") : report ? siteSummary(report) : ""}
@@ -184,7 +227,7 @@ export function OnboardingPage() {
         </Section>
 
         <Section title={say("onboarding.key-for-the-git-host")} active={current === "key"}>
-          <KeyPanel organisation={organisation} project={project} onTrouble={setProblem} />
+          <KeyPanel organisation={organisation} project={project} onTrouble={setProblem} onKey={reloadKey} />
         </Section>
 
         <Section title={say("onboarding.how-it-is-published")} active={current === "publishing"}>

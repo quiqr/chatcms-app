@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/quiqr/chatcms-app/internal/mail"
+	"github.com/quiqr/chatcms-app/internal/onboarding"
 )
 
 type Config struct {
@@ -45,6 +47,7 @@ type Config struct {
 	CheckMemory    int64
 	PreviewIdle    time.Duration
 	PreviewsAtOnce int
+	TemplateFeed   string
 }
 
 // SitesDir is where every site's working copy lives.
@@ -183,6 +186,11 @@ func LoadConfig(lookup Lookup) (Config, error) {
 	}
 	cfg.WorkflowTools = splitPaths(tools)
 
+	cfg.TemplateFeed, err = templateFeed(lookup)
+	if err != nil {
+		return Config{}, err
+	}
+
 	switch cfg.LogFormat {
 	case "auto", "json", "text":
 	default:
@@ -190,6 +198,25 @@ func LoadConfig(lookup Lookup) (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func templateFeed(lookup Lookup) (string, error) {
+	raw, err := resolve(lookup, "CHATCMS_TEMPLATE_FEED")
+	if err != nil {
+		return "", err
+	}
+	raw = strings.TrimSpace(raw)
+	switch raw {
+	case "":
+		return onboarding.DefaultTemplateFeed, nil
+	case "off":
+		return "", nil
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || parsed.Host == "" {
+		return "", &ConfigError{Variable: "CHATCMS_TEMPLATE_FEED", Reason: reasonInvalid}
+	}
+	return raw, nil
 }
 
 // splitPaths reads a colon-separated list the way PATH is written, so the

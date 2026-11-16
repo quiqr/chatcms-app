@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A new project can start from a community template: a gallery with search,
+  then one fresh version copied into an empty place in git.
+- A project records the Hugo version it asks for, shown and changeable in its
+  settings.
+- `services.chatcms.templateFeed` sets the template feed, or switches the
+  gallery off.
+
 ## [0.1.0] - 2026-11-16
 
 ### Added

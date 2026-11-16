@@ -7,7 +7,7 @@ test("a project is renamed, and the name follows it", async ({ signedIn: page, c
 
   await test.step("the name is changed", async () => {
     await page.getByLabel("Name").fill("Korenaar BV");
-    await page.getByRole("button", { name: "Save" }).click();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByText("Saved.")).toBeVisible();
   });
 

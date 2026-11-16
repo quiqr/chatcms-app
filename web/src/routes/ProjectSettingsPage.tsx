@@ -8,6 +8,7 @@ import { changeProject, readProject, removeProject } from "../lib/tenancy";
 import { useHere } from "../lib/whoami";
 import { canSeeTechnicalDetail } from "../shells/roles";
 import { KeyPanel, PublishingPanel } from "./setup/Panels";
+import { HugoPanel } from "./setup/HugoPanel";
 import { say } from "../lib/say";
 import { whatWentWrong } from "../lib/api";
 
@@ -130,6 +131,9 @@ export function ProjectSettingsPage() {
 
           <Panel title={say("project-settings.how-it-is-published")}>
             <PublishingPanel organisation={organisation} project={project} onTrouble={setTrouble} />
+          </Panel>
+          <Panel title={say("project-settings.hugo-version")}>
+            <HugoPanel organisation={organisation} project={project} onTrouble={setTrouble} />
           </Panel>
         </>
       )}

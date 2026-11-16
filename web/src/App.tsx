@@ -25,6 +25,8 @@ import { OrganisationSettingsPage } from "./routes/OrganisationSettingsPage";
 import { PreferencesPage } from "./routes/PreferencesPage";
 import { ProjectSettingsPage } from "./routes/ProjectSettingsPage";
 import { ProjectsPage } from "./routes/ProjectsPage";
+import { TemplateGalleryPage } from "./routes/TemplateGalleryPage";
+import { UseTemplatePage } from "./routes/UseTemplatePage";
 import { ManageMembers } from "./routes/ManageMembers";
 import { ManageOrganisationPage } from "./routes/ManageOrganisationPage";
 import { ManageProjects } from "./routes/ManageProjects";
@@ -109,6 +111,8 @@ export function App() {
 
         <Route path="/o/:organisation" element={<Knowing><Outlet /></Knowing>}>
           <Route path="projects" element={<ProjectsPage />} />
+          <Route path="new/template" element={<TemplateGalleryPage />} />
+          <Route path="new/template/:template" element={<UseTemplatePage />} />
           <Route
             path="settings"
             element={<OrganisationPage title="app.organisation" body={<OrganisationSettingsPage />} />}
