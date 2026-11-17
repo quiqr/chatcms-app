@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 
@@ -241,5 +241,200 @@ describe("the page editor", () => {
     for (const word of ["commit", "branch", "push", "merge", "repository", "git", "sha", "head"]) {
       expect(words).not.toContain(word);
     }
+  });
+});
+
+describe("undo", () => {
+  function living(sent: unknown[] = []) {
+    const held = structuredClone(aPage);
+    return vi.fn().mockImplementation((_path: string, options?: RequestInit) => {
+      if (options?.method === "PUT" && options.body) {
+        const edit = JSON.parse(String(options.body)) as { values: Record<string, unknown>; body?: string };
+        sent.push(edit);
+        for (const [path, value] of Object.entries(edit.values)) {
+          const control = held.fields.find((one) => one.path === path);
+          if (control) control.value = value as never;
+        }
+        if (edit.body !== undefined) held.body = edit.body;
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => structuredClone(held) });
+    });
+  }
+
+  const saved = (sent: unknown[], count: number) =>
+    waitFor(() => expect(sent).toHaveLength(count), { timeout: 4000 });
+
+  beforeEach(() => {
+    window.sessionStorage.clear();
+  });
+
+  it("has nothing to undo or redo on opening", async () => {
+    vi.stubGlobal("fetch", living());
+    renderEditor();
+    await screen.findByLabelText("Page title");
+    expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Redo" })).toBeDisabled();
+  });
+
+  it("makes one step of two quick edits, named after both fields", async () => {
+    const sent: unknown[] = [];
+    vi.stubGlobal("fetch", living(sent));
+    renderEditor();
+    await fill(await screen.findByLabelText("Page title"), "!");
+    await fill(screen.getByLabelText("Introduction"), "!");
+    await saved(sent, 1);
+    expect(await screen.findByRole("button", { name: "Undo Page title, Introduction" })).toBeEnabled();
+  });
+
+  it("puts a cleared field back as a save, and does it again on redo", async () => {
+    const sent: unknown[] = [];
+    vi.stubGlobal("fetch", living(sent));
+    renderEditor();
+    const intro = await screen.findByLabelText("Introduction");
+    await userEvent.clear(intro);
+    await saved(sent, 1);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Undo Introduction" }));
+    await saved(sent, 2);
+    expect(sent[1]).toEqual({ values: { intro: "We sell apples." } });
+    expect(screen.getByLabelText("Introduction")).toHaveValue("We sell apples.");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Redo Introduction" }));
+    await saved(sent, 3);
+    expect(sent[2]).toEqual({ values: { intro: "" } });
+    expect(screen.getByLabelText("Introduction")).toHaveValue("");
+  });
+
+  it("saves what is waiting before undoing it", async () => {
+    const sent: unknown[] = [];
+    vi.stubGlobal("fetch", living(sent));
+    renderEditor();
+    await fill(await screen.findByLabelText("Page title"), " home");
+    await userEvent.click(screen.getByRole("button", { name: "Undo Page title" }));
+    await saved(sent, 2);
+    expect(sent).toEqual([{ values: { title: "Welcome home" } }, { values: { title: "Welcome" } }]);
+    expect(screen.getByLabelText("Page title")).toHaveValue("Welcome");
+  });
+
+  it("makes no step of a refused save", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((_path: string, options?: RequestInit) =>
+        options?.method === "PUT"
+          ? Promise.resolve({
+              ok: false,
+              status: 403,
+              json: async () => ({ error: { code: "refused", message: "No." } }),
+            })
+          : Promise.resolve({ ok: true, status: 200, json: async () => aPage }),
+      ),
+    );
+    renderEditor();
+    await fill(await screen.findByLabelText("Page title"), "!");
+    await screen.findByText(/keep trying/, {}, { timeout: 4000 });
+    expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+  });
+
+  it("goes back to the opened page in one save from the undo history", async () => {
+    const sent: unknown[] = [];
+    vi.stubGlobal("fetch", living(sent));
+    renderEditor();
+    await fill(await screen.findByLabelText("Page title"), "1");
+    await saved(sent, 1);
+    await fill(screen.getByLabelText("Introduction"), "2");
+    await saved(sent, 2);
+    await fill(screen.getByLabelText("Page text"), "3");
+    await saved(sent, 3);
+
+    await userEvent.click(screen.getByRole("button", { name: "Undo history" }));
+    const rows = await screen.findAllByRole("menuitem");
+    expect(rows.map((row) => row.textContent?.replace(/just now|\d+ min ago/, ""))).toEqual([
+      "Page text",
+      "Introduction",
+      "Page title",
+      "Opened",
+    ]);
+    expect(rows[0]).toHaveAttribute("aria-current", "step");
+    await userEvent.click(screen.getByRole("menuitem", { name: /Opened/ }));
+    await saved(sent, 4);
+    expect(sent[3]).toEqual({
+      values: { title: "Welcome", intro: "We sell apples." },
+      body: "The body of the page.\n",
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Undo history" }));
+    expect(await screen.findByRole("menuitem", { name: /Opened/ })).toHaveAttribute("aria-current", "step");
+    expect(screen.getAllByText("can be done again")).toHaveLength(3);
+  });
+
+  it("drops what could be redone when something new is typed", async () => {
+    const sent: unknown[] = [];
+    vi.stubGlobal("fetch", living(sent));
+    renderEditor();
+    await fill(await screen.findByLabelText("Page title"), "!");
+    await saved(sent, 1);
+    await userEvent.click(screen.getByRole("button", { name: "Undo Page title" }));
+    await saved(sent, 2);
+    expect(screen.getByRole("button", { name: "Redo Page title" })).toBeEnabled();
+
+    await fill(screen.getByLabelText("Introduction"), "!");
+    await saved(sent, 3);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Redo" })).toBeDisabled());
+  });
+
+  it("undoes and redoes with the keys outside a text field only", async () => {
+    const sent: unknown[] = [];
+    vi.stubGlobal("fetch", living(sent));
+    renderEditor();
+    const body = await screen.findByLabelText("Page text");
+    await fill(screen.getByLabelText("Page title"), "!");
+    await saved(sent, 1);
+
+    fireEvent.keyDown(body, { key: "z", ctrlKey: true });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(sent).toHaveLength(1);
+
+    fireEvent.keyDown(document.body, { key: "z", metaKey: true });
+    await saved(sent, 2);
+    expect(sent[1]).toEqual({ values: { title: "Welcome" } });
+
+    fireEvent.keyDown(document.body, { key: "Z", ctrlKey: true, shiftKey: true });
+    await saved(sent, 3);
+    expect(sent[2]).toEqual({ values: { title: "Welcome!" } });
+
+    fireEvent.keyDown(document.body, { key: "z", ctrlKey: true });
+    await saved(sent, 4);
+    fireEvent.keyDown(document.body, { key: "y", ctrlKey: true });
+    await saved(sent, 5);
+    expect(sent[4]).toEqual({ values: { title: "Welcome!" } });
+  });
+
+  it("keeps the steps through a reload of the tab", async () => {
+    const sent: unknown[] = [];
+    const fetcher = living(sent);
+    vi.stubGlobal("fetch", fetcher);
+    const first = renderEditor();
+    await fill(await screen.findByLabelText("Page title"), "!");
+    await saved(sent, 1);
+    await screen.findByRole("button", { name: "Undo Page title" });
+    first.unmount();
+
+    renderEditor();
+    expect(await screen.findByRole("button", { name: "Undo Page title" })).toBeEnabled();
+  });
+
+  it("starts afresh when the page was changed elsewhere", async () => {
+    const sent: unknown[] = [];
+    vi.stubGlobal("fetch", living(sent));
+    const first = renderEditor();
+    await fill(await screen.findByLabelText("Page title"), "!");
+    await saved(sent, 1);
+    await screen.findByRole("button", { name: "Undo Page title" });
+    first.unmount();
+
+    vi.stubGlobal("fetch", server());
+    renderEditor();
+    await screen.findByLabelText("Page title");
+    expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
   });
 });

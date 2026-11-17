@@ -823,6 +823,17 @@ export const en = {
   "sync-indicator.all-changes-saved": "All changes saved",
   "sync-indicator.offline-saved-on-this-device": "Offline, saved on this device",
 
+  // undo
+  "undo.can-redo": "can be done again",
+  "undo.history": "Undo history",
+  "undo.left-alone-many": "{fields} were changed since, so they were left as they are.",
+  "undo.left-alone-one": "{field} was changed since, so it was left as it is.",
+  "undo.opened": "Opened",
+  "undo.redo": "Redo",
+  "undo.redo-what": "Redo {fields}",
+  "undo.undo": "Undo",
+  "undo.undo-what": "Undo {fields}",
+
   // users
   "users.active": "Active",
   "users.add": "Add",

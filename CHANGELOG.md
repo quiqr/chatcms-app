@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The editor says "12 of 48" and steps to the previous and next item; a
   "Show on website" switch for a draft field.
 - Quick find: Ctrl+K or Cmd+K opens any page by its title.
+- Undo and redo in the editor, with a list of the steps since the page was
+  opened; an undo is saved like any edit.
 
 ### Changed
 

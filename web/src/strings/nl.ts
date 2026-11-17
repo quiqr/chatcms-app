@@ -826,6 +826,17 @@ export const nl: Strings = {
   "sync-indicator.all-changes-saved": "Alles is opgeslagen",
   "sync-indicator.offline-saved-on-this-device": "Geen verbinding, opgeslagen op dit apparaat",
 
+  // undo
+  "undo.can-redo": "kan opnieuw",
+  "undo.history": "Overzicht van stappen",
+  "undo.left-alone-many": "{fields} zijn intussen gewijzigd en zijn daarom gelaten zoals ze zijn.",
+  "undo.left-alone-one": "{field} is intussen gewijzigd en is daarom gelaten zoals het is.",
+  "undo.opened": "Geopend",
+  "undo.redo": "Opnieuw",
+  "undo.redo-what": "{fields} opnieuw",
+  "undo.undo": "Ongedaan maken",
+  "undo.undo-what": "{fields} ongedaan maken",
+
   // users
   "users.active": "Actief",
   "users.add": "Toevoegen",

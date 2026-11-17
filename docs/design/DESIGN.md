@@ -243,6 +243,12 @@ exception: the editor does not collapse the sidebar by itself, as §3
   heading, bold, italic, link, list, image; "Markdown" toggle to raw
   source; default is formatted editing), list of items (drag handle,
   input, remove, "Add <item>"), collapsed optional group.
+- Undo: Undo, Redo and Undo history icon buttons sit beside the saved
+  status, at every width. One save is one step. The history lists the steps
+  since the page was opened, newest first, named after the fields they
+  changed, with "Opened" last; picking a row goes back to that point. An undo
+  is a save like any other, so nothing is ever lost by it, and it leaves a
+  field alone that changed since.
 - The focused field is highlighted in the preview with a dashed primary
   outline (field ↔ preview linking).
 - Preview column: address pill "Preview · <url>", device toggle

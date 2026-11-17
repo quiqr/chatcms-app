@@ -8,6 +8,28 @@ import { MediaPage } from "./MediaPage";
 import { readPage, savePage, type Control, type Page } from "../lib/tenancy";
 import { say } from "../lib/say";
 import { whatWentWrong } from "../lib/api";
+import { toast } from "../components/ui/toast";
+import { typing } from "../lib/typing";
+import { now } from "../lib/when";
+import { useHere } from "../lib/whoami";
+import {
+  bodyPath,
+  fits,
+  keep,
+  none,
+  planRedo,
+  planTo,
+  planUndo,
+  recallSteps,
+  record,
+  same,
+  undoKey,
+  type Current,
+  type Plan,
+  type Step,
+  type Steps,
+} from "./undo";
+import { stepTitle, UndoControls } from "./UndoControls";
 
 type Saving = "saved" | "saving" | "trouble";
 
@@ -27,6 +49,21 @@ function withValue(controls: Control[], path: string, value: unknown): Control[]
     }
     return control;
   });
+}
+
+function find(controls: Control[], path: string): Control | undefined {
+  for (const control of controls) {
+    if (control.path === path) return control;
+    if (control.fields && control.type !== "accordion") {
+      const found = find(control.fields, path);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+function currentOf(page: Page): Current {
+  return { value: (path) => find(page.fields, path)?.value, body: page.body };
 }
 
 function Status({ state }: { state: Saving }) {
@@ -75,13 +112,38 @@ export function PageEditor({
   // several quick edits become one save rather than one each.
   const waiting = useRef<{ values: Record<string, unknown>; body?: string }>({ values: {} });
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const befores = useRef<{ values: Record<string, unknown>; body?: string }>({ values: {} });
+  const shown = useRef<Page | null>(null);
+  const inFlight = useRef<Promise<unknown>>(Promise.resolve());
+  const { who } = useHere();
+  const key = undoKey(who.person.id, project, page);
+  const [steps, setSteps] = useState<Steps>(none);
+  const stepsRef = useRef<Steps>(none);
+
+  const [waitingFor, setWaitingFor] = useState<Step | null>(null);
+
+  function show(next: Page) {
+    shown.current = next;
+    setLoaded(next);
+  }
+
+  function noteWaiting() {
+    const values = Object.fromEntries(Object.keys(waiting.current.values).map((path) => [path, { before: null, after: null }]));
+    const body = waiting.current.body === undefined ? undefined : { before: null, after: null };
+    setWaitingFor({ at: "", values, body });
+  }
 
   useEffect(() => {
     let cancelled = false;
     readPage(organisation, project, page)
       .then((answer) => {
         if (cancelled) return;
-        setLoaded(answer);
+        const stored = recallSteps(key);
+        const start = fits(stored, currentOf(answer)) ? stored : none;
+        stepsRef.current = start;
+        setSteps(start);
+        keep(key, start);
+        show(answer);
         onOpened?.({ title: answer.title, section: answer.section });
       })
       .catch((error: unknown) => {
@@ -92,9 +154,12 @@ export function PageEditor({
     };
   }, [organisation, project, page]);
 
-  const write = useCallback(async () => {
+  const save = useCallback(async () => {
     const pending = waiting.current;
+    const before = befores.current;
     waiting.current = { values: {} };
+    befores.current = { values: {} };
+    setWaitingFor(null);
     if (Object.keys(pending.values).length === 0 && pending.body === undefined) {
       return;
     }
@@ -107,19 +172,31 @@ export function PageEditor({
       });
       setState("saved");
       onSaved?.();
+      const step: Step = { at: now().toISOString(), values: {} };
+      for (const [path, after] of Object.entries(pending.values)) {
+        if (!same(before.values[path], after)) step.values[path] = { before: before.values[path], after };
+      }
+      if (pending.body !== undefined && !same(before.body, pending.body)) {
+        step.body = { before: before.body ?? "", after: pending.body };
+      }
+      settle(record(stepsRef.current, step));
     } catch (error: unknown) {
       setState("trouble");
       setTrouble(whatWentWrong(error, "page-editor.we-could-not-save-that"));
     }
   }, [organisation, project, page, onSaved]);
 
+  const write = useCallback(() => {
+    const run = inFlight.current.then(save);
+    inFlight.current = run.catch(() => undefined);
+    return run;
+  }, [save]);
+
   const later = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => void write(), quietFor);
   }, [write]);
 
-  // What is typed last still has to reach the server, so anything waiting is
-  // written when the screen goes away.
   useEffect(() => {
     return () => {
       if (timer.current) clearTimeout(timer.current);
@@ -127,15 +204,100 @@ export function PageEditor({
     };
   }, [write]);
 
+  function settle(next: Steps) {
+    stepsRef.current = next;
+    setSteps(next);
+    keep(key, next);
+  }
+
+  function title(path: string) {
+    if (path === bodyPath) return say("page-editor.page-text");
+    return (shown.current && find(shown.current.fields, path)?.title) || path;
+  }
+
+  function tell(leftAlone: string[]) {
+    const [only] = leftAlone;
+    if (leftAlone.length === 1 && only !== undefined) toast(say("undo.left-alone-one", { field: title(only) }));
+    if (leftAlone.length > 1) toast(say("undo.left-alone-many", { fields: leftAlone.map(title).join(", ") }));
+  }
+
+  async function carryOut(plan: Plan) {
+    const nothing = Object.keys(plan.values).length === 0 && plan.body === undefined;
+    if (!nothing) {
+      setState("saving");
+      try {
+        await savePage(organisation, project, page, { values: plan.values, body: plan.body });
+      } catch (error: unknown) {
+        setState("trouble");
+        setTrouble(whatWentWrong(error, "page-editor.we-could-not-save-that"));
+        return;
+      }
+      const held = shown.current;
+      if (held) {
+        show({
+          ...held,
+          fields: Object.entries(plan.values).reduce((fields, [path, value]) => withValue(fields, path, value), held.fields),
+          body: plan.body ?? held.body,
+        });
+      }
+      setState("saved");
+      onSaved?.();
+    }
+    settle(plan.steps);
+    tell(plan.leftAlone);
+  }
+
+  function go(planner: (steps: Steps, current: Current) => Plan | null) {
+    if (timer.current) clearTimeout(timer.current);
+    const run = inFlight.current.then(save).then(async () => {
+      const held = shown.current;
+      if (!held) return;
+      const plan = planner(stepsRef.current, currentOf(held));
+      if (plan) await carryOut(plan);
+    });
+    inFlight.current = run.catch(() => undefined);
+    return run;
+  }
+
+  const undo = () => go(planUndo);
+  const redo = () => go(planRedo);
+  const goTo = (point: number) => go((steps, current) => planTo(steps, point, current));
+
+  useEffect(() => {
+    function keys(event: KeyboardEvent) {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || typing(event.target)) return;
+      const letter = event.key.toLowerCase();
+      if (letter === "z" && !event.shiftKey) {
+        event.preventDefault();
+        void undo();
+      } else if ((letter === "z" && event.shiftKey) || (letter === "y" && !event.shiftKey)) {
+        event.preventDefault();
+        void redo();
+      }
+    }
+    window.addEventListener("keydown", keys);
+    return () => window.removeEventListener("keydown", keys);
+  });
+
   function change(path: string, value: unknown) {
-    setLoaded((held) => (held ? { ...held, fields: withValue(held.fields, path, value) } : held));
+    if (!(path in befores.current.values) && !(path in waiting.current.values) && shown.current) {
+      befores.current.values[path] = find(shown.current.fields, path)?.value;
+    }
+    const held = shown.current;
+    if (held) show({ ...held, fields: withValue(held.fields, path, value) });
     waiting.current.values[path] = value;
+    noteWaiting();
     later();
   }
 
   function changeBody(body: string) {
-    setLoaded((held) => (held ? { ...held, body } : held));
+    if (befores.current.body === undefined && waiting.current.body === undefined && shown.current) {
+      befores.current.body = shown.current.body;
+    }
+    const held = shown.current;
+    if (held) show({ ...held, body });
     waiting.current.body = body;
+    noteWaiting();
     later();
   }
 
@@ -180,7 +342,17 @@ export function PageEditor({
         ) : (
           <span />
         )}
-        <Status state={state} />
+        <div className="flex items-center gap-2">
+          <UndoControls
+            steps={steps}
+            waiting={waitingFor}
+            named={(step) => stepTitle(step, title)}
+            onUndo={() => void undo()}
+            onRedo={() => void redo()}
+            onTo={(point) => void goTo(point)}
+          />
+          <Status state={state} />
+        </div>
       </header>
 
       {draft && (

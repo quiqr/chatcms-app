@@ -4,6 +4,7 @@ import { NavLink, useNavigate, useSearchParams } from "react-router";
 
 import { Button } from "../../components/ui/button";
 import { say } from "../../lib/say";
+import { typing } from "../../lib/typing";
 import { readCollectionItems, readContentMenu } from "../../lib/tenancy";
 import { useAsync } from "../../lib/useAsync";
 import { carried, listQuery } from "./CollectionView";
@@ -60,11 +61,6 @@ export function usePlace(organisation: string, project: string, page: string): P
     }
   }
   return { isItem: false, backTo: base };
-}
-
-function typing(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) return false;
-  return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
 }
 
 export function Stepper({ place }: { place: Place }) {
