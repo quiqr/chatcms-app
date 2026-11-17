@@ -97,3 +97,30 @@ test("somebody who does not administer the installation cannot reach the area", 
   });
   expect(refused.status(), "an organisation admin listed every organisation").toBe(403);
 });
+
+test("the about screen says what is running, on what, and under which license", async ({
+  administering: page,
+  chatcms,
+}, testInfo) => {
+  await page.goto(`${chatcms.url}/administration/history`);
+  await page.getByRole("link", { name: "About", exact: true }).click();
+  await page.waitForURL(/\/administration\/about$/);
+
+  await expect(page.getByRole("heading", { name: "About", level: 1 })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Version" })).toContainText("development build");
+
+  const runsOn = page.getByRole("region", { name: "Runs on" });
+  await expect(runsOn).toContainText("PostgreSQL");
+  await expect(runsOn).toContainText(/go1\.\d+/);
+  await expect(runsOn.getByText("unknown")).toHaveCount(0);
+
+  const license = page.getByRole("region", { name: "License" });
+  await license.getByRole("button", { name: /Read the license/ }).click();
+  await expect(license.getByText(/Apache License/).first()).toBeVisible();
+
+  await expect(page.getByRole("link", { name: "Everyone who contributed" })).toHaveAttribute(
+    "href",
+    "https://github.com/quiqr/chatcms-app/graphs/contributors",
+  );
+  await worksOnAPhone(page, testInfo);
+});

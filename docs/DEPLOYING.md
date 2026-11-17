@@ -71,6 +71,12 @@ git cannot.
 Migrations run at start-up, from the binary, before the server listens. There
 is no separate step and no migration tool to install.
 
+To see what is running after an upgrade, open Administration, About: it names
+the version and the source it was built from, and the Hugo, git and PostgreSQL
+the server uses. `chatcmsd --version` prints the same version line. A server
+built by `nix build .#chatcmsd` names its source; any other build says it is a
+development build.
+
 A migration that fails stops the server rather than starting with a database
 it does not understand:
 

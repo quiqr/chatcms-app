@@ -58,6 +58,7 @@ type Server struct {
 	auth       *auth.Service
 	tenancy    *tenancy.Service
 	admin      *admin.Web
+	about      *about
 	onboarding *onboarding.Service
 	templates  *onboarding.Catalogue
 	builds     *builds.Service
@@ -131,7 +132,17 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 	server.templates = onboarding.NewCatalogue(db, cfg.TemplateFeed, cfg.StateDir, nil)
 	importer.UseTemplates(server.templates)
 	server.onboarding = onboarding.NewService(db, tenancyStore, server.keys, importer)
-	server.onboarding.UseTemplates(server.templates, installedHugo(ctx, cfg.HugoBin, logger))
+	hugo := installedHugo(ctx, cfg.HugoBin, logger)
+	server.onboarding.UseTemplates(server.templates, hugo)
+	server.about = &about{
+		hugo: hugo.Version,
+		git:  server.sites.GitVersion,
+		postgres: func(ctx context.Context) (string, error) {
+			var answer string
+			err := db.Pool().QueryRow(ctx, "SHOW server_version").Scan(&answer)
+			return answer, err
+		},
+	}
 
 	if err := server.startBuilds(ctx); err != nil {
 		db.Close()
@@ -174,6 +185,7 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 		WhoAmI:         server.tenancy,
 		Account:        server.auth,
 		Administration: server.admin,
+		About:          server.about,
 		Onboarding:     server.onboarding,
 		Templates:      server.onboarding,
 		Connect:        server.onboarding,

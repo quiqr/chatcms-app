@@ -27,6 +27,7 @@
           ./go.mod
           ./go.sum
           ./VERSION
+          ./LICENSE
           ./version.go
           ./version_test.go
           ./cmd
@@ -86,7 +87,7 @@
         meta.description = "Quiqr ChatCMS browser application";
       };
 
-      mkServer = { pkgs, ... }@args: pkgs.buildGoModule {
+      mkServer = { pkgs, source ? "", ... }@args: pkgs.buildGoModule {
         pname = "chatcmsd";
         inherit version vendorHash;
         src = goSource;
@@ -102,7 +103,8 @@
           "-s"
           "-w"
           "-X=github.com/quiqr/chatcms-app/internal/version.Version=${version}"
-        ];
+        ] ++ nixpkgs.lib.optional (source != "")
+          "-X=github.com/quiqr/chatcms-app/internal/version.Source=${source}";
 
         meta = {
           description = "Quiqr ChatCMS server";
@@ -293,7 +295,7 @@
     in
     {
       packages = forAllSystems (args: rec {
-        chatcmsd = mkServer args;
+        chatcmsd = mkServer (args // { source = self.shortRev or self.dirtyShortRev or ""; });
         web = mkWeb args;
         default = chatcmsd;
       });

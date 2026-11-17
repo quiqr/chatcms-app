@@ -10,6 +10,25 @@
 import type { Strings } from "../lib/say";
 
 export const nl: Strings = {
+  // about
+  "about.changelog": "Wijzigingen per versie",
+  "about.credits": "Met dank aan",
+  "about.development-build": "{version} · ontwikkelversie",
+  "about.everyone-who-contributed": "Iedereen die bijdroeg",
+  "about.license": "Licentie",
+  "about.license-is": "Quiqr ChatCMS is open source onder de {name}-licentie.",
+  "about.made-by": "Gemaakt door het Quiqr Team, met hulp van de mensen die bijdragen.",
+  "about.on-github": "Quiqr ChatCMS op GitHub",
+  "about.read-the-license": "Lees de licentie",
+  "about.report-a-problem": "Een probleem melden",
+  "about.runs-on": "Draait op",
+  "about.source-code": "Broncode",
+  "about.title": "Over",
+  "about.unknown": "onbekend",
+  "about.version": "Versie",
+  "about.version-at": "{version} · {source}",
+  "about.version-changed": "{version} · {source}, gewijzigd",
+
   // account
   "account.another-screen": "Een ander scherm",
   "account.asked-for-even-though-you-are": "We vragen ernaar terwijl je al aangemeld bent, zodat een scherm dat open blijft staan niet genoeg is om je account over te nemen.",

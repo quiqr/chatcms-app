@@ -5,7 +5,7 @@
 { self, pkgs, system }:
 
 let
-  chatcmsd = self.packages.${system}.chatcmsd;
+  chatcmsd = self.checks.${system}.go-build;
 
   seed = pkgs.buildGoModule {
     pname = "chatcms-seed";

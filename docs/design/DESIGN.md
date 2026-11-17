@@ -366,6 +366,15 @@ name, "Platform admin" ink badge, email), organisations ("Studio Noord
 Edit name and email, Send password reset, Add to organisation…, Make platform
 admin | Block sign-in, Delete user…. Pagination "Showing 1–8 of 46".
 
+### 5.17 Platform admin · About — `admin-about`
+The last entry in the area's nav, after History. One column of cards:
+Version ("0.1.0 · a3bab43", "…, changed" for a build from changed files, or
+"0.1.0 · development build"), Runs on (Hugo, git, PostgreSQL and Go, "unknown"
+where one does not answer), License (Apache 2.0, the full text in a
+disclosure), Source code (GitHub, changelog, report a problem) and Credits
+("Made by the Quiqr Team, with help from its contributors" and a link to the
+contributors on GitHub). Every link opens outside the app.
+
 ## 6. Roles and visibility
 
 Three levels; each manages the one below, within limits set from above

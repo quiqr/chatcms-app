@@ -478,3 +478,36 @@ func TestSitesReportALookupFailure(t *testing.T) {
 func testIdentity() Identity {
 	return Identity{Name: "Quiqr ChatCMS", Email: "chatcms@example.org"}
 }
+
+func TestGitSaysItsVersion(t *testing.T) {
+	sites := NewSites(testConfig(t), t.TempDir(), nil)
+
+	got, err := sites.GitVersion(t.Context())
+	if err != nil {
+		t.Fatalf("GitVersion() error = %v", err)
+	}
+	if got == "" || got[0] < '0' || got[0] > '9' {
+		t.Errorf("GitVersion() = %q, want a version starting with a digit", got)
+	}
+}
+
+func TestGitVersionIsReadFromItsLine(t *testing.T) {
+	cases := map[string]string{
+		"git version 2.51.0\n":                 "2.51.0",
+		"git version 2.39.5 (Apple Git-154)\n": "2.39.5",
+		"something else entirely":              "",
+		"":                                     "",
+	}
+	for in, want := range cases {
+		if got := parseGitVersion(in); got != want {
+			t.Errorf("parseGitVersion(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestGitVersionFailsWithoutGit(t *testing.T) {
+	sites := NewSites(Config{GitBin: "/nonexistent/git", System: Identity{Name: "t", Email: "t@example.org"}}, t.TempDir(), nil)
+	if _, err := sites.GitVersion(t.Context()); err == nil {
+		t.Error("GitVersion() with no git = nil error, want one")
+	}
+}

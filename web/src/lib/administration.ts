@@ -162,3 +162,17 @@ export function setLimits(organisation: string, members: number | null, projects
     projects,
   });
 }
+
+export type About = {
+  version: string;
+  source: string;
+  changed: boolean;
+  describe: string;
+  runsOn: { hugo: string; git: string; postgres: string; go: string };
+  license: { name: string; text: string };
+  links: { source: string; changelog: string; issues: string; contributors: string };
+};
+
+export function readAbout() {
+  return get<About>("/api/administration/about");
+}

@@ -1,3 +1,4 @@
+import { AboutScreen } from "./routes/AboutScreen";
 import { Navigate, Outlet, Route, Routes } from "react-router";
 
 import { TooltipProvider } from "./components/ui/tooltip";
@@ -106,6 +107,10 @@ export function App() {
           <Route
             path="/administration/history"
             element={<PlatformAdminPage screen={<PlatformHistory />} />}
+          />
+          <Route
+            path="/administration/about"
+            element={<PlatformAdminPage screen={<AboutScreen />} />}
           />
         </Route>
 

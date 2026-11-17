@@ -41,6 +41,7 @@ type Options struct {
 	// Administration serves what somebody who administers the installation
 	// may do: organisations, who is in them, and who administers.
 	Administration AdministrationService
+	About          AboutSource
 	// Onboarding serves setting a project up: its key, its site, and where
 	// it publishes.
 	Onboarding OnboardingService
@@ -152,6 +153,9 @@ func New(opts Options) http.Handler {
 
 	if opts.Administration != nil {
 		administrationHandlers(mux, opts.Administration)
+		if opts.About != nil {
+			aboutHandlers(mux, opts.Administration, opts.About)
+		}
 	}
 
 	if opts.Templates != nil {

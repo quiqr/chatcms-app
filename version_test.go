@@ -23,3 +23,9 @@ func TestVersionIsSemver(t *testing.T) {
 		t.Errorf("Version() = %q, want a bare semver", Version())
 	}
 }
+
+func TestTheLicenseShipsWithTheBuild(t *testing.T) {
+	if !strings.HasPrefix(strings.TrimSpace(License()), "Apache License") {
+		t.Errorf("License() starts %q, want the Apache License", License()[:40])
+	}
+}

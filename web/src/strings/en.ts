@@ -7,6 +7,25 @@
  * them reads them in the order they appear.
  */
 export const en = {
+  // about
+  "about.changelog": "Changelog",
+  "about.credits": "Credits",
+  "about.development-build": "{version} · development build",
+  "about.everyone-who-contributed": "Everyone who contributed",
+  "about.license": "License",
+  "about.license-is": "Quiqr ChatCMS is open source under the {name} license.",
+  "about.made-by": "Made by the Quiqr Team, with help from its contributors.",
+  "about.on-github": "Quiqr ChatCMS on GitHub",
+  "about.read-the-license": "Read the license",
+  "about.report-a-problem": "Report a problem",
+  "about.runs-on": "Runs on",
+  "about.source-code": "Source code",
+  "about.title": "About",
+  "about.unknown": "unknown",
+  "about.version": "Version",
+  "about.version-at": "{version} · {source}",
+  "about.version-changed": "{version} · {source}, changed",
+
   // account
   "account.another-screen": "Another screen",
   "account.asked-for-even-though-you-are": "Asked for even though you are signed in, so that a screen left open is not enough to take your account over.",

@@ -363,3 +363,25 @@ func (s *Sites) Unhost(id string) error {
 	}
 	return nil
 }
+
+func (s *Sites) GitVersion(ctx context.Context) (string, error) {
+	home, err := os.MkdirTemp("", "chatcms-git-version-")
+	if err != nil {
+		return "", err
+	}
+	defer os.RemoveAll(home)
+
+	out, err := newRunner(s.cfg, home, home).run(ctx, "--version")
+	if err != nil {
+		return "", err
+	}
+	return parseGitVersion(out), nil
+}
+
+func parseGitVersion(out string) string {
+	fields := strings.Fields(out)
+	if len(fields) >= 3 && fields[0] == "git" && fields[1] == "version" {
+		return fields[2]
+	}
+	return ""
+}

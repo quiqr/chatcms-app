@@ -1,4 +1,4 @@
-import { Building2, History, Shield, Users } from "lucide-react";
+import { Building2, History, Info, Shield, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 
@@ -61,6 +61,10 @@ export function PlatformAdminShell({
           <NavLink to="/administration/history" className={item}>
             <History aria-hidden="true" className="size-4" />
             {say("platform.history")}
+          </NavLink>
+          <NavLink to="/administration/about" className={item}>
+            <Info aria-hidden="true" className="size-4" />
+            {say("about.title")}
           </NavLink>
         </nav>
       </aside>

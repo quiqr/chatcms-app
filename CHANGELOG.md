@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quick find: Ctrl+K or Cmd+K opens any page by its title.
 - Undo and redo in the editor, with a list of the steps since the page was
   opened; an undo is saved like any edit.
+- An About screen in the platform admin area: version, what it runs on, the
+  license, the source code and the credits.
 
 ### Changed
 

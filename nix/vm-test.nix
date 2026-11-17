@@ -32,7 +32,7 @@ pkgs.testers.runNixOSTest {
 
     services.chatcms = {
       enable = true;
-      package = self.packages.${pkgs.stdenv.hostPlatform.system}.chatcmsd;
+      package = self.checks.${pkgs.stdenv.hostPlatform.system}.go-build;
       baseUrl = "http://localhost:8080";
       secretKeyFile = "/run/chatcms-secrets/master.key";
       database.createLocally = true;
