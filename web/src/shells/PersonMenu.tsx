@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import { Avatar } from "../components/ui/avatar";
 import { cn } from "../lib/cn";
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "../components/ui/menu";
-import { signOut, signOutEverywhere } from "../lib/session";
+import { signOut } from "../lib/session";
 import { say } from "../lib/say";
 
 /**
@@ -18,11 +18,11 @@ export function PersonMenu({ name, role, className }: { name: string; role?: str
   const goTo = useNavigate();
   const [busy, setBusy] = useState(false);
 
-  async function leave(everywhere: boolean) {
+  async function leave() {
     if (busy) return;
     setBusy(true);
     try {
-      await (everywhere ? signOutEverywhere() : signOut());
+      await signOut();
     } catch {
       // The session is gone either way as far as this screen is concerned,
       // and sending somebody back to a screen they can no longer read would
@@ -58,8 +58,7 @@ export function PersonMenu({ name, role, className }: { name: string; role?: str
 
         <MenuSeparator />
 
-        <MenuItem onSelect={() => void leave(false)}>{say("person-menu.sign-out")}</MenuItem>
-        <MenuItem onSelect={() => void leave(true)}>{say("person-menu.sign-out-everywhere")}</MenuItem>
+        <MenuItem onSelect={() => void leave()}>{say("person-menu.sign-out")}</MenuItem>
       </MenuContent>
     </Menu>
   );

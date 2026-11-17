@@ -58,18 +58,3 @@ test("signing out ends the session, and says so", async ({ signedIn: page, chatc
 
   await worksOnAPhone(page, testInfo);
 });
-
-test("signing out everywhere ends the one asking too", async ({ signedIn: page, chatcms }) => {
-  await page.goto(`${chatcms.url}/projects`);
-
-  await page.getByTestId("person-menu").click();
-  await page.getByText("Sign out everywhere").click();
-
-  await page.waitForURL(/sign-in/);
-
-  const refused = await page.request.get(
-    `${chatcms.url}/api/organisations/technative/projects`,
-    { failOnStatusCode: false },
-  );
-  expect(refused.status(), "the session that asked still works").toBe(401);
-});

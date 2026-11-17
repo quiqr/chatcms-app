@@ -87,10 +87,6 @@ func New(opts Options) http.Handler {
 		mux.Handle("POST /api/confirm-address", confirmAddressHandler(opts.Auth))
 		mux.HandleFunc("/api/confirm-address", MethodNotAllowed)
 
-		mux.Handle("POST /api/sign-out/everywhere",
-			RequireActor(signOutEverywhereHandler(opts.Auth, opts.Secure)))
-		mux.HandleFunc("/api/sign-out/everywhere", MethodNotAllowed)
-
 		mux.Handle("GET /api/me", RequireActor(currentPersonHandler()))
 		mux.HandleFunc("/api/me", MethodNotAllowed)
 

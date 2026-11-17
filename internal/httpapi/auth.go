@@ -16,7 +16,6 @@ type AuthService interface {
 	Lookup(ctx context.Context, token string) (Actor, error)
 	RequestPasswordReset(ctx context.Context, email, caller string) error
 	SetPasswordWithToken(ctx context.Context, token, password string) (Actor, string, time.Time, error)
-	SignOutEverywhere(ctx context.Context, who Actor) error
 	ProveTheNewAddress(ctx context.Context, token string) (Actor, error)
 }
 
@@ -122,21 +121,6 @@ func signOutHandler(auth AuthService, secure bool) http.Handler {
 
 		ClearSessionCookie(w, secure)
 		WriteJSON(w, http.StatusNoContent, nil)
-	})
-}
-
-func signOutEverywhereHandler(auth AuthService, secure bool) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := auth.SignOutEverywhere(r.Context(), ActorFrom(r.Context())); err != nil {
-			WriteError(w, http.StatusInternalServerError, CodeInternal,
-				"Something went wrong. Nothing was lost; please try again.")
-			return
-		}
-
-		// The session asking is one of the ones that just ended, so the
-		// cookie goes with them.
-		ClearSessionCookie(w, secure)
-		w.WriteHeader(http.StatusNoContent)
 	})
 }
 

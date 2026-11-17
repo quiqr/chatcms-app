@@ -536,7 +536,6 @@ export const en = {
   // person-menu
   "person-menu.preferences": "Preferences",
   "person-menu.sign-out": "Sign out",
-  "person-menu.sign-out-everywhere": "Sign out everywhere",
   "person-menu.you": "You",
   "person-menu.your-account": "Your account",
 

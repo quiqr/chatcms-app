@@ -36,10 +36,6 @@ export function changeOwnPassword(current: string, next: string) {
   return put<void>("/api/account/password", { current, next });
 }
 
-export function signOutEverywhere() {
-  return post<void>("/api/sign-out/everywhere");
-}
-
 export type WhereSignedIn = {
   id: string;
   lastSeen: string;

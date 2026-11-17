@@ -50,11 +50,6 @@ func (s *stubAuth) ProveTheNewAddress(_ context.Context, token string) (Actor, e
 	return Actor{ID: "person-1", Email: "new@example.org"}, nil
 }
 
-func (s *stubAuth) SignOutEverywhere(_ context.Context, who Actor) error {
-	s.signedOut = append(s.signedOut, "everywhere for "+who.ID)
-	return s.signOutErr
-}
-
 func (s *stubAuth) Lookup(_ context.Context, token string) (Actor, error) {
 	if s.lookupErr != nil {
 		return Anonymous(), s.lookupErr
@@ -427,31 +422,16 @@ func TestCapitalise(t *testing.T) {
 	}
 }
 
-func TestSigningOutEverywhereEndsTheSessionAsking(t *testing.T) {
-	// Somebody who thinks their account is not theirs any more wants every
-	// door shut, including the one they are standing in.
+func TestSigningOutEverywhereIsNoLongerOffered(t *testing.T) {
 	auth := &stubAuth{known: map[string]Actor{"a-session-value": {ID: "person-1"}}}
 
 	recorder := signedInCall(t, withAuth(auth), http.MethodPost, "/api/sign-out/everywhere", nil)
 
-	if recorder.Code != http.StatusNoContent {
-		t.Fatalf("status = %d, want 204: %s", recorder.Code, recorder.Body)
+	if recorder.Code != http.StatusNotFound && recorder.Code != http.StatusMethodNotAllowed {
+		t.Errorf("status = %d, want 404 or 405", recorder.Code)
 	}
-	if len(auth.signedOut) != 1 || auth.signedOut[0] != "everywhere for person-1" {
+	if len(auth.signedOut) != 0 {
 		t.Errorf("the service was asked %v", auth.signedOut)
-	}
-
-	cookie := cookieNamed(recorder.Result(), SessionCookie)
-	if cookie == nil || cookie.Value != "" {
-		t.Error("the session cookie was not cleared, so the screen stays signed in")
-	}
-}
-
-func TestSigningOutEverywhereNeedsSomebody(t *testing.T) {
-	recorder := call(t, withAuth(&stubAuth{}), http.MethodPost, "/api/sign-out/everywhere", nil)
-
-	if recorder.Code != http.StatusUnauthorized {
-		t.Errorf("status = %d, want 401", recorder.Code)
 	}
 }
 

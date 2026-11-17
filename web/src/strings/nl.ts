@@ -539,7 +539,6 @@ export const nl: Strings = {
   // person-menu
   "person-menu.preferences": "Voorkeuren",
   "person-menu.sign-out": "Afmelden",
-  "person-menu.sign-out-everywhere": "Overal afmelden",
   "person-menu.you": "Jij",
   "person-menu.your-account": "Je account",
 

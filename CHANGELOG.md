@@ -40,6 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A new item under `content/` is a page bundle, `<slug>/index.md`; renaming,
   copying and removing a bundle move its whole folder.
 
+### Removed
+
+- "Sign out everywhere" is gone from the person menu; "Sign out" is the one
+  way out.
+
 ### Fixed
 
 - A project with nothing brought in yet says so on every screen, instead of

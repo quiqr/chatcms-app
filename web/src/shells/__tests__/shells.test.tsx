@@ -410,7 +410,7 @@ describe("the way out", () => {
 
       expect(await screen.findByText("Your account"), `${name} has no way to your account`).toBeInTheDocument();
       expect(screen.getByText("Sign out"), `${name} has no way out`).toBeInTheDocument();
-      expect(screen.getByText("Sign out everywhere")).toBeInTheDocument();
+      expect(screen.queryByText("Sign out everywhere")).toBeNull();
 
       unmount();
     });
