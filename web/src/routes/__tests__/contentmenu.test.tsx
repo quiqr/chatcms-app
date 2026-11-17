@@ -7,7 +7,7 @@ import { fill } from "./fill";
 import { Inside } from "./here";
 import { CollectionView } from "../content/CollectionView";
 import { ContentColumn } from "../content/ContentColumn";
-import { ContentScreen } from "../content/ContentScreen";
+import { ContentBeside, ContentScreen } from "../content/ContentScreen";
 import { QuickFind } from "../content/QuickFind";
 import { Stepper, usePlace } from "../content/usePlace";
 import { PageEditor } from "../PageEditor";
@@ -401,19 +401,42 @@ describe("the content column beside the editor", () => {
     );
   }
 
-  it("folds away, stays folded, and comes back from the rail", async () => {
+  const panel = () => document.querySelector("[data-panel='content']")!;
+
+  it("folds to a strip, stays folded, and comes back from the strip", async () => {
     serve({ [`${base}/content-menu`]: { body: theMenu } });
     const user = userEvent.setup();
     const first = editor();
 
+    expect(panel()).toHaveAttribute("data-folded", "false");
     await user.click(await screen.findByRole("button", { name: "Hide the content menu" }));
-    expect(screen.queryByTestId("editor-content-column")).toBeNull();
+    expect(panel()).toHaveAttribute("data-folded", "true");
+    expect(screen.queryByRole("navigation", { name: "Content" })).toBeNull();
     first.unmount();
 
     editor();
-    expect(screen.queryByTestId("editor-content-column")).toBeNull();
+    expect(panel()).toHaveAttribute("data-folded", "true");
     await user.click(screen.getByRole("button", { name: "Show the content menu" }));
-    expect(await screen.findByTestId("editor-content-column")).toBeInTheDocument();
+    expect(panel()).toHaveAttribute("data-folded", "false");
+    expect(await screen.findByRole("navigation", { name: "Content" })).toBeInTheDocument();
+  });
+
+  it("stays folded in the editor when it was folded on the collection view", async () => {
+    serve({ [`${base}/content-menu`]: { body: theMenu } });
+    const user = userEvent.setup();
+    const list = at("/o/technative/p/journal/content/c/posts", <Route path="*" element={<ContentBeside />} />);
+    await user.click(await screen.findByRole("button", { name: "Hide the content menu" }));
+    list.unmount();
+
+    editor();
+    expect(panel()).toHaveAttribute("data-folded", "true");
+  });
+
+  it("keeps a fold made before folding worked on every screen", () => {
+    window.localStorage.setItem("chatcms.content.folded.person-1", "true");
+    serve({ [`${base}/content-menu`]: { body: theMenu } });
+    at("/o/technative/p/journal/content/c/posts", <Route path="*" element={<ContentBeside />} />);
+    expect(panel()).toHaveAttribute("data-folded", "true");
   });
 });
 
@@ -481,10 +504,16 @@ describe("quick find", () => {
 });
 
 describe("narrower screens", () => {
+  const screenAndPanel = (
+    <>
+      <ContentBeside />
+      <ContentScreen />
+    </>
+  );
   const routes = (
     <>
-      <Route path="/o/:organisation/p/:project/content" element={<ContentScreen />} />
-      <Route path="/o/:organisation/p/:project/content/c/:collection" element={<ContentScreen />} />
+      <Route path="/o/:organisation/p/:project/content" element={screenAndPanel} />
+      <Route path="/o/:organisation/p/:project/content/c/:collection" element={screenAndPanel} />
     </>
   );
 
@@ -499,7 +528,8 @@ describe("narrower screens", () => {
     const user = userEvent.setup();
     at("/o/technative/p/journal/content/c/posts", routes);
 
-    await user.click(await screen.findByRole("button", { name: "Content menu" }));
+    expect(document.querySelector("[data-panel='content']")).toHaveAttribute("data-folded", "true");
+    await user.click(await screen.findByRole("button", { name: "Show the content menu" }));
     const drawer = await screen.findByRole("dialog", { name: "Content menu" });
     await user.click(await within(drawer).findByRole("link", { name: /Team/ }));
     expect(screen.queryByRole("dialog", { name: "Content menu" })).toBeNull();

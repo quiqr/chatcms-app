@@ -47,16 +47,30 @@ project in that browser.
 - **WHEN** somebody folds a group and reloads the screen
 - **THEN** the group is still folded and shows its count
 
-### Requirement: The content column folds away beside the editor
+### Requirement: The content column folds by hand
 
-With an item open, the column SHALL fold away from a button in its heading and
-come back from the Content icon in the rail. The choice SHALL survive a reload.
+On screens 1024 px and wider, the content column SHALL have an icon in its
+heading that folds it, on the collection view and in the editor alike. The
+folded column SHALL be a narrow strip in the column's place, holding an icon
+that unfolds it. The state SHALL be remembered per person, across projects and
+reloads, and SHALL change only when the person folds or unfolds it.
 
 #### Scenario: Folding and reloading
 
 - **WHEN** somebody folds the column in the editor and reloads
-- **THEN** the editor opens with the column folded
-- **AND** the rail's Content icon brings it back
+- **THEN** the editor opens with the column folded to its strip
+- **AND** the strip's unfold icon brings the column back
+
+#### Scenario: Folding on the collection view
+
+- **WHEN** somebody folds the column on the collection view and opens an item
+- **THEN** the editor shows the column folded too
+
+#### Scenario: An earlier choice is kept
+
+- **WHEN** somebody folded the column in the editor before folding became
+  available on every screen
+- **THEN** the column is folded for them on every screen
 
 ### Requirement: Quick find opens any page by its title
 
@@ -84,15 +98,15 @@ grouped by group and collection, and Enter SHALL open the first.
 
 ### Requirement: Narrow screens reach the same content
 
-Below 1024 px the content column SHALL be a drawer opened from the Content
-icon, closing when something is chosen. Below 640 px content SHALL be three
-screens (the menu, a collection, the editor) inside the phone frame and its
-existing tab bar.
+Below 1024 px the content column SHALL be a drawer, opened from the icon in
+the column's strip and closing when something is chosen. Below 640 px content
+SHALL be three screens (the menu, a collection, the editor) inside the phone
+frame and its existing tab bar.
 
 #### Scenario: A tablet
 
-- **WHEN** the screen is 800 px wide and somebody opens the drawer and picks a
-  collection
+- **WHEN** the screen is 800 px wide and somebody opens the drawer from the
+  strip and picks a collection
 - **THEN** the drawer closes and the collection is shown
 
 #### Scenario: A phone

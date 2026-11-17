@@ -258,7 +258,6 @@ export const nl: Strings = {
   "editor-shell.how-to-show-this-page": "Hoe deze pagina te tonen",
   "editor-shell.page-fields": "Velden van de pagina",
   "editor-shell.preview": "Voorbeeld",
-  "editor-shell.project-sections": "Onderdelen van het project",
   "editor-shell.side-by-side": "Naast elkaar",
 
   // fields
@@ -797,6 +796,10 @@ export const nl: Strings = {
   "sign-in.sign-in": "Aanmelden",
   "sign-in.signing-in": "Aanmelden...",
   "sign-in.you-have-signed-out": "Je bent afgemeld.",
+
+  // site-panel
+  "site-panel.hide": "Verberg de navigatie",
+  "site-panel.show": "Toon de navigatie",
 
   // sync
   "sync.also-changed-this-field": "{who} heeft {field} ook gewijzigd. Welke houden we aan?",

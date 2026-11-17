@@ -7,7 +7,7 @@ import { NotFound } from "./routes/NotFound";
 import { OrganisationPage } from "./routes/OrganisationPage";
 import { OnboardingPage } from "./routes/OnboardingPage";
 import { HistoryPage } from "./routes/HistoryPage";
-import { ContentScreen } from "./routes/content/ContentScreen";
+import { ContentBeside, ContentScreen } from "./routes/content/ContentScreen";
 import { EditorPage } from "./routes/EditorPage";
 import { MediaPage } from "./routes/MediaPage";
 import { PeoplePage } from "./routes/PeoplePage";
@@ -125,10 +125,10 @@ export function App() {
             element={<ProjectPage title="app.project-settings" body={<ProjectSettingsPage />} />}
           />
           <Route path="p/:project/workflows" element={<ProjectPage title="app.workflows" />} />
-          <Route path="p/:project/content" element={<ProjectPage title="app.content" body={<ContentScreen />} />} />
+          <Route path="p/:project/content" element={<ProjectPage title="app.content" beside={<ContentBeside />} body={<ContentScreen />} />} />
           <Route
             path="p/:project/content/c/:collection"
-            element={<ProjectPage title="app.content" body={<ContentScreen />} />}
+            element={<ProjectPage title="app.content" beside={<ContentBeside />} body={<ContentScreen />} />}
           />
           <Route path="p/:project/content/*" element={<EditorPage />} />
           <Route path="p/:project/media" element={<ProjectPage title="app.media" body={<MediaPage />} />} />

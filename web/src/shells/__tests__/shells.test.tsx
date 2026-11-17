@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Project } from "../../lib/tenancy";
 import { EditorShell } from "../EditorShell";
@@ -34,6 +34,56 @@ function at(path: string, element: ReactNode) {
     </Inside>,
   );
 }
+
+const sitePanel = () => document.querySelector("[data-panel='site']")!;
+
+beforeEach(() => {
+  window.localStorage.clear();
+});
+
+describe("the site panel", () => {
+  const shell = (role: string) =>
+    at(
+      "/o/technative/p/korenaar/content",
+      <ProjectShell project={project} viewer={{ name: "Joris", role }} title="Content">
+        body
+      </ProjectShell>,
+    );
+
+  it("folds to a rail of the same entries and unfolds again", async () => {
+    const user = userEvent.setup();
+    shell("implementer");
+
+    await user.click(screen.getByRole("button", { name: "Hide the navigation" }));
+    const rail = screen.getByRole("complementary", { name: "Project navigation" });
+    expect(rail).toHaveAttribute("data-folded", "true");
+    for (const label of ["Content", "Media", "Publish", "History", "People & roles", "Project settings"]) {
+      expect(within(rail).getByRole("link", { name: label })).toBeInTheDocument();
+    }
+    expect(within(rail).getByRole("button", { name: /Korenaar Bakery/ })).toBeInTheDocument();
+
+    await user.click(within(rail).getByRole("button", { name: "Show the navigation" }));
+    expect(sitePanel()).toHaveAttribute("data-folded", "false");
+    expect(screen.getByText("Korenaar Bakery")).toBeInTheDocument();
+  });
+
+  it("leaves setup out of the rail for an editor", async () => {
+    const user = userEvent.setup();
+    shell("editor");
+    await user.click(screen.getByRole("button", { name: "Hide the navigation" }));
+    expect(screen.queryByRole("link", { name: "People & roles" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Setup" })).toBeNull();
+  });
+
+  it("stays folded after a remount", async () => {
+    const user = userEvent.setup();
+    const first = shell("editor");
+    await user.click(screen.getByRole("button", { name: "Hide the navigation" }));
+    first.unmount();
+    shell("editor");
+    expect(sitePanel()).toHaveAttribute("data-folded", "true");
+  });
+});
 
 describe("ProjectShell", () => {
   it("shows the site navigation", () => {
@@ -209,13 +259,19 @@ describe("EditorShell", () => {
     expect(assistant).not.toBeVisible();
   });
 
-  it("uses a narrow rail rather than the full navigation", () => {
-    editor();
+  it("shows the navigation as it was left on a project screen", async () => {
+    const user = userEvent.setup();
+    const list = at("/o/technative/p/korenaar/content", <ProjectShell project={project} viewer={theViewer} title="Content">body</ProjectShell>);
+    expect(sitePanel()).toHaveAttribute("data-folded", "false");
+    list.unmount();
 
-    const rail = screen.getByTestId("editor-rail");
-    expect(rail.className).toContain("w-16");
-    expect(within(rail).getByRole("button", { name: "Show the content menu" })).toBeInTheDocument();
-    expect(screen.queryByRole("complementary", { name: "Project navigation" })).toBeNull();
+    const unfolded = editor();
+    expect(sitePanel()).toHaveAttribute("data-folded", "false");
+    await user.click(screen.getByRole("button", { name: "Hide the navigation" }));
+    unfolded.unmount();
+
+    at("/o/technative/p/korenaar/content", <ProjectShell project={project} viewer={theViewer} title="Content">body</ProjectShell>);
+    expect(sitePanel()).toHaveAttribute("data-folded", "true");
   });
 
   it("shows one column when asked for one", () => {

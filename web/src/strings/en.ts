@@ -255,7 +255,6 @@ export const en = {
   "editor-shell.how-to-show-this-page": "How to show this page",
   "editor-shell.page-fields": "Page fields",
   "editor-shell.preview": "Preview",
-  "editor-shell.project-sections": "Project sections",
   "editor-shell.side-by-side": "Side by side",
 
   // fields
@@ -794,6 +793,10 @@ export const en = {
   "sign-in.sign-in": "Sign in",
   "sign-in.signing-in": "Signing in...",
   "sign-in.you-have-signed-out": "You have signed out.",
+
+  // site-panel
+  "site-panel.hide": "Hide the navigation",
+  "site-panel.show": "Show the navigation",
 
   // sync
   "sync.also-changed-this-field": "{who} also changed this {field}. Which one should we keep?",

@@ -14,11 +14,13 @@ import { say, type Key } from "../lib/say";
 export function ProjectPage({
   title,
   body,
+  beside,
 }: {
   // A key rather than a sentence: a route is declared once, and the
   // language can change after that.
   title: Key;
   body?: ReactNode;
+  beside?: ReactNode;
 }) {
   const { organisation, who } = useHere();
   const { project: slug = "" } = useParams();
@@ -55,7 +57,7 @@ export function ProjectPage({
   }
 
   return (
-    <ProjectShell project={project} viewer={viewer} title={said}>
+    <ProjectShell project={project} viewer={viewer} title={said} beside={beside}>
       {content}
     </ProjectShell>
   );

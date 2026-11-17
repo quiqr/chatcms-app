@@ -240,3 +240,19 @@
 @utility pb-safe-2 {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }
+
+/* panel-motion: start */
+@layer base {
+  [data-panel] {
+    transition:
+      flex-basis 180ms ease-out,
+      width 180ms ease-out;
+    overflow: hidden;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-panel] {
+      transition: none;
+    }
+  }
+}
+/* panel-motion: end */

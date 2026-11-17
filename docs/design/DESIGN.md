@@ -95,8 +95,19 @@ followed by "ChatCMS" in `muted-foreground`. Height 24–28 px in headers.
 - **Responsive**: shell is `flex flex-wrap`; content is
   `flex: 999 1 560px; min-width: 0`, so under ~800 px the sidebar stacks
   above content. On phones replace the sidebar with the phone shell below.
-- **Editor exception**: the page editor uses a 64 px icon rail instead of
-  the full sidebar to give room to form + preview.
+- **Folding by hand**: the sidebar has a fold icon in its heading and folds
+  to a 64 px icon rail with the same entries (tooltips, the project tile, an
+  unfold icon on top). The content column folds to a 48 px strip with one
+  unfold icon. Each state is remembered per person, and only the person
+  changes it: the editor shows the panels as they were left.
+
+### Motion
+- A side panel moves its width for 180 ms, ease-out, when the person folds or
+  unfolds it, and changes at once under `prefers-reduced-motion`. Nothing
+  moves on load, and no code waits for the motion.
+- All of it is the `panel-motion` block at the end of `web/src/index.css`.
+  To undo it, delete that block and this section; nothing else depends on
+  it.
 
 ### Phone shell (< 640 px)
 - Header: project switcher (project tile + name, same menu as the sidebar),
@@ -219,7 +230,9 @@ The content area is now specified by the content-menu hand-off in
 `docs/design/content-menu/` (`CONTENT-MENU.md`, direction B): the content
 column built from the model's menu, the collection view, the new-item dialog,
 the editor header with previous and next, quick find, and the phone screens.
-Where that file and this section disagree, that file wins.
+Where that file and this section disagree, that file wins, with one
+exception: the editor does not collapse the sidebar by itself, as §3
+"Folding by hand" says.
 
 ### 5.6 Form editor + live preview — `editor`, `editor-assistant`
 - Top bar: back, collection + page title, sync status, layout toggle

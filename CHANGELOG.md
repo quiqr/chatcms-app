@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Collections list items as Quiqr Desktop does: subfolders, page bundles,
   `hideIndex`, `sortkey`, and titles from front matter.
+- The navigation and the content menu fold by hand on every screen, to a rail
+  and a strip, and stay as left.
 - A new item under `content/` is a page bundle, `<slug>/index.md`; renaming,
   copying and removing a bundle move its whole folder.
 
@@ -42,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Something went wrong".
 - A model with a collection called `pages` no longer clashes with the Pages
   group.
+- Opening a page no longer folds the navigation by itself.
 
 ## [0.1.0] - 2026-11-16
 

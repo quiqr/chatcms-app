@@ -1,12 +1,10 @@
-import { ArrowLeft, FileText, History, Image, Upload } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { ArrowLeft } from "lucide-react";
+import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 
-import { recall, remember } from "../lib/remember";
-import { ContentColumn } from "../routes/content/ContentColumn";
-import { ContentDrawer } from "../routes/content/ContentScreen";
+import { ContentPanel } from "../routes/content/ContentPanel";
 import { QuickFind } from "../routes/content/QuickFind";
-import { useIsWide } from "./useIsWide";
+import { SitePanel } from "./SitePanel";
 
 import { Button } from "../components/ui/button";
 import { Segmented } from "../components/ui/segmented";
@@ -33,12 +31,6 @@ export type EditorShellProps = {
   preview: ReactNode;
 };
 
-const railEntries = [
-  { key: "media", label: "Media", icon: Image },
-  { key: "publish", label: "Publish", icon: Upload },
-  { key: "history", label: "History", icon: History },
-];
-
 export function EditorShell({
   project,
   viewer,
@@ -52,59 +44,11 @@ export function EditorShell({
   form,
   preview,
 }: EditorShellProps) {
-  const { organisation, who } = useHere();
-  const wide = useIsWide();
-  const foldKey = `chatcms.content.folded.${who.person.id}`;
-  const [folded, setFolded] = useState(() => recall(foldKey, false));
-  const [drawer, setDrawer] = useState(false);
-
-  function fold(next: boolean) {
-    setFolded(next);
-    remember(foldKey, next);
-  }
-
-  function showColumn() {
-    if (wide) fold(false);
-    else setDrawer(true);
-  }
-
+  const { organisation } = useHere();
   return (
     <div data-testid="editor-shell" className="flex min-h-dvh flex-wrap">
-      <nav
-        aria-label={say("editor-shell.project-sections")}
-        data-testid="editor-rail"
-        className="hidden w-16 shrink-0 flex-col items-center gap-2 border-r border-border bg-card py-3 sm:flex"
-      >
-        <button
-          type="button"
-          aria-label={say("content-menu.show")}
-          aria-pressed={wide && !folded}
-          onClick={showColumn}
-          className="flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
-        >
-          <FileText aria-hidden="true" className="size-5" />
-        </button>
-        {railEntries.map((entry) => (
-          <NavLink
-            key={entry.key}
-            to={`/o/${organisation}/p/${project.slug}/${entry.key}`}
-            aria-label={entry.label}
-            className="flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
-          >
-            <entry.icon aria-hidden="true" className="size-5" />
-          </NavLink>
-        ))}
-      </nav>
-
-      {wide && !folded && (
-        <aside
-          data-testid="editor-content-column"
-          className="w-64 shrink-0 overflow-y-auto border-r border-border bg-card p-4"
-        >
-          <ContentColumn project={project.slug} onHide={() => fold(true)} />
-        </aside>
-      )}
-      {drawer && <ContentDrawer project={project.slug} onClose={() => setDrawer(false)} />}
+      <SitePanel project={project} role={project.yourRole} />
+      <ContentPanel project={project.slug} />
       <QuickFind project={project.slug} />
 
       <div className="flex min-w-0 shrink grow-[999] basis-[560px] flex-col">

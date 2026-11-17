@@ -63,11 +63,31 @@ test("the content menu, a collection and the editor work together", async ({ sig
 
   if (!phone) {
     await test.step("4. the content column folds and stays folded after a reload", async () => {
+      const panel = page.locator("[data-panel='content']");
       await page.getByRole("button", { name: "Hide the content menu" }).click();
+      await expect(panel).toHaveAttribute("data-folded", "true");
       await page.reload();
-      await expect(page.getByTestId("editor-content-column")).toHaveCount(0);
+      await expect(panel).toHaveAttribute("data-folded", "true");
+      await expect(page.getByRole("navigation", { name: "Content" })).toHaveCount(0);
       await page.getByRole("button", { name: "Show the content menu" }).click();
-      await expect(page.getByTestId("editor-content-column")).toBeVisible();
+      await expect(page.getByRole("navigation", { name: "Content" })).toBeVisible();
+    });
+
+    await test.step("4b. the navigation folds by hand and stays folded when an item opens", async () => {
+      const site = page.locator("[data-panel='site']");
+      await page.goto(`${content}/c/posts`);
+      await expect(site).toHaveAttribute("data-folded", "false");
+      await page.getByRole("button", { name: "Hide the navigation" }).click();
+      await expect(site).toHaveAttribute("data-folded", "true");
+      await page.getByRole("link", { name: "Autumn walk", exact: true }).click();
+      await page.waitForURL(/\/content\/posts\/autumn$/);
+      await expect(site).toHaveAttribute("data-folded", "true");
+      await page.reload();
+      await expect(site).toHaveAttribute("data-folded", "true");
+      await page.getByRole("button", { name: "Show the navigation" }).click();
+      await expect(site).toHaveAttribute("data-folded", "false");
+      await page.goto(`${content}/c/posts`);
+      await expect(site).toHaveAttribute("data-folded", "false");
     });
   }
 

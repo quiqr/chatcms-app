@@ -1,15 +1,11 @@
-import { ChevronsUpDown, MessageSquare } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink } from "react-router";
 
-import { Tile } from "../components/ui/avatar";
-import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
-import { cn } from "../lib/cn";
 import { useHere } from "../lib/whoami";
-import { setupNavigation, siteNavigation, type NavEntry } from "./navigation";
-import { ProjectSwitcher } from "./ProjectSwitcher";
-import { canSeeSetup, named } from "./roles";
+import { named } from "./roles";
+import { SitePanel } from "./SitePanel";
 import { SyncIndicator, type SyncState } from "./SyncIndicator";
 import { TopBar } from "./TopBar";
 import type { Project } from "../lib/tenancy";
@@ -22,42 +18,9 @@ export type ProjectShellProps = {
   title: ReactNode;
   actions?: ReactNode;
   syncState?: SyncState;
+  beside?: ReactNode;
   children: ReactNode;
 };
-
-function NavGroup({
-  label,
-  entries,
-  unpublished,
-}: {
-  label: string;
-  entries: NavEntry[];
-  unpublished?: number;
-}) {
-  return (
-    <div role="group" aria-label={label} className="flex flex-col gap-0.5">
-      {entries.map((entry) => (
-        <NavLink
-          key={entry.key}
-          to={entry.to}
-          className={({ isActive }) =>
-            cn(
-              "flex h-11 items-center gap-2.5 rounded-lg px-3 text-[15px] text-muted-foreground",
-              isActive && "bg-muted font-medium text-foreground",
-            )
-          }
-        >
-          <entry.icon aria-hidden="true" className="size-[18px]" />
-          <span className="flex-1">{entry.label}</span>
-          {entry.key === "publish" && unpublished !== undefined && unpublished > 0 && (
-            <Badge tone="changed">{unpublished}</Badge>
-          )}
-          {entry.soon && <Badge tone="neutral">{say("project-shell.soon")}</Badge>}
-        </NavLink>
-      ))}
-    </div>
-  );
-}
 
 export function ProjectShell({
   project,
@@ -65,39 +28,14 @@ export function ProjectShell({
   title,
   actions,
   syncState = "saved",
+  beside,
   children,
 }: ProjectShellProps) {
   const { organisation } = useHere();
   return (
     <div data-testid="project-shell" className="hidden min-h-dvh flex-wrap sm:flex">
-      <aside
-        aria-label={say("project-shell.project-navigation")}
-        className="flex shrink basis-60 grow flex-col gap-4 border-r border-border bg-card p-3"
-      >
-        <span className="flex items-center gap-2 px-2 pt-1">
-          <img src="/quiqr-logo.svg" alt={say("common.quiqr")} className="h-6 w-auto" />
-          <span className="text-[15px] text-muted-foreground">{say("common.chatcms")}</span>
-        </span>
-
-        <ProjectSwitcher project={project}>
-          <button
-            type="button"
-            className="flex min-h-14 items-center gap-2.5 rounded-xl border border-border bg-card px-2.5 py-2 text-left hover:bg-muted"
-          >
-            <Tile name={project.name} />
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-[15px] font-semibold">{project.name}</span>
-              <span className="truncate text-xs text-subtle-foreground">{project.domain}</span>
-            </span>
-            <ChevronsUpDown aria-hidden="true" className="size-4 shrink-0 text-subtle-foreground" />
-          </button>
-        </ProjectSwitcher>
-
-        <NavGroup label={say("project-shell.site")} entries={siteNavigation(organisation, project.slug)} unpublished={project.unpublished} />
-        {canSeeSetup(viewer.role) && (
-          <NavGroup label={say("project-shell.setup")} entries={setupNavigation(organisation, project.slug)} />
-        )}
-      </aside>
+      <SitePanel project={project} role={viewer.role} />
+      {beside}
 
       <div className="flex min-w-0 shrink grow-[999] basis-[560px] flex-col">
         <TopBar viewer={{ name: viewer.name, role: named(viewer.role) }} className="px-8">
