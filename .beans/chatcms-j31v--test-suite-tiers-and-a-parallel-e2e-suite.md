@@ -19,7 +19,7 @@ Shipped with `test-tiers` (commit ae40868):
 
 - The acceptance suite runs its tests side by side, half the cores by
   default or `E2E_WORKERS`; the harness takes free ports from the system.
-  165 tests at both widths went from about 12 minutes to about 3.
+  The suite at both widths went from about 12 minutes to about 3.
 - `scripts/gate.sh fast|ship|release` runs a tier of the checks, with its own
   test in the `dev-scripts` check.
 - `scripts/ship-change.sh` runs the ship tier, which leaves out only the NixOS
