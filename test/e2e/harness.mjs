@@ -12,6 +12,17 @@ import { randomBytes } from "node:crypto";
 const sh = (command, args, options = {}) =>
   execFileSync(command, args, { encoding: "utf8", ...options });
 
+function freePort() {
+  return new Promise((given, failed) => {
+    const probe = createServer();
+    probe.once("error", failed);
+    probe.listen(0, "127.0.0.1", () => {
+      const { port } = probe.address();
+      probe.close(() => given(port));
+    });
+  });
+}
+
 export class Harness {
   constructor() {
     this.root = mkdtempSync(join(tmpdir(), "chatcms-e2e-"));
@@ -63,13 +74,13 @@ export class Harness {
       env: { ...process.env, CHATCMS_STATE_DIR: this.state },
     });
 
-    this.port = 18080 + Math.floor(Math.random() * 2000);
+    this.port = await freePort();
 
     // A Mailpit of this run's own, so that what was sent can be read back
     // rather than fished out of a log, and so that two runs never read each
     // other's mail.
-    this.smtpPort = this.port + 3000;
-    this.inboxPort = this.port + 6000;
+    this.smtpPort = await freePort();
+    this.inboxPort = await freePort();
     await this.startTheInbox();
     await this.startTheTemplates();
 

@@ -57,7 +57,9 @@ credentials and job state. Content stays in git.
 
 ```bash
 nix develop                        # dev shell with Go, Node, Postgres, sqlc, goose, Hugo
-nix flake check                    # the gate: build, vet, tests, coverage, frontend, sqlc
+scripts/gate.sh fast               # build, unit tests, frontend, sqlc: while working
+scripts/gate.sh ship               # fast plus integration, coverage and e2e: what shipping runs
+nix flake check                    # every check, the NixOS VM test included: what a release runs
 nix build .#chatcmsd               # build the server with the frontend embedded
 nix build .#web                    # build the frontend on its own
 
@@ -126,8 +128,8 @@ conflicts with that workflow on process, the workflow wins.
 1. Pick the next epic from beans (`beans list --json --ready`).
 2. Write one OpenSpec change proposal per epic, linking back to the bean.
 3. Implement every task in `tasks.md`, with tests, checking each one off.
-4. Ship with `scripts/ship-change.sh`, which gates on `nix flake check` before
-   it archives, commits or pushes anything.
+4. Ship with `scripts/ship-change.sh`, which gates on `scripts/gate.sh ship`
+   before it archives, commits or pushes anything.
 5. Close the bean with a `## Summary of Changes` section.
 
 Work autonomously. Stop for a question only when a decision is truly blocking
@@ -136,7 +138,13 @@ Log assumptions in the OpenSpec proposal instead of asking.
 
 ### The gate
 
-`nix flake check` must stay green. It runs these checks:
+The checks come in three tiers, run by `scripts/gate.sh <tier>`:
+
+| Tier      | Checks                                               | Guards           |
+| --------- | ---------------------------------------------------- | ---------------- |
+| `fast`    | go-build, go-test, frontend, sqlc, changelog, release, dev-scripts | nothing; for while working |
+| `ship`    | `fast` plus integration (coverage gate) and e2e       | every change     |
+| `release` | `nix flake check`: every check, `nixos-vm` included   | every release    |
 
 | Check         | What it runs                                                     |
 | ------------- | ---------------------------------------------------------------- |
@@ -145,10 +153,15 @@ Log assumptions in the OpenSpec proposal instead of asking.
 | `integration` | The same plus the integration-tagged tests against a real PostgreSQL, then the coverage gate |
 | `frontend`    | The frontend type check, Vitest and the production build          |
 | `sqlc`        | `sqlc diff`, so committed generated code cannot drift from its SQL |
+| `e2e`         | The Playwright acceptance suite at both widths, tests side by side (`E2E_WORKERS`, default half the cores) |
+| `nixos-vm`    | The NixOS module deploying in a VM; release tier only            |
+
+A change that touches `nix/` or the NixOS module runs `scripts/gate.sh release`
+by hand before shipping, because the ship tier does not boot the VM.
 
 Before the gate runs, `scripts/ship-change.sh` also runs
 `scripts/check-specs.sh <change>`, which fails when a change's proposal
-declares a capability it has no spec file for. `nix flake check` cannot see a
+declares a capability it has no spec file for. The gate cannot see a
 spec that was never written, and `openspec validate` is satisfied by one delta,
 so without this a change can ship with a capability it only promised.
 
@@ -160,8 +173,8 @@ is reported and skipped, so the gate tightens as those packages appear. Never
 bypass the gate; fix the code.
 
 Each epic that adds a buildable artifact must also add its check to
-`flake.nix`, so the e2e suite and the NixOS module test end up behind the same
-single command.
+`flake.nix`, and to the right tier in `scripts/gate.sh`, so that
+`nix flake check` stays the single command that runs everything.
 
 ### Version control
 

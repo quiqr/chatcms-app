@@ -2,7 +2,7 @@
 # ship-change.sh <change-name> [commit-subject]
 #
 # Gated tail for shipping ONE implemented OpenSpec change:
-#   stage -> gate (nix flake check) -> archive -> commit -> push.
+#   stage -> gate (scripts/gate.sh ship) -> archive -> commit -> push.
 # If the gate fails this aborts before archiving or committing.
 set -euo pipefail
 
@@ -28,8 +28,8 @@ bash "$ROOT/scripts/check-specs.sh" "${CHANGE}"
 echo "==> [2/6] stage working tree (so nix flake sees new files)"
 git add -A
 
-echo "==> [3/6] gate: nix flake check"
-nix flake check
+echo "==> [3/6] gate: the ship tier"
+bash "$ROOT/scripts/gate.sh" ship
 
 echo "==> [4/6] archive OpenSpec change: ${CHANGE}"
 openspec archive "${CHANGE}" --yes

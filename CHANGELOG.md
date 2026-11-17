@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `hideIndex`, `sortkey`, and titles from front matter.
 - The navigation and the content menu fold by hand on every screen, to a rail
   and a strip, and stay as left.
+- Shipping a change runs the ship tier, with the acceptance tests side by
+  side; a release still runs every check.
 - A new item under `content/` is a page bundle, `<slug>/index.md`; renaming,
   copying and removing a bundle move its whole folder.
 

@@ -1,8 +1,8 @@
 # Testing strategy
 
 The PoC has to prove it works, not look like it works. Every epic lands with
-tests, and `nix flake check` is the one command that decides whether a change
-ships.
+tests. `scripts/gate.sh ship` decides whether a change ships, and
+`nix flake check` decides whether a release goes out.
 
 ## Layers
 
@@ -126,16 +126,28 @@ Two further checks that are not screen flows:
 
 ## What the gate runs
 
-`nix flake check` is the contract. As epics land, each adds its check:
+`nix flake check` runs every check. `scripts/gate.sh <tier>` runs a tier of
+them, so that a change waits only for what it can break:
 
-| Check          | Added by                        |
-| -------------- | ------------------------------- |
-| `go-build`     | Present                         |
-| `go-test`      | Present, includes the coverage gate |
-| `frontend`     | The foundation epic             |
-| `golden`       | The form round-trip epic        |
-| `e2e`          | The acceptance suite epic       |
-| `nixos-vm`     | The deployment epic             |
+| Check          | Tier      | What it holds                                   |
+| -------------- | --------- | ----------------------------------------------- |
+| `go-build`     | `fast`    | The server with the frontend embedded           |
+| `go-test`      | `fast`    | `go vet` and the unit and golden tests          |
+| `frontend`     | `fast`    | Type check, Vitest and the production build     |
+| `sqlc`         | `fast`    | Generated query code matches its SQL            |
+| `changelog`    | `fast`    | The changelog's shape                           |
+| `release`      | `fast`    | The release script and its test                 |
+| `dev-scripts`  | `fast`    | The dev and gate scripts and their tests        |
+| `integration`  | `ship`    | Tests against PostgreSQL, then the coverage gate |
+| `e2e`          | `ship`    | The acceptance suite, tests side by side        |
+| `nixos-vm`     | `release` | The NixOS module deploying in a VM              |
+
+Each tier includes the one above it. `scripts/ship-change.sh` runs `ship`;
+`scripts/release.sh` runs `nix flake check`, which is `release`. The e2e
+suite runs half as many tests at once as the machine has cores, which
+`E2E_WORKERS` overrides; every test owns its own database, remote and server,
+so the order cannot matter, and a test that fails only beside others is a bug
+to fix rather than to retry.
 
 A check that cannot run in the Nix sandbox, because it needs a browser or a
 network, runs in a NixOS VM test instead. Nothing is excused from the gate for

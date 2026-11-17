@@ -1,3 +1,5 @@
+import { availableParallelism } from "node:os";
+
 import { defineConfig, devices } from "@playwright/test";
 
 // Every acceptance test runs twice: once as somebody at a desk and once as
@@ -5,8 +7,8 @@ import { defineConfig, devices } from "@playwright/test";
 // acceptance tests and a separate pass would let the two drift.
 export default defineConfig({
   testDir: ".",
-  fullyParallel: false,
-  workers: 1,
+  fullyParallel: true,
+  workers: Number(process.env.E2E_WORKERS) || Math.max(1, Math.floor(availableParallelism() / 2)),
   forbidOnly: true,
   retries: 0,
   reporter: process.env.CI ? [["list"]] : [["list"]],

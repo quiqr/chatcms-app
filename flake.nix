@@ -194,12 +194,15 @@
               ./scripts/dev-be.sh
               ./scripts/dev-fe.sh
               ./scripts/dev-scripts.test.sh
+              ./scripts/gate.sh
+              ./scripts/gate.test.sh
             ];
           };
         } ''
         cd $src
-        shellcheck -x scripts/dev-instance.sh scripts/dev-be.sh scripts/dev-fe.sh scripts/dev-scripts.test.sh
+        shellcheck -x scripts/dev-instance.sh scripts/dev-be.sh scripts/dev-fe.sh scripts/dev-scripts.test.sh scripts/gate.sh scripts/gate.test.sh
         bash scripts/dev-scripts.test.sh
+        bash scripts/gate.test.sh
         touch $out
       '';
 
@@ -281,7 +284,9 @@
         shellHook = ''
           echo "Quiqr ChatCMS dev shell (${system})"
           echo "  scripts/dev-db.sh up     start a local Postgres in ./.pgdata"
-          echo "  nix flake check          build + tests + coverage gate"
+          echo "  scripts/gate.sh fast     build, unit tests, frontend: while working"
+          echo "  scripts/gate.sh ship     fast plus integration and e2e: what shipping runs"
+          echo "  scripts/gate.sh release  nix flake check, every check: what a release runs"
           echo "  bash scripts/ship-change.sh <change>  ship one OpenSpec change"
         '';
       };
