@@ -199,7 +199,7 @@ func (s *Sites) Share(ctx context.Context, site, person string) (SyncResult, err
 	for attempt := 0; attempt < shareAttempts; attempt++ {
 		result, err := r.Sync(ctx)
 		if err != nil {
-			return SyncResult{}, err
+			return result, err
 		}
 		if result.Conflict != nil {
 			return result, nil

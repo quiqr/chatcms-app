@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A person without a display name can save; their address is used as the
   author.
+- A question about what two people changed can be answered later, and
+  checking for updates while asked shows it again.
 
 ## [0.2.0] - 2026-11-17
 

@@ -427,3 +427,21 @@ func TestNewServiceRefusesWithNoSources(t *testing.T) {
 		t.Errorf("NewService() error = %v, want ErrIncomplete", err)
 	}
 }
+
+func TestAnOpenQuestionIsPutAgainWhenAskedHowTheSiteStands(t *testing.T) {
+	project := uuid.New()
+	working := &site{
+		model:      aModel(),
+		status:     gitsync.Status{ExchangeInProgress: true},
+		syncResult: gitsync.SyncResult{Conflict: aConflict()},
+	}
+
+	standing, err := service(t, &sources{site: working}).
+		Standing(context.Background(), anEditor(project), project)
+	if err != nil {
+		t.Fatalf("Standing() error = %v", err)
+	}
+	if standing.State != sitesync.Asking || len(standing.Conflicts) != 1 {
+		t.Errorf("Standing() = %+v, want the open question", standing)
+	}
+}

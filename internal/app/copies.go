@@ -109,6 +109,11 @@ func (c standingCopy) sharedAsking(ctx context.Context) bool {
 }
 
 func (c standingCopy) Sync(ctx context.Context) (gitsync.SyncResult, error) {
+	if !c.sharedAsking(ctx) {
+		if mine, err := c.Repo.Status(ctx); err == nil && mine.ExchangeInProgress {
+			return c.Repo.Sync(ctx)
+		}
+	}
 	result, err := c.shared.Sync(ctx)
 	if errors.Is(err, gitsync.ErrRemoteUnreachable) {
 		shared, shareErr := c.sites.Share(ctx, c.site, c.personID)

@@ -5,10 +5,10 @@ status: todo
 type: epic
 priority: normal
 created_at: 2026-11-18T12:51:48Z
-updated_at: 2026-11-18T12:51:48Z
+updated_at: 2026-11-18T14:54:33Z
 parent: chatcms-z0p7
 blocked_by:
-    - chatcms-9iuz
+    - chatcms-a9sj
 ---
 
 ## Purpose

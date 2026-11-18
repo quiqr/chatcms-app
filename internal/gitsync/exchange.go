@@ -15,7 +15,14 @@ func (r *repo) Sync(ctx context.Context) (SyncResult, error) {
 	defer lock.Unlock()
 
 	if r.exchangeInProgress() {
-		return SyncResult{}, ErrExchangeInProgress
+		conflict, err := r.collectConflict(ctx)
+		if err != nil {
+			return SyncResult{}, err
+		}
+		if conflict == nil {
+			return SyncResult{}, ErrExchangeInProgress
+		}
+		return SyncResult{Conflict: conflict}, nil
 	}
 
 	if _, err := r.git.run(ctx, "fetch", "--prune", "origin"); err != nil {

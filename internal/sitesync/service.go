@@ -104,6 +104,13 @@ func (s *Service) Standing(ctx context.Context, actor policy.Actor, projectID uu
 		return Standing{}, err
 	}
 
+	if status.ExchangeInProgress {
+		result, err := site.Sync(ctx)
+		if err == nil && result.Conflict != nil {
+			return s.after(ctx, actor, projectID, site, result)
+		}
+	}
+
 	standing := Standing{State: Saved, Unpublished: status.Unpublished}
 	if status.UnsavedWork {
 		standing.State = Saving

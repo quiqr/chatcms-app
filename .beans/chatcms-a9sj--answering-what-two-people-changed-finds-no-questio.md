@@ -1,11 +1,12 @@
 ---
 # chatcms-a9sj
 title: Answering what two people changed finds no question once the exchange has stopped
-status: todo
+status: in-progress
 type: bug
 priority: high
 created_at: 2026-11-18T14:50:02Z
-updated_at: 2026-11-18T14:50:02Z
+updated_at: 2026-11-18T14:54:33Z
+parent: chatcms-z0p7
 ---
 
 ## What happens

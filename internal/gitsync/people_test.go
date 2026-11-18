@@ -243,8 +243,9 @@ func TestShareStopsOnTheSameField(t *testing.T) {
 		t.Errorf("Unshared() = %d, %v, want bert's waiting change counted", unshared, err)
 	}
 
-	if _, err := sites.Share(t.Context(), "korenaar", "bert"); !errors.Is(err, ErrExchangeInProgress) {
-		t.Errorf("Share() during a question error = %v, want ErrExchangeInProgress", err)
+	again, err := sites.Share(t.Context(), "korenaar", "bert")
+	if err != nil || again.Conflict == nil || again.Conflict.Paths[0].Path != "content/_index.md" {
+		t.Errorf("Share() during a question = %+v, %v, want the same question again", again, err)
 	}
 }
 

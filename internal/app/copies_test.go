@@ -186,3 +186,35 @@ func TestShareSubjectRoundTrips(t *testing.T) {
 		}
 	}
 }
+
+func TestAnsweringInALaterRequestFinishesTheExchange(t *testing.T) {
+	sites, project := copiesSites(t)
+	saveAs(t, sites, project, "anna", "content/_index.md", "---\ntitle: Anna\n---\n")
+	saveAs(t, sites, project, "bert", "content/_index.md", "---\ntitle: Bert\n---\n")
+	shares := publishSources{sites: sites}
+	_ = shares.Share(t.Context(), "anna", project)
+	_ = shares.Share(t.Context(), "bert", project)
+
+	later := standingFor(t, sites, project, "bert")
+	asked, err := later.Sync(t.Context())
+	if err != nil || asked.Conflict == nil || asked.Conflict.Paths[0].Path != "content/_index.md" {
+		t.Fatalf("Sync() in a later request = %+v, %v, want the open question", asked, err)
+	}
+
+	finished, err := later.Resolve(t.Context(), map[string][]byte{"content/_index.md": asked.Conflict.Paths[0].Local})
+	if err != nil || finished.Conflict != nil {
+		t.Fatalf("Resolve() = %+v, %v, want it finished", finished, err)
+	}
+
+	shared, err := sites.Open(t.Context(), project.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer shared.Close()
+	if data, _ := fs.ReadFile(shared.FS(), "content/_index.md"); string(data) != "---\ntitle: Bert\n---\n" {
+		t.Errorf("shared version holds %q, want bert's kept answer", data)
+	}
+	if status, _ := standingFor(t, sites, project, "bert").Status(t.Context()); status.ExchangeInProgress {
+		t.Errorf("a question is still open after answering")
+	}
+}

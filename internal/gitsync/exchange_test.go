@@ -479,14 +479,19 @@ func TestOpenReportsAnExchangeInProgress(t *testing.T) {
 	}
 }
 
-func TestSyncRefusesWhileAnExchangeIsInProgress(t *testing.T) {
+func TestSyncAsksAgainWhileAnExchangeIsInProgress(t *testing.T) {
 	repository, _, _ := conflicting(t)
 
-	if result, err := repository.Sync(t.Context()); err != nil || result.Conflict == nil {
-		t.Fatalf("Sync() = %+v, %v, want a conflict", result, err)
+	first, err := repository.Sync(t.Context())
+	if err != nil || first.Conflict == nil {
+		t.Fatalf("Sync() = %+v, %v, want a conflict", first, err)
 	}
-	if _, err := repository.Sync(t.Context()); !errors.Is(err, ErrExchangeInProgress) {
-		t.Errorf("Sync() error = %v, want ErrExchangeInProgress", err)
+	again, err := repository.Sync(t.Context())
+	if err != nil || again.Conflict == nil || len(again.Conflict.Paths) != len(first.Conflict.Paths) {
+		t.Fatalf("Sync() again = %+v, %v, want the same question", again, err)
+	}
+	if again.Conflict.Paths[0].Path != first.Conflict.Paths[0].Path || len(again.Arrived) != 0 {
+		t.Errorf("Sync() again = %+v, want the same path and nothing fetched", again)
 	}
 	if _, err := repository.Publish(t.Context()); !errors.Is(err, ErrExchangeInProgress) {
 		t.Errorf("Publish() error = %v, want ErrExchangeInProgress", err)
