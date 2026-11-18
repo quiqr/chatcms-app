@@ -48,8 +48,9 @@ Seeing a preview SHALL need the right to read the project and nothing more.
 
 ### Requirement: A preview shows the site as a reader will see it
 
-A preview SHALL serve the site built by the same pinned Hugo that builds it
-for publishing.
+A preview SHALL serve the site built by the same Hugo that builds it for
+publishing: the project's own version when it records one, the
+installation's otherwise.
 
 #### Scenario: the site renders
 
@@ -61,6 +62,11 @@ for publishing.
 - **WHEN** a preview of a site Hugo cannot build is asked for
 - **THEN** it SHALL be refused with a reason worth showing
 - **AND** no preview SHALL be left running
+
+#### Scenario: a project with its own Hugo
+
+- **WHEN** a project records a Hugo version and its preview is asked for
+- **THEN** the preview SHALL be built by that version
 
 ### Requirement: A preview shows the asking person's own copy
 

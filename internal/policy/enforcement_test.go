@@ -26,6 +26,8 @@ var allowedToNameARole = []string{
 	"internal/app/",
 	// Carries the role only as a value it has been told.
 	"internal/httpapi/",
+	// Reads the owner of a GitHub repository from the package index, not a role.
+	"internal/nixpin/",
 }
 
 // TestOnlyPolicyNamesARole enforces the rule in docs/ARCHITECTURE.md: one

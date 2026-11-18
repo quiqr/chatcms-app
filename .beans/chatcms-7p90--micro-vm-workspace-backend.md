@@ -1,11 +1,11 @@
 ---
 # chatcms-7p90
 title: Micro VM workspace backend
-status: todo
+status: in-progress
 type: epic
 priority: normal
 created_at: 2026-11-18T12:51:48Z
-updated_at: 2026-11-18T14:54:33Z
+updated_at: 2026-11-18T15:27:34Z
 parent: chatcms-z0p7
 blocked_by:
     - chatcms-a9sj

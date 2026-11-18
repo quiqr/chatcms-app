@@ -757,6 +757,8 @@ export const en = {
   "refused.no-room-for-a-site": "That makes {would} sites, and the limit is {allowed}. Archive or remove one, or ask the platform admin to raise the limit.",
   "refused.no-room-for-the-people": "That makes {would} members, and the limit is {allowed}. The people on the site come with it.",
   "refused.nothing-brought-in-yet": "Nothing has been brought into this site yet. Somebody who sets up the project can finish that in its setup.",
+  "refused.hugo-version-not-found": "Hugo {version} could not be found. Choose another version in the project settings.",
+  "refused.hugo-version-unavailable": "Hugo {version} could not be made ready. Try again in a few minutes.",
   "refused.answer-the-question-first": "A page was edited by two people. Answer the question about it first, then publish.",
   "refused.no-such-field": "This page has no field called “{field}”.",
   "refused.no-such-person": "Nobody with that email address has an account yet.",

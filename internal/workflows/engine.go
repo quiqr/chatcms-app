@@ -175,7 +175,7 @@ func checkTrouble(result *runner.Result) *Trouble {
 }
 
 func (e *Engine) build(ctx context.Context, run Run) (*runner.Result, string, *Trouble, error) {
-	result, err := e.builder.Build(ctx, run.Site, sitebuild.Options{BaseURL: run.BaseURL})
+	result, err := e.builder.Build(ctx, run.Site, sitebuild.Options{BaseURL: run.BaseURL, Project: run.ProjectID})
 	if err != nil {
 		return nil, "", &Trouble{
 			Because: "The site could not be built.",

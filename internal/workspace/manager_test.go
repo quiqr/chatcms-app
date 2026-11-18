@@ -438,3 +438,44 @@ func TestATouchIsRecordedAtMostOnceAMinute(t *testing.T) {
 	}
 	t.Errorf("use not recorded after a minute")
 }
+
+func TestTheProjectsHugoReachesTheBackend(t *testing.T) {
+	h := newHarness(t, 8)
+	made, err := workspace.New(h.backend, h.store, h.copies, h.isAllowed, workspace.Settings{
+		HugoFor: func(ctx context.Context, key workspace.Key) (string, error) {
+			return "/nix/store/x-hugo-0.139.0/bin/hugo", nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { made.Close(context.Background()) })
+
+	endpoint(t, made, aKey())
+	if got := h.backend.Started[0].Hugo; got != "/nix/store/x-hugo-0.139.0/bin/hugo" {
+		t.Errorf("backend was given Hugo %q", got)
+	}
+}
+
+func TestAHugoThatCannotBeHadStopsTheStart(t *testing.T) {
+	h := newHarness(t, 8)
+	unknown := errors.New("no such Hugo")
+	made, err := workspace.New(h.backend, h.store, h.copies, h.isAllowed, workspace.Settings{
+		HugoFor: func(ctx context.Context, key workspace.Key) (string, error) { return "", unknown },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { made.Close(context.Background()) })
+
+	key := aKey()
+	if _, err := made.Endpoint(t.Context(), key, "u"); !errors.Is(err, unknown) {
+		t.Errorf("Endpoint() error = %v, want the Hugo's error", err)
+	}
+	if h.backend.StartCount() != 0 {
+		t.Errorf("a workspace started without its Hugo")
+	}
+	if report, _ := made.Report(key); !errors.Is(report.Err, unknown) || report.State != workspace.Sleeping {
+		t.Errorf("Report() = %+v, want sleeping with the Hugo's error", report)
+	}
+}

@@ -526,3 +526,44 @@ func TestAnInvalidWorkspaceSettingNamesTheVariableUsed(t *testing.T) {
 		}
 	}
 }
+
+func TestTheWorkspaceBackendIsLocalUnlessChosen(t *testing.T) {
+	cfg, err := workspaceConfig(t, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.WorkspaceBackend != "local" || cfg.WorkspaceTaps != cfg.WorkspacesAtOnce || cfg.NixBin != "" || cfg.WorkspaceRunDir != "/run/chatcms/w" {
+		t.Errorf("got %+v", cfg)
+	}
+}
+
+func TestTheMicroVMBackendNeedsItsGuest(t *testing.T) {
+	_, err := workspaceConfig(t, map[string]string{"CHATCMS_WORKSPACE_BACKEND": "microvm"})
+	var configErr *ConfigError
+	if !errors.As(err, &configErr) || configErr.Variable != "CHATCMS_WORKSPACE_GUEST" {
+		t.Errorf("error = %v, want the guest named", err)
+	}
+
+	cfg, err := workspaceConfig(t, map[string]string{
+		"CHATCMS_WORKSPACE_BACKEND": "microvm",
+		"CHATCMS_WORKSPACE_GUEST":   "/nix/store/x-guest.json",
+		"CHATCMS_WORKSPACE_TAPS":    "4",
+		"CHATCMS_NIX_BIN":           "/run/current-system/sw/bin/nix",
+	})
+	if err != nil || cfg.WorkspaceTaps != 4 || cfg.WorkspaceGuest != "/nix/store/x-guest.json" || cfg.NixBin == "" {
+		t.Errorf("got %+v, %v", cfg, err)
+	}
+}
+
+func TestAnUnusableWorkspaceSettingIsNamed(t *testing.T) {
+	for variable, value := range map[string]string{
+		"CHATCMS_WORKSPACE_BACKEND": "firecracker",
+		"CHATCMS_WORKSPACE_TAPS":    "0",
+	} {
+		_, err := workspaceConfig(t, map[string]string{variable: value})
+		var configErr *ConfigError
+		if !errors.As(err, &configErr) || configErr.Variable != variable {
+			t.Errorf("%s=%s error = %v, want it named", variable, value, err)
+		}
+	}
+}

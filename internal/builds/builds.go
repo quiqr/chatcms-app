@@ -107,6 +107,7 @@ func (s *Service) Run(ctx context.Context, projectID uuid.UUID, reason string, o
 		return s.failed(ctx, record, "The site could not be read: "+err.Error())
 	}
 
+	options.Project = projectID
 	result, err := s.builder.Build(ctx, site, options)
 	if err != nil {
 		return s.failed(ctx, record, "The build could not be started: "+err.Error())

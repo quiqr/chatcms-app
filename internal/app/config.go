@@ -47,6 +47,14 @@ type Config struct {
 	CheckMemory      int64
 	WorkspaceIdle    time.Duration
 	WorkspacesAtOnce int
+	WorkspaceBackend string
+	WorkspaceGuest   string
+	WorkspaceRunDir  string
+	WorkspaceTaps    int
+	CloudHypervisor  string
+	VirtiofsdBin     string
+	NixBin           string
+	NixhubURL        string
 	TemplateFeed     string
 	Deprecated       []string
 }
@@ -102,6 +110,13 @@ func LoadConfig(lookup Lookup) (Config, error) {
 		{"CHATCMS_MAIL_FROM", &cfg.MailFrom, "", false},
 		{"CHATCMS_MAIL_FROM_NAME", &cfg.MailFromName, "Quiqr ChatCMS", false},
 		{"CHATCMS_MAIL_STARTTLS", &cfg.MailStartTLS, "yes", false},
+		{"CHATCMS_WORKSPACE_BACKEND", &cfg.WorkspaceBackend, "local", false},
+		{"CHATCMS_WORKSPACE_GUEST", &cfg.WorkspaceGuest, "", false},
+		{"CHATCMS_WORKSPACE_RUN_DIR", &cfg.WorkspaceRunDir, "/run/chatcms/w", false},
+		{"CHATCMS_CLOUD_HYPERVISOR_BIN", &cfg.CloudHypervisor, "cloud-hypervisor", false},
+		{"CHATCMS_VIRTIOFSD_BIN", &cfg.VirtiofsdBin, "virtiofsd", false},
+		{"CHATCMS_NIX_BIN", &cfg.NixBin, "", false},
+		{"CHATCMS_NIXHUB_URL", &cfg.NixhubURL, "https://search.devbox.sh", false},
 	}
 
 	for _, field := range fields {
@@ -190,6 +205,28 @@ func LoadConfig(lookup Lookup) (Config, error) {
 	cfg.WorkspacesAtOnce, err = strconv.Atoi(atOnce)
 	if err != nil || cfg.WorkspacesAtOnce <= 0 {
 		return Config{}, &ConfigError{Variable: atOnceName, Reason: reasonInvalid}
+	}
+
+	taps, err := resolve(lookup, "CHATCMS_WORKSPACE_TAPS")
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.WorkspaceTaps = cfg.WorkspacesAtOnce
+	if taps != "" {
+		cfg.WorkspaceTaps, err = strconv.Atoi(taps)
+		if err != nil || cfg.WorkspaceTaps <= 0 || cfg.WorkspaceTaps > 250 {
+			return Config{}, &ConfigError{Variable: "CHATCMS_WORKSPACE_TAPS", Reason: reasonInvalid}
+		}
+	}
+
+	switch cfg.WorkspaceBackend {
+	case "local":
+	case "microvm":
+		if cfg.WorkspaceGuest == "" {
+			return Config{}, &ConfigError{Variable: "CHATCMS_WORKSPACE_GUEST", Reason: reasonMissing}
+		}
+	default:
+		return Config{}, &ConfigError{Variable: "CHATCMS_WORKSPACE_BACKEND", Reason: reasonInvalid}
 	}
 
 	tools, err := resolve(lookup, "CHATCMS_WORKFLOW_TOOLS")

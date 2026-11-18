@@ -31,6 +31,8 @@ projection: a cached, rebuildable view in Postgres of something git owns.
 | `internal/redact`      | Removing credential-shaped text before it is logged, stored or shown          |
 | `internal/preview`     | A person's preview, reached through the app, proxied to their workspace       |
 | `internal/workspace`   | A workspace per person per project: lifecycle, limits, and the backend seam   |
+| `internal/workspace/microvm` | A workspace in a Cloud Hypervisor micro VM of its own                  |
+| `internal/nixpin`      | A package at a given version, found through Nixhub and built with Nix         |
 | `internal/runner`      | Sandboxed build execution behind an interface                                 |
 | `internal/sitebuild`   | Running the pinned Hugo over a site, through a runner                         |
 | `internal/builds`      | What is remembered about every build, and the state it ended in               |
@@ -90,6 +92,27 @@ is a `Backend`: `internal/workspace/local` runs Hugo on this machine, and a
 micro VM or gVisor backend replaces it without a change outside the package.
 A backend says whether its workspaces run apart from the app; the local
 backend's do not, so they stop when the app stops.
+
+**`internal/workspace/microvm`** runs a workspace in a micro VM. One NixOS
+guest (`nix/workspace-guest.nix`, built with microvm.nix into
+`chatcms-workspace-guest.json`) boots on Cloud Hypervisor with two read-only
+virtio-fs shares: the host `/nix/store` and the person's copy of the site.
+The address, Hugo and preview address travel on the kernel command line; the
+guest's preview unit starts as soon as the file systems are mounted and runs
+Hugo with a polling watcher, because a write on the host sends no inotify
+event into the guest. Each VM gets a TAP device and a /30 from a pool the
+NixOS module makes (`chv<i>`, `10.231.<i>.1` on the host, `.2` in the guest),
+and an nftables table lets the VMs reach nothing but replies from the host.
+The VM sees no key and no git directory it could use. Its processes are
+children of the server, so they stop with it. A cold start takes about 6 s.
+
+**`internal/nixpin`** turns a package name and version into a store path: it
+asks Nixhub which nixpkgs revision has it, builds that with `nix build`
+behind a garbage collector root in the state directory, and remembers the
+answer in `nix_packages`, so the outside is asked once per version. A project
+that records a Hugo version is previewed and built with that Hugo; one that
+records none uses the installation's. Without `CHATCMS_NIX_BIN` every project
+uses the installation's Hugo.
 
 **`internal/runner.Runner`** executes a build in isolation. Milestone 1 ships a
 bubblewrap implementation. Firecracker micro virtual machines replace it

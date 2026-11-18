@@ -71,6 +71,7 @@ type Server struct {
 	standing   *sitesync.Web
 	preview    *preview.Web
 	workspaces *workspace.Workspaces
+	hugo       *hugos
 }
 
 func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, error) {
@@ -456,6 +457,7 @@ func (s *Server) startBuilds(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	builder.UseHugoOf(s.projectHugo().For)
 
 	s.builds, err = builds.NewService(records, builder, s.siteFor)
 	if err != nil {

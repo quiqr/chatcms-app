@@ -215,3 +215,18 @@ func TestBrowserPort(t *testing.T) {
 		}
 	}
 }
+
+func TestALocalWorkspaceRunsTheProjectsHugo(t *testing.T) {
+	made, err := New(Settings{HugoBin: "/nonexistent/hugo", Ready: 60 * time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle, _, err := made.Start(t.Context(), workspace.Spec{Dir: aSite(t, "Korenaar", false), Under: "http://127.0.0.1/", Hugo: hugoBin(t)}, io.Discard)
+	if err != nil {
+		t.Fatalf("Start() with the project's Hugo error = %v", err)
+	}
+	defer made.Stop(context.Background(), handle)
+	if _, _, hugo, _ := parseHandle(handle); hugo != hugoBin(t) {
+		t.Errorf("handle names %q, want the Hugo it runs", hugo)
+	}
+}

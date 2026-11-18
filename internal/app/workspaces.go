@@ -3,15 +3,18 @@ package app
 import (
 	"context"
 	"errors"
+	"path/filepath"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/quiqr/chatcms-app/internal/gitsync"
+	"github.com/quiqr/chatcms-app/internal/nixpin"
 	"github.com/quiqr/chatcms-app/internal/policy"
 	"github.com/quiqr/chatcms-app/internal/tenancy"
 	"github.com/quiqr/chatcms-app/internal/workspace"
 	"github.com/quiqr/chatcms-app/internal/workspace/local"
+	"github.com/quiqr/chatcms-app/internal/workspace/microvm"
 )
 
 type workspaceCopies struct {
@@ -61,18 +64,67 @@ func mayStillUse(sources publishSources, people *tenancy.Store) workspace.Allowe
 	}
 }
 
-func (s *Server) startWorkspaces(ctx context.Context, tenancyStore *tenancy.Store) (*workspace.Workspaces, error) {
-	backend, err := local.New(local.Settings{HugoBin: s.cfg.HugoBin})
+func (s *Server) workspaceBackend() (workspace.Backend, error) {
+	if s.cfg.WorkspaceBackend != "microvm" {
+		return local.New(local.Settings{HugoBin: s.cfg.HugoBin})
+	}
+	guest, err := microvm.LoadGuest(s.cfg.WorkspaceGuest)
 	if err != nil {
 		return nil, err
 	}
+	return microvm.New(microvm.Settings{
+		CloudHypervisor: s.cfg.CloudHypervisor,
+		Virtiofsd:       s.cfg.VirtiofsdBin,
+		Guest:           guest,
+		RunDir:          s.cfg.WorkspaceRunDir,
+		Taps:            s.cfg.WorkspaceTaps,
+		HugoBin:         s.cfg.HugoBin,
+	})
+}
+
+func (s *Server) projectHugo() hugos {
+	if s.hugo != nil {
+		return *s.hugo
+	}
+	found := hugos{installed: s.cfg.HugoBin, versionOf: projectHugoVersion(s.db.Queries)}
+	s.hugo = &found
+	if s.cfg.NixBin == "" {
+		return found
+	}
+	pins, err := nixpin.New(nixpin.NewPostgres(s.db.Queries), nixpin.Settings{
+		Nixhub: s.cfg.NixhubURL,
+		NixBin: s.cfg.NixBin,
+		Roots:  filepath.Join(s.cfg.StateDir, "gcroots"),
+	})
+	if err != nil {
+		s.logger.Warn("a project's own Hugo version cannot be used", "reason", err)
+		return found
+	}
+	found.pins = pins
+	s.hugo = &found
+	return found
+}
+
+func (s *Server) startWorkspaces(ctx context.Context, tenancyStore *tenancy.Store) (*workspace.Workspaces, error) {
+	backend, err := s.workspaceBackend()
+	if err != nil {
+		return nil, err
+	}
+	hugo := s.projectHugo()
 	sources := publishSources{sites: s.sites, queries: s.db.Queries, baseURL: s.cfg.BaseURL}
 	made, err := workspace.New(
 		backend,
 		workspace.NewPostgres(s.db),
 		workspaceCopies{sites: s.sites},
 		mayStillUse(sources, tenancyStore),
-		workspace.Settings{Most: s.cfg.WorkspacesAtOnce, Idle: s.cfg.WorkspaceIdle, Logger: s.logger},
+		workspace.Settings{
+			Most:   s.cfg.WorkspacesAtOnce,
+			Idle:   s.cfg.WorkspaceIdle,
+			Logger: s.logger,
+			HugoFor: func(ctx context.Context, key workspace.Key) (string, error) {
+				return hugo.For(ctx, key.Project)
+			},
+		},
 	)
 	if err != nil {
 		return nil, err

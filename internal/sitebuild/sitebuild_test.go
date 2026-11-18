@@ -13,6 +13,8 @@ import (
 	"testing/fstest"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/quiqr/chatcms-app/internal/runner"
 	"github.com/quiqr/chatcms-app/internal/sitebuild"
 )
@@ -297,4 +299,43 @@ type stubRunner struct {
 func (s *stubRunner) Run(ctx context.Context, task runner.Task) (*runner.Result, error) {
 	s.task = task
 	return &runner.Result{}, nil
+}
+
+func TestABuildRunsTheProjectsHugo(t *testing.T) {
+	stub := &stubRunner{}
+	builder, err := sitebuild.New(stub, "/usr/bin/hugo", sitebuild.Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	project := uuid.New()
+	builder.UseHugoOf(func(ctx context.Context, asked uuid.UUID) (string, error) {
+		if asked != project {
+			t.Errorf("asked about %v, want the project built", asked)
+		}
+		return "/nix/store/x-hugo-0.139.0/bin/hugo", nil
+	})
+
+	builder.Build(context.Background(), fstest.MapFS{"hugo.toml": {Data: []byte("")}}, sitebuild.Options{Project: project})
+	if stub.task.Command != "/nix/store/x-hugo-0.139.0/bin/hugo" || stub.task.Tools[0] != stub.task.Command {
+		t.Errorf("ran %q with tools %v, want the project's Hugo", stub.task.Command, stub.task.Tools)
+	}
+
+	builder.Build(context.Background(), fstest.MapFS{"hugo.toml": {Data: []byte("")}}, sitebuild.Options{})
+	if stub.task.Command != "/usr/bin/hugo" {
+		t.Errorf("a build for no project ran %q, want the installation's", stub.task.Command)
+	}
+}
+
+func TestABuildWhoseHugoCannotBeHadDoesNotRun(t *testing.T) {
+	stub := &stubRunner{}
+	builder, _ := sitebuild.New(stub, "/usr/bin/hugo", sitebuild.Limits{})
+	missing := errors.New("no such Hugo")
+	builder.UseHugoOf(func(context.Context, uuid.UUID) (string, error) { return "", missing })
+
+	if _, err := builder.Build(context.Background(), fstest.MapFS{}, sitebuild.Options{Project: uuid.New()}); !errors.Is(err, missing) {
+		t.Errorf("Build() error = %v, want the Hugo's error", err)
+	}
+	if stub.task.Command != "" {
+		t.Errorf("the build ran anyway")
+	}
 }

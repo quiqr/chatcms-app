@@ -140,6 +140,7 @@ them, so that a change waits only for what it can break:
 | `dev-scripts`  | `fast`    | The dev and gate scripts and their tests        |
 | `integration`  | `ship`    | Tests against PostgreSQL, then the coverage gate |
 | `e2e`          | `ship`    | The acceptance suite, tests side by side        |
+| `workspace-guest` | `ship` | The micro VM guest builds                    |
 | `nixos-vm`     | `release` | The NixOS module deploying in a VM              |
 
 Each tier includes the one above it. `scripts/ship-change.sh` runs `ship`;

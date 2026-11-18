@@ -53,6 +53,16 @@ type Job struct {
 	Subject   string             `json:"subject"`
 }
 
+type NixPackage struct {
+	Name       string             `json:"name"`
+	Version    string             `json:"version"`
+	System     string             `json:"system"`
+	Revision   string             `json:"revision"`
+	AttrPath   string             `json:"attr_path"`
+	StorePath  string             `json:"store_path"`
+	RealisedAt pgtype.Timestamptz `json:"realised_at"`
+}
+
 type Organisation struct {
 	ID          pgtype.UUID        `json:"id"`
 	Slug        string             `json:"slug"`

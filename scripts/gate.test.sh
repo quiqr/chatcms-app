@@ -46,8 +46,8 @@ expect_eq "fast asks for its checks" "$(checks_of)" "go-build go-test frontend s
 
 stub_nix 0
 run ship || fail "ship: exited non-zero"
-expect_eq "ship adds integration and e2e" "$(checks_of)" \
-    "go-build go-test frontend sqlc changelog release dev-scripts integration e2e"
+expect_eq "ship adds integration, e2e and the workspace guest" "$(checks_of)" \
+    "go-build go-test frontend sqlc changelog release dev-scripts integration e2e workspace-guest"
 
 stub_nix 0
 run release || fail "release: exited non-zero"

@@ -21,10 +21,11 @@ const (
 )
 
 type Settings struct {
-	Most   int
-	Idle   time.Duration
-	Forget time.Duration
-	Logger *slog.Logger
+	Most    int
+	Idle    time.Duration
+	Forget  time.Duration
+	Logger  *slog.Logger
+	HugoFor func(ctx context.Context, key Key) (string, error)
 }
 
 func (s Settings) withDefaults() Settings {
@@ -46,6 +47,7 @@ func (s Settings) withDefaults() Settings {
 type Report struct {
 	State  State        `json:"state"`
 	Reason string       `json:"reason,omitempty"`
+	Err    error        `json:"-"`
 	Steps  []StepReport `json:"steps,omitempty"`
 	Log    []string     `json:"log,omitempty"`
 }
@@ -272,8 +274,19 @@ func (w *Workspaces) start(held *live) {
 
 	held.progress.begin(StepFetching)
 	held.progress.logf("fetching " + held.spec.Dir)
-	held.progress.begin(StepBuilding)
-	handle, endpoint, err := w.backend.Start(ctx, held.spec, held.progress)
+	var err error
+	if w.settings.HugoFor != nil {
+		held.spec.Hugo, err = w.settings.HugoFor(ctx, held.spec.Key)
+		if held.spec.Hugo != "" {
+			held.progress.logf("hugo " + held.spec.Hugo)
+		}
+	}
+	var handle Handle
+	var endpoint Endpoint
+	if err == nil {
+		held.progress.begin(StepBuilding)
+		handle, endpoint, err = w.backend.Start(ctx, held.spec, held.progress)
+	}
 
 	if err == nil {
 		err = w.store.Warm(ctx, held.record.ID, handle)
@@ -336,7 +349,7 @@ func (w *Workspaces) Report(key Key) (Report, bool) {
 		w.mu.Unlock()
 		return Report{State: Sleeping}, false
 	}
-	report := Report{State: held.state}
+	report := Report{State: held.state, Err: held.err}
 	if held.err != nil {
 		report.Reason = reasonFor(held.err)
 	}

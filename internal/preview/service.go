@@ -143,6 +143,10 @@ func (s *Service) standing(key workspace.Key, technical bool) Standing {
 	standing := Standing{State: report.State}
 	if report.Reason != "" {
 		standing.Reason = refusedNotReady.Key
+		var refused *httpapi.RefusedError
+		if errors.As(report.Err, &refused) && refused.Key != "" {
+			standing.Reason = refused.Key
+		}
 	}
 	if technical {
 		standing.Steps = report.Steps

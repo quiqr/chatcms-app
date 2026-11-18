@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"io/fs"
 	"time"
 
@@ -37,12 +38,25 @@ type Options struct {
 	BaseURL     string
 	Environment string
 	Drafts      bool
+	Project     uuid.UUID
 }
 
 type Builder struct {
-	runner runner.Runner
-	hugo   string
-	limits Limits
+	runner  runner.Runner
+	hugo    string
+	limits  Limits
+	hugoFor func(ctx context.Context, project uuid.UUID) (string, error)
+}
+
+func (b *Builder) UseHugoOf(hugoFor func(ctx context.Context, project uuid.UUID) (string, error)) {
+	b.hugoFor = hugoFor
+}
+
+func (b *Builder) hugoBin(ctx context.Context, project uuid.UUID) (string, error) {
+	if b.hugoFor == nil || project == uuid.Nil {
+		return b.hugo, nil
+	}
+	return b.hugoFor(ctx, project)
 }
 
 var ErrNoHugo = errors.New("sitebuild: no Hugo was named")
@@ -60,6 +74,10 @@ func New(r runner.Runner, hugoBin string, limits Limits) (*Builder, error) {
 func (b *Builder) Build(ctx context.Context, site fs.FS, opts Options) (*runner.Result, error) {
 	if site == nil {
 		return nil, errors.New("sitebuild: no site to build")
+	}
+	hugo, err := b.hugoBin(ctx, opts.Project)
+	if err != nil {
+		return nil, err
 	}
 
 	environment := opts.Environment
@@ -84,13 +102,13 @@ func (b *Builder) Build(ctx context.Context, site fs.FS, opts Options) (*runner.
 
 	result, err := b.runner.Run(ctx, runner.Task{
 		Inputs:    site,
-		Command:   b.hugo,
+		Command:   hugo,
 		Arguments: arguments,
 		Environment: map[string]string{
 			"HUGO_ENV":         environment,
 			"HUGO_ENVIRONMENT": environment,
 		},
-		Tools:       []string{b.hugo},
+		Tools:       []string{hugo},
 		Outputs:     []string{Output},
 		Timeout:     b.limits.Timeout,
 		MemoryBytes: b.limits.MemoryBytes,

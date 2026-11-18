@@ -143,7 +143,7 @@ The checks come in three tiers, run by `scripts/gate.sh <tier>`:
 | Tier      | Checks                                               | Guards           |
 | --------- | ---------------------------------------------------- | ---------------- |
 | `fast`    | go-build, go-test, frontend, sqlc, changelog, release, dev-scripts | nothing; for while working |
-| `ship`    | `fast` plus integration (coverage gate) and e2e       | every change     |
+| `ship`    | `fast` plus integration (coverage gate), e2e, workspace-guest | every change |
 | `release` | `nix flake check`: every check, `nixos-vm` included   | every release    |
 
 | Check         | What it runs                                                     |
@@ -154,6 +154,7 @@ The checks come in three tiers, run by `scripts/gate.sh <tier>`:
 | `frontend`    | The frontend type check, Vitest and the production build          |
 | `sqlc`        | `sqlc diff`, so committed generated code cannot drift from its SQL |
 | `e2e`         | The Playwright acceptance suite at both widths, tests side by side (`E2E_WORKERS`, default half the cores) |
+| `workspace-guest` | The micro VM guest, built with microvm.nix                   |
 | `nixos-vm`    | The NixOS module deploying in a VM; release tier only            |
 
 A change that touches `nix/` or the NixOS module runs `scripts/gate.sh release`

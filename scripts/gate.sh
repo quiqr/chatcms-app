@@ -3,7 +3,7 @@ set -euo pipefail
 
 nix_bin="${NIX:-nix}"
 fast=(go-build go-test frontend sqlc changelog release dev-scripts)
-ship=("${fast[@]}" integration e2e)
+ship=("${fast[@]}" integration e2e workspace-guest)
 
 usage() {
     echo "usage: gate.sh <fast|ship|release>" >&2

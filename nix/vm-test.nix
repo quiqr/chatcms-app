@@ -36,9 +36,11 @@ pkgs.testers.runNixOSTest {
       baseUrl = "http://localhost:8080";
       secretKeyFile = "/run/chatcms-secrets/master.key";
       database.createLocally = true;
+      workspaceBackend = "microvm";
+      workspacesAtOnce = 2;
     };
 
-    environment.systemPackages = [ pkgs.curl pkgs.jq ];
+    environment.systemPackages = [ pkgs.curl pkgs.jq pkgs.nftables ];
 
     virtualisation.memorySize = 2048;
   };
@@ -91,6 +93,27 @@ pkgs.testers.runNixOSTest {
         assert "CHATCMS_GIT_BIN=/nix/store" in environment, environment
         assert "CHATCMS_HUGO_BIN=/nix/store" in environment, environment
         assert "CHATCMS_BWRAP_BIN=/nix/store" in environment, environment
+
+    with subtest("each workspace has a TAP device of the service's own, and the VMs reach nothing"):
+        machine.wait_for_unit("chatcms-taps.service")
+        for i in range(2):
+            owner = machine.succeed(f"cat /sys/class/net/chv{i}/owner").strip()
+            uid = machine.succeed("id -u chatcms").strip()
+            assert owner == uid, (owner, uid)
+            machine.succeed(f"ip -br addr show chv{i} | grep -q 10.231.{i}.1/30")
+        machine.fail("ip link show chv2")
+        rules = machine.succeed("nft list table inet chatcms_workspaces")
+        assert 'iifname "chv*" drop' in rules, rules
+        assert 'oifname "chv*" drop' in rules, rules
+
+    with subtest("the service can reach KVM and the TAP devices, and knows its guest"):
+        environment = machine.succeed("systemctl show chatcms.service -p Environment")
+        assert "CHATCMS_WORKSPACE_BACKEND=microvm" in environment, environment
+        assert "CHATCMS_WORKSPACE_GUEST=/nix/store" in environment, environment
+        assert "CHATCMS_NIX_BIN=/nix/store" in environment, environment
+        devices = machine.succeed("systemctl show chatcms.service -p DeviceAllow")
+        assert "/dev/kvm" in devices and "/dev/net/tun" in devices, devices
+        machine.succeed("test -d /run/chatcms")
 
     with subtest("the template feed defaults to the community feed"):
         environment = machine.succeed("systemctl show chatcms.service -p Environment")

@@ -3,6 +3,40 @@
 
 let
   cfg = config.services.chatcms;
+  system = pkgs.stdenv.hostPlatform.system;
+  microvm = cfg.workspaceBackend == "microvm";
+  taps = lib.range 0 (cfg.workspacesAtOnce - 1);
+  tapsUp = pkgs.writeShellScript "chatcms-taps-up" ''
+    set -eu
+    ${lib.concatMapStrings (i: ''
+      ${pkgs.iproute2}/bin/ip link show chv${toString i} >/dev/null 2>&1 \
+        || ${pkgs.iproute2}/bin/ip tuntap add chv${toString i} mode tap user ${cfg.user} group ${cfg.group}
+      ${pkgs.iproute2}/bin/ip addr replace 10.231.${toString i}.1/30 dev chv${toString i}
+      ${pkgs.iproute2}/bin/ip link set chv${toString i} up
+    '') taps}
+    ${pkgs.nftables}/bin/nft -f ${pkgs.writeText "chatcms-workspaces.nft" ''
+      table inet chatcms_workspaces
+      delete table inet chatcms_workspaces
+      table inet chatcms_workspaces {
+        chain forward {
+          type filter hook forward priority -10; policy accept;
+          iifname "chv*" drop
+          oifname "chv*" drop
+        }
+        chain input {
+          type filter hook input priority -10; policy accept;
+          iifname "chv*" ct state established,related accept
+          iifname "chv*" drop
+        }
+      }
+    ''}
+  '';
+  tapsDown = pkgs.writeShellScript "chatcms-taps-down" ''
+    ${pkgs.nftables}/bin/nft delete table inet chatcms_workspaces 2>/dev/null || true
+    ${lib.concatMapStrings (i: ''
+      ${pkgs.iproute2}/bin/ip link del chv${toString i} 2>/dev/null || true
+    '') taps}
+  '';
 in
 {
   options.services.chatcms = {
@@ -246,6 +280,33 @@ in
       '';
     };
 
+    workspaceBackend = lib.mkOption {
+      type = lib.types.enum [ "local" "microvm" ];
+      default = "local";
+      description = ''
+        Where workspaces run. `local` runs each preview as a process of the
+        server. `microvm` runs each in a Cloud Hypervisor micro VM of its own,
+        which needs KVM; the module then makes a TAP device and an address per
+        workspace and a firewall table that lets the VMs reach nothing but the
+        host.
+      '';
+    };
+
+    pinHugo = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Run each project's own Hugo version, found through the Nixhub index
+        and built with Nix. Off, every project uses `hugoPackage`.
+      '';
+    };
+
+    nixhubUrl = lib.mkOption {
+      type = lib.types.str;
+      default = "https://search.devbox.sh";
+      description = "The package index a project's Hugo version is looked up in.";
+    };
+
     extraEnvironment = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
       default = { };
@@ -319,7 +380,18 @@ in
         CHATCMS_CHECK_MEMORY = cfg.checkMemory;
         CHATCMS_WORKSPACE_IDLE = cfg.workspaceIdle;
         CHATCMS_WORKSPACES_AT_ONCE = toString cfg.workspacesAtOnce;
+        CHATCMS_WORKSPACE_BACKEND = cfg.workspaceBackend;
         CHATCMS_TEMPLATE_FEED = if cfg.templateFeed == null then "off" else cfg.templateFeed;
+      } // lib.optionalAttrs cfg.pinHugo {
+        CHATCMS_NIX_BIN = "${config.nix.package}/bin/nix";
+        CHATCMS_NIXHUB_URL = cfg.nixhubUrl;
+        XDG_CACHE_HOME = "${cfg.stateDir}/cache";
+      } // lib.optionalAttrs microvm {
+        CHATCMS_WORKSPACE_GUEST = "${self.packages.${system}.workspace-guest}";
+        CHATCMS_CLOUD_HYPERVISOR_BIN = "${pkgs.cloud-hypervisor}/bin/cloud-hypervisor";
+        CHATCMS_VIRTIOFSD_BIN = "${pkgs.virtiofsd}/bin/virtiofsd";
+        CHATCMS_WORKSPACE_TAPS = toString cfg.workspacesAtOnce;
+        CHATCMS_WORKSPACE_RUN_DIR = "/run/chatcms/w";
       } // lib.optionalAttrs (cfg.firstAdministrator != null) {
         CHATCMS_FIRST_ADMINISTRATOR = cfg.firstAdministrator;
       } // lib.optionalAttrs (cfg.mail.host != null) {
@@ -363,6 +435,27 @@ in
         RestrictNamespaces = false;
         LockPersonality = true;
         SystemCallArchitectures = "native";
+      } // lib.optionalAttrs microvm {
+        PrivateDevices = false;
+        DeviceAllow = [ "/dev/kvm rw" "/dev/net/tun rw" ];
+        SupplementaryGroups = [ "kvm" ];
+        RuntimeDirectory = "chatcms";
+        RuntimeDirectoryMode = "0700";
+        RestrictAddressFamilies = [ "AF_UNIX" "AF_INET" "AF_INET6" "AF_NETLINK" ];
+      };
+    };
+
+    systemd.services.chatcms-taps = lib.mkIf microvm {
+      description = "TAP devices and a firewall table for ChatCMS workspaces";
+      wantedBy = [ "multi-user.target" ];
+      before = [ "chatcms.service" ];
+      requiredBy = [ "chatcms.service" ];
+      after = [ "network-pre.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = tapsUp;
+        ExecStop = tapsDown;
       };
     };
   };

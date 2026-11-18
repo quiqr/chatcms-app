@@ -2,8 +2,10 @@
   description = "Quiqr ChatCMS: hosted, Nix-powered headless CMS for Markdown static sites";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs.microvm.url = "github:astro/microvm.nix";
+  inputs.microvm.inputs.nixpkgs.follows = "nixpkgs";
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, microvm }:
     let
       version = nixpkgs.lib.fileContents ./VERSION;
 
@@ -195,6 +197,7 @@
               ./scripts/dev-instance.sh
               ./scripts/dev-be.sh
               ./scripts/dev-fe.sh
+              ./scripts/dev-taps.sh
               ./scripts/dev-scripts.test.sh
               ./scripts/gate.sh
               ./scripts/gate.test.sh
@@ -202,7 +205,7 @@
           };
         } ''
         cd $src
-        shellcheck -x scripts/dev-instance.sh scripts/dev-be.sh scripts/dev-fe.sh scripts/dev-scripts.test.sh scripts/gate.sh scripts/gate.test.sh
+        shellcheck -x scripts/dev-instance.sh scripts/dev-be.sh scripts/dev-fe.sh scripts/dev-taps.sh scripts/dev-scripts.test.sh scripts/gate.sh scripts/gate.test.sh
         bash scripts/dev-scripts.test.sh
         bash scripts/gate.test.sh
         touch $out
@@ -292,12 +295,30 @@
           echo "  bash scripts/ship-change.sh <change>  ship one OpenSpec change"
         '';
       };
+      mkWorkspaceGuest = { pkgs, system, ... }:
+        let
+          guest = nixpkgs.lib.nixosSystem {
+            inherit system;
+            modules = [ microvm.nixosModules.microvm ./nix/workspace-guest.nix ];
+          };
+          cfg = guest.config.microvm;
+        in
+        pkgs.writeText "chatcms-workspace-guest.json" (builtins.toJSON {
+          kernel = "${cfg.kernel.dev}/vmlinux";
+          initrd = cfg.initrdPath;
+          cmdline = "console=ttyS0 reboot=t panic=-1 ${toString cfg.kernelParams}";
+          memory = cfg.mem;
+          vcpu = cfg.vcpu;
+        });
+
     in
     {
       packages = forAllSystems (args: rec {
         chatcmsd = mkServer (args // { source = self.shortRev or self.dirtyShortRev or ""; });
         web = mkWeb args;
         default = chatcmsd;
+      } // nixpkgs.lib.optionalAttrs (args.system == "x86_64-linux" || args.system == "aarch64-linux") {
+        workspace-guest = mkWorkspaceGuest args;
       });
 
       devShells = forAllSystems (args: {
@@ -318,6 +339,7 @@
         # there and not on a Mac, where the rest still runs.
         nixos-vm = import ./nix/vm-test.nix { inherit self pkgs; };
         e2e = import ./nix/e2e.nix { inherit self pkgs system; };
+        workspace-guest = mkWorkspaceGuest args;
       });
 
       formatter = forAllSystems ({ pkgs, ... }: pkgs.nixpkgs-fmt);

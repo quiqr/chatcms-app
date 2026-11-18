@@ -760,6 +760,8 @@ export const nl: Strings = {
   "refused.no-room-for-a-site": "Dat maakt {would} sites, en de limiet is {allowed}. Archiveer of verwijder er een, of vraag de platformbeheerder de limiet te verhogen.",
   "refused.no-room-for-the-people": "Dat maakt {would} leden, en de limiet is {allowed}. De mensen die aan de site werken gaan mee.",
   "refused.nothing-brought-in-yet": "Er staat nog niets in deze site. Wie het project inricht, kan dat afmaken bij het inrichten.",
+  "refused.hugo-version-not-found": "Hugo {version} is niet gevonden. Kies een andere versie in de projectinstellingen.",
+  "refused.hugo-version-unavailable": "Hugo {version} kon niet klaargezet worden. Probeer het over een paar minuten nog eens.",
   "refused.answer-the-question-first": "Een pagina is door twee mensen bewerkt. Beantwoord eerst de vraag daarover en publiceer daarna.",
   "refused.no-such-field": "Deze pagina heeft geen veld dat “{field}” heet.",
   "refused.no-such-person": "Niemand met dat e-mailadres heeft al een account.",

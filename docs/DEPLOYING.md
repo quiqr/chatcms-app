@@ -167,6 +167,8 @@ The ones that matter most often:
 | `buildMemory`, `buildTimeout` | What one site's build may use |
 | `checkMemory`, `checkTimeout` | What a site's own check may use |
 | `workspaceIdle`, `workspacesAtOnce` | How long an unused workspace stays warm, and how many run |
+| `workspaceBackend` | `local` (a process per preview) or `microvm` (a micro VM each; needs KVM) |
+| `pinHugo`, `nixhubUrl` | Whether a project's own Hugo version is used, and where versions are looked up |
 | `workflowTools` | What a site's check step may run. Fixed and pinned. |
 | `templateFeed` | Which templates a new project can start from. `null` switches the gallery off. |
 
@@ -184,3 +186,24 @@ front, and forward to `listenAddress:port`.
 
 The preview is served under the app's own address, so nothing extra has to be
 proxied for it to work.
+
+## Workspaces in micro VMs
+
+`services.chatcms.workspaceBackend = "microvm"` runs every preview in a Cloud
+Hypervisor micro VM of its own. The machine needs KVM: bare metal, or a VM
+with nested virtualisation. The module then:
+
+- makes `chv0` to `chv<workspacesAtOnce - 1>`, TAP devices owned by the
+  service user, with `10.231.<i>.1/30` on the host;
+- loads an nftables table, `inet chatcms_workspaces`, that drops anything the
+  VMs send to another network or to each other and anything they open on the
+  host;
+- lets the service reach `/dev/kvm` and `/dev/net/tun`.
+
+Keep `10.231.0.0/16` free on the machine. With `pinHugo` (on by default) the
+service also reaches the Nixhub index and GitHub the first time a project asks
+for a Hugo version, and builds it with the machine's Nix.
+
+For development, `scripts/dev-taps.sh up 4` makes the same devices with sudo
+and `down` removes them; `nix build .#workspace-guest` builds the guest.
+

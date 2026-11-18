@@ -75,7 +75,11 @@ func (b *Backend) Start(ctx context.Context, spec workspace.Spec, log io.Writer)
 		return "", workspace.Endpoint{}, fmt.Errorf("local: %w", err)
 	}
 
-	command := exec.Command(b.settings.HugoBin, arguments...)
+	hugo := b.settings.HugoBin
+	if spec.Hugo != "" {
+		hugo = spec.Hugo
+	}
+	command := exec.Command(hugo, arguments...)
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	command.Env = []string{"HOME=" + home, "PATH=/usr/bin:/bin", "TZ=UTC"}
 	command.Stdout = log
@@ -97,7 +101,7 @@ func (b *Backend) Start(ctx context.Context, spec workspace.Spec, log io.Writer)
 	}()
 
 	endpoint := workspace.Endpoint{Host: "127.0.0.1", Port: port}
-	handle := handleOf(pid, port, b.settings.HugoBin)
+	handle := handleOf(pid, port, hugo)
 	if err := waitFor(ctx, endpoint, b.settings.Ready, exited); err != nil {
 		b.Stop(context.Background(), handle)
 		return "", workspace.Endpoint{}, err

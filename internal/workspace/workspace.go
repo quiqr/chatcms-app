@@ -35,6 +35,7 @@ type Spec struct {
 	Key   Key
 	Dir   string
 	Under string
+	Hugo  string
 }
 
 type Endpoint struct {
