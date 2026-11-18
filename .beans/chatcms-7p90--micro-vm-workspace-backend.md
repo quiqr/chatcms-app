@@ -1,11 +1,12 @@
 ---
 # chatcms-7p90
 title: Micro VM workspace backend
-status: in-progress
+status: completed
 type: epic
 priority: normal
 created_at: 2026-11-18T12:51:48Z
-updated_at: 2026-11-18T15:27:34Z
+updated_at: 2026-11-18T18:32:31Z
+openspec-link: openspec/changes/archive/2026-11-18-add-microvm-workspaces
 parent: chatcms-z0p7
 blocked_by:
     - chatcms-a9sj
@@ -41,3 +42,29 @@ agent in the next epics can run untrusted code. Needs KVM.
 
 `docs/BRIEFING-M07.md` step 2. A change under `nix/` runs
 `scripts/gate.sh release` by hand before shipping.
+
+## Summary of Changes
+
+Shipped as `openspec/changes/archive/2026-11-18-add-microvm-workspaces`.
+
+- `internal/workspace/microvm`: each workspace a Cloud Hypervisor micro VM
+  booted from one NixOS guest built with microvm.nix (`nix/workspace-guest.nix`,
+  flake package and check `workspace-guest`). Two read-only virtio-fs shares,
+  the host store and the person's copy; address, Hugo and preview address on
+  the kernel command line. A TAP device and a /30 per VM from a pool.
+- The NixOS module: `workspaceBackend = "microvm"`, TAP devices `chv<i>` owned
+  by the service, an nftables table that lets VMs reach nothing but replies
+  from the host, access to `/dev/kvm` and `/dev/net/tun`. The VM test checks
+  the devices, their owner and the table. `scripts/dev-taps.sh` for
+  development.
+- `internal/nixpin`: a project's own Hugo version resolved through Nixhub,
+  built with `nix build` behind a GC root, remembered in `nix_packages`.
+  Previews and one-shot builds use it; an unknown version is refused naming
+  it. On with `pinHugo` (`CHATCMS_NIX_BIN`).
+- Measured by hand with the `microvm`-tagged test on an i7-1250U: a cold start
+  answers after 4.8 to 6.2 s, a save shows after about 0.6 s (Hugo polls,
+  because virtio-fs sends no inotify events), and stopping leaves nothing.
+  Faster boots are chatcms-b18f.
+- Decided against the briefing: the person's copy is shared into the VM rather
+  than cloned and pushed back; the chat epic decides how the VM writes.
+- Supersedes chatcms-90m8.
