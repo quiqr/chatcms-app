@@ -630,8 +630,15 @@ export function readAssistant(organisation: string, name: string) {
   return get<{ available: boolean }>(`${project(organisation, name)}/chat`);
 }
 
-export function askAssistant(organisation: string, name: string, text: string) {
-  return post<void>(`${project(organisation, name)}/chat`, { text });
+export type PreviewSelection = {
+  text: string;
+  before: string;
+  after: string;
+  path: string;
+};
+
+export function askAssistant(organisation: string, name: string, text: string, selection?: PreviewSelection | null) {
+  return post<void>(`${project(organisation, name)}/chat`, selection ? { text, selection } : { text });
 }
 
 export function assistantEvents(organisation: string, name: string) {

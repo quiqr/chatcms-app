@@ -1,4 +1,4 @@
-import { Send, Undo2, X } from "lucide-react";
+import { Quote, Send, Undo2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -12,11 +12,15 @@ import {
   readAssistant,
   type AssistantChange,
   type AssistantEvent,
+  type PreviewSelection,
 } from "../lib/tenancy";
+
+const listenWithin = 120_000;
 
 type Said = {
   who: "person" | "assistant";
   text: string;
+  quoted?: string;
   changes: (AssistantChange & { undone?: boolean })[];
   working?: boolean;
   trouble?: string;
@@ -27,19 +31,31 @@ export function ChatPanel({
   project,
   onChanged,
   onClose,
+  quote = null,
+  onQuoteDropped,
 }: {
   organisation: string;
   project: string;
-  onChanged: () => void;
+  onChanged: (about?: PreviewSelection) => void;
   onClose?: () => void;
+  quote?: PreviewSelection | null;
+  onQuoteDropped?: () => void;
 }) {
   const [available, setAvailable] = useState<boolean | null>(null);
   const [said, setSaid] = useState<Said[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const listening = useRef(false);
+  const waiting = useRef<(() => void)[]>([]);
   const [trouble, setTrouble] = useState("");
   const changed = useRef(onChanged);
   changed.current = onChanged;
+  const asking = useRef<PreviewSelection | null>(null);
+  const message = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (quote) message.current?.focus();
+  }, [quote]);
 
   useEffect(() => {
     let live = true;
@@ -57,6 +73,11 @@ export function ChatPanel({
     const source = new EventSource(assistantEvents(organisation, project));
     source.onmessage = (message) => {
       const event = JSON.parse(message.data) as AssistantEvent;
+      if (event.type === "ready") {
+        listening.current = true;
+        waiting.current.splice(0).forEach((go) => go());
+        return;
+      }
       setSaid((before) => {
         const last = before[before.length - 1];
         const replying = last && last.who === "assistant" ? last : null;
@@ -75,30 +96,56 @@ export function ChatPanel({
             return before;
         }
       });
-      if (event.type === "change") changed.current();
-      if (event.type === "done" || event.type === "error") setBusy(false);
+      if (event.type === "change") changed.current(asking.current ?? undefined);
+      if (event.type === "done" || event.type === "error") {
+        setBusy(false);
+        asking.current = null;
+      }
     };
-    return () => source.close();
+    return () => {
+      source.close();
+      listening.current = false;
+    };
   }, [available, organisation, project]);
 
   async function send() {
     const text = draft.trim();
     if (!text || busy) return;
+    const about = quote;
     setDraft("");
     setTrouble("");
     setBusy(true);
+    asking.current = about;
+    onQuoteDropped?.();
     setSaid((before) => [
       ...before,
-      { who: "person", text, changes: [] },
+      { who: "person", text, quoted: about?.text, changes: [] },
       { who: "assistant", text: "", changes: [], working: true },
     ]);
     try {
-      await askAssistant(organisation, project, text);
+      await untilListening();
+      await askAssistant(organisation, project, text, about);
     } catch (error: unknown) {
-      setTrouble(whatWentWrong(error));
+      setTrouble(whatWentWrong(error, "assistant.did-not-answer"));
       setBusy(false);
+      asking.current = null;
       setSaid((before) => before.slice(0, -1));
     }
+  }
+
+  function untilListening() {
+    if (listening.current) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        waiting.current = waiting.current.filter((one) => one !== go);
+        reject(new Error("not listening"));
+      }, listenWithin);
+      const go = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      waiting.current.push(go);
+    });
   }
 
   async function undo(index: number, change: AssistantChange) {
@@ -146,6 +193,11 @@ export function ChatPanel({
                   (entry.who === "person" ? "self-end bg-primary-soft text-primary-soft-foreground" : "bg-muted")
                 }
               >
+                {entry.quoted && (
+                  <blockquote className="border-l-2 border-primary pl-2 text-[13px] text-muted-foreground line-clamp-3">
+                    {entry.quoted}
+                  </blockquote>
+                )}
                 {entry.text && <p className="whitespace-pre-wrap">{entry.text}</p>}
                 {entry.who === "assistant" && entry.working && !entry.text && (
                   <p className="text-subtle-foreground">{say("assistant.working")}</p>
@@ -174,6 +226,19 @@ export function ChatPanel({
             </p>
           )}
 
+          {quote && (
+            <figure className="flex items-start gap-2 rounded-md border border-border bg-muted px-3 py-2">
+              <Quote aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-subtle-foreground" />
+              <figcaption className="sr-only">{say("assistant.about-this")}</figcaption>
+              <blockquote aria-label={say("assistant.about-this")} className="flex-1 text-[13px] line-clamp-4">
+                {quote.text}
+              </blockquote>
+              <Button variant="ghost" size="iconCompact" aria-label={say("assistant.leave-out-the-quote")} onClick={onQuoteDropped}>
+                <X aria-hidden="true" className="size-4" />
+              </Button>
+            </figure>
+          )}
+
           <form
             className="flex items-end gap-2"
             onSubmit={(event) => {
@@ -184,6 +249,7 @@ export function ChatPanel({
             <label className="flex flex-1 flex-col gap-1.5">
               <span className="sr-only">{say("assistant.your-message")}</span>
               <textarea
+                ref={message}
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
@@ -193,7 +259,7 @@ export function ChatPanel({
                   }
                 }}
                 rows={2}
-                placeholder={say("assistant.ask-for-a-change")}
+                placeholder={quote ? say("assistant.what-should-change") : say("assistant.ask-for-a-change")}
                 className="min-h-11 resize-none rounded-md border border-input bg-card px-3 py-2 text-base sm:text-[15px] focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary-soft"
               />
             </label>

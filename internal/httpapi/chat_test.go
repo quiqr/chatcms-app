@@ -14,6 +14,7 @@ type stubChat struct {
 	view   ChatView
 	err    error
 	asked  []string
+	about  []*ChatSelection
 	events []any
 }
 
@@ -21,8 +22,9 @@ func (s *stubChat) Chat(context.Context, Actor, string, string) (ChatView, error
 	return s.view, s.err
 }
 
-func (s *stubChat) Ask(_ context.Context, _ Actor, _, _ string, text string) error {
+func (s *stubChat) Ask(_ context.Context, _ Actor, _, _ string, text string, about *ChatSelection) error {
 	s.asked = append(s.asked, text)
+	s.about = append(s.about, about)
 	return s.err
 }
 
@@ -92,5 +94,30 @@ func TestAChatRefusalIsPassedOn(t *testing.T) {
 	}
 	if got := signedInCall(t, handler, http.MethodDelete, chatPath, nil); got.Code != http.StatusMethodNotAllowed {
 		t.Errorf("DELETE = %d", got.Code)
+	}
+}
+
+func TestASelectionComesWithTheQuestionBounded(t *testing.T) {
+	chat := &stubChat{}
+	handler := withChat(chat, true)
+	long := strings.Repeat("ab", 1500)
+	got := signedInCall(t, handler, http.MethodPost, chatPath, map[string]any{
+		"text":      "Shorter",
+		"selection": map[string]any{"text": long, "before": long, "after": long, "path": "/posts/one/"},
+	})
+	if got.Code != http.StatusAccepted || len(chat.about) != 1 || chat.about[0] == nil {
+		t.Fatalf("POST = %d, about %v", got.Code, chat.about)
+	}
+	about := chat.about[0]
+	if len(about.Text) != 2000 || len(about.Before) != 200 || len(about.After) != 200 || about.Path != "/posts/one/" {
+		t.Errorf("about = %d, %d, %d, %q", len(about.Text), len(about.Before), len(about.After), about.Path)
+	}
+	if about.Before != long[len(long)-200:] || about.After != long[:200] {
+		t.Error("the context was cut on the wrong side")
+	}
+
+	signedInCall(t, handler, http.MethodPost, chatPath, map[string]any{"text": "No quote", "selection": map[string]any{"text": ""}})
+	if chat.about[1] != nil {
+		t.Errorf("an empty selection came through as %+v", chat.about[1])
 	}
 }

@@ -395,13 +395,14 @@ export class Harness {
         const answered = messages.some((message) => message.role === "tool");
         const said = [...messages].reverse().find((message) => message.role === "user");
         const text = typeof said?.content === "string" ? said.content : (said?.content ?? []).map((part) => part.text ?? "").join("");
-        const title = (text.match(/title\b.* to (.+?)\.?$/i) ?? [])[1];
+        const title = (text.match(/title\b.* to (.+?)\.?$/i) ?? text.match(/^Change it to (.+?)\.?\n/) ?? [])[1];
+        const key = (text.match(/with key "([^"]+)"/) ?? [])[1] ?? "home";
 
         let chunks;
         if (update && title && !answered) {
           chunks = [
             { delta: { role: "assistant", tool_calls: [{ index: 0, id: "call_e2e", type: "function", function: { name: update.function.name, arguments: "" } }] } },
-            { delta: { tool_calls: [{ index: 0, function: { arguments: JSON.stringify({ key: "home", fields: { title } }) } }] } },
+            { delta: { tool_calls: [{ index: 0, function: { arguments: JSON.stringify({ key, fields: { title } }) } }] } },
             { delta: {}, finish_reason: "tool_calls" },
           ];
         } else {

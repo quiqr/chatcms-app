@@ -23,6 +23,9 @@ export const en = {
   "assistant.change-undone": "{title} is back as it was",
   "assistant.show": "Show",
   "assistant.undo": "Undo",
+  "assistant.about-this": "About this part of the page",
+  "assistant.leave-out-the-quote": "Leave out the quote",
+  "assistant.what-should-change": "What should change here?",
   "refused.assistant-not-available": "The assistant is not available on this installation.",
   "refused.assistant-did-not-answer": "The assistant did not answer. Try again in a moment.",
   // about
@@ -659,6 +662,7 @@ export const en = {
   "preview.preview": "Preview ·",
   "preview.refresh": "Refresh",
   "preview.this-is-your-site-as-a": "This is your site as a visitor will see it. Changes show within a few seconds.",
+  "preview.ask-about-this": "Ask the assistant about this",
   "preview.cannot-show-here": "This preview cannot be shown here.",
   "preview.open-the-result": "Open the result",
   "preview.your-site": "Your site",

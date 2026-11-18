@@ -209,3 +209,32 @@ func TestThePageBundleFixtureListsAsQuiqrDesktopDoes(t *testing.T) {
 		t.Errorf("the listing differs from %s:\n%s", golden, got)
 	}
 }
+
+func TestKeyOfGivesTheContentBrowsersKeyForAFile(t *testing.T) {
+	m := &Model{
+		Singles: []Single{{Key: "home", File: "content/_index.md"}, {Key: "about", File: "/content/about.md"}},
+		Collections: []Collection{
+			{Key: "posts", Folder: "content/post/"},
+			{Key: "news", Folder: "content/post/news"},
+			{Key: "authors", Folder: "data/authors", Extension: "yaml"},
+		},
+	}
+	for file, want := range map[string]string{
+		"content/_index.md":                      "home",
+		"content/about.md":                       "about",
+		"content/post/hello.md":                  "posts/hello",
+		"content/post/2024/spring-sale/index.md": "posts/2024/spring-sale",
+		"content/post/news/today.md":             "news/today",
+		"data/authors/index.yaml":                "authors/index",
+		"layouts/index.html":                     "",
+		"content/postal.md":                      "",
+	} {
+		if got := m.KeyOf(file); got != want {
+			t.Errorf("KeyOf(%q) = %q, want %q", file, got, want)
+		}
+	}
+	var none *Model
+	if none.KeyOf("content/_index.md") != "" {
+		t.Error("a missing model found a key")
+	}
+}

@@ -3,8 +3,8 @@ package preview
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strings"
 
@@ -44,6 +44,7 @@ type Service struct {
 	workspaces Workspaces
 	baseURL    string
 	origin     string
+	assets     fs.FS
 }
 
 func (s *Service) ServeFrom(origin string) {
@@ -90,7 +91,7 @@ func (s *Service) Handler(ctx context.Context, actor policy.Actor, projectID uui
 	if err != nil {
 		return nil, err
 	}
-	return httputil.NewSingleHostReverseProxy(where), nil
+	return s.decorate(where, under), nil
 }
 
 func Refusal(err error) error {
@@ -177,10 +178,14 @@ type Viewed interface {
 type Origin struct {
 	workspaces Viewed
 	allowed    func(ctx context.Context, key workspace.Key) (bool, error)
+	service    *Service
 }
 
-func NewOrigin(workspaces Viewed, allowed func(ctx context.Context, key workspace.Key) (bool, error)) *Origin {
-	return &Origin{workspaces: workspaces, allowed: allowed}
+func NewOrigin(service *Service, workspaces Viewed, allowed func(ctx context.Context, key workspace.Key) (bool, error)) *Origin {
+	if service == nil {
+		service = &Service{}
+	}
+	return &Origin{workspaces: workspaces, allowed: allowed, service: service}
 }
 
 func (o *Origin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -209,5 +214,5 @@ func (o *Origin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	httputil.NewSingleHostReverseProxy(where).ServeHTTP(w, r)
+	o.service.decorate(where, "/v/"+view+"/").ServeHTTP(w, r)
 }

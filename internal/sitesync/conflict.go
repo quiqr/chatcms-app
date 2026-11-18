@@ -102,32 +102,8 @@ func describeOne(path gitsync.ConflictedPath, m *model.Model, who string) PageCo
 	return page
 }
 
-// keyOf is how the content browser addresses a file, so that a conflict can
-// link to the page it is about.
 func keyOf(m *model.Model, file string) string {
-	if m == nil {
-		return ""
-	}
-	for _, single := range m.Singles {
-		if single.File == file {
-			return single.Key
-		}
-	}
-	for _, collection := range m.Collections {
-		folder := strings.TrimSuffix(collection.Folder, "/")
-		if folder != "" && strings.HasPrefix(file, folder+"/") {
-			name := strings.TrimPrefix(file, folder+"/")
-			return collection.Key + "/" + strings.TrimSuffix(name, extensionOf(name))
-		}
-	}
-	return ""
-}
-
-func extensionOf(name string) string {
-	if at := strings.LastIndex(name, "."); at > 0 {
-		return name[at:]
-	}
-	return ""
+	return m.KeyOf(file)
 }
 
 func differing(mine, theirs *forms.Form, fields []model.Field) []FieldConflict {

@@ -24,7 +24,7 @@ func TestThePreviewHostReachesOnlyTheOrigin(t *testing.T) {
 	}
 
 	s := &Server{cfg: Config{PreviewURL: "https://Preview.Example"}}
-	s.previewOrigin = preview.NewOrigin(noViews{}, func(context.Context, workspace.Key) (bool, error) { return true, nil })
+	s.previewOrigin = preview.NewOrigin(nil, noViews{}, func(context.Context, workspace.Key) (bool, error) { return true, nil })
 	routed := s.byHost(app)
 	for _, path := range []string{"/", "/api/me", "/v/nothing/"} {
 		if answer := serve(routed, "preview.example", path); answer != http.StatusNotFound {

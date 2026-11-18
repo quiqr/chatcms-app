@@ -225,6 +225,19 @@ workspace starts and gone when it sleeps, and the origin checks on every
 request that the person may still see the project. The origin answers nothing
 else, and the app's own `/preview/` stops serving.
 
+Every HTML page a preview passes on gets one script,
+`<preview>/__chatcms/select.js`, built from `web/src/preview/` by a second
+Vite build and embedded with the app. On a selection it shows a button;
+pressing it posts the text, 200 characters around it and the page's address
+to the app's origin only, and the pane takes it only from its own frame. The
+chat panel quotes it, `/chat` carries it, and the assistant is told the page:
+`hugo list all`, run in the build sandbox over the person's copy, maps the
+address to a content file, and `model.KeyOf` maps that to the page key the
+tools use. After the change the reloaded preview highlights the text between
+the old context for four seconds. A pdf preview is shown by a PDF.js viewer
+under `<preview>/__chatcms/pdf/`, so the PDF is parsed on the preview's
+origin, never the app's; its selections travel the same way.
+
 **`internal/runtime`** reads what a site declares in `quiqr/runtime.yaml`:
 packages with versions, a preview command with its type (`web`, `pdf`,
 `other`) and the page to open, and a build command with its output. Packages

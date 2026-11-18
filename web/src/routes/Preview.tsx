@@ -1,10 +1,10 @@
 import { Monitor, Smartphone } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
 import { Segmented } from "../components/ui/segmented";
 import { whatWentWrong } from "../lib/api";
 import { maybe, say, type Key } from "../lib/say";
-import { openWorkspace, readWorkspace, type Workspace, type WorkspaceStep } from "../lib/tenancy";
+import { openWorkspace, readWorkspace, type PreviewSelection, type Workspace, type WorkspaceStep } from "../lib/tenancy";
 
 /**
  * Preview shows the site as a reader will see it. It is served through the
@@ -18,6 +18,8 @@ export function Preview({
   project,
   page,
   showAgain = 0,
+  onSelect,
+  highlight,
 }: {
   organisation: string;
   project: string;
@@ -29,6 +31,8 @@ export function Preview({
    * on purpose.
    */
   showAgain?: number;
+  onSelect?: (selection: PreviewSelection) => void;
+  highlight?: { before: string; after: string; id: number } | null;
 }) {
   const [device, setDevice] = useState<"desktop" | "phone">("desktop");
   const [reloads, setReloads] = useState(0);
@@ -37,7 +41,11 @@ export function Preview({
   const ready = workspace?.state === "warm" || (workspace?.state === "sleeping" && !workspace.reason);
   const kind = workspace?.type ?? "web";
   const base = baseOf(workspace?.address, `/preview/${organisation}/${project}/`);
-  const at = kind === "web" ? base + pathOf(page) : base + (workspace?.open ?? "/").replace(/^\//, "");
+  const opened = (workspace?.open ?? "/").replace(/^\//, "");
+  const at =
+    kind === "web" ? base + pathOf(page) : kind === "pdf" ? `${base}__chatcms/pdf/?file=${encodeURIComponent(opened)}` : base + opened;
+  const frame = useRef<HTMLIFrameElement>(null);
+  useFrameMessages(frame, base, onSelect, highlight);
 
   return (
     <div className="flex h-full flex-col gap-2">
@@ -76,6 +84,7 @@ export function Preview({
         ) : ready ? (
           <iframe
             key={`${reloads}-${showAgain}`}
+            ref={frame}
             title={say("preview.your-site")}
             src={at}
             className={
@@ -97,6 +106,48 @@ export function Preview({
       </p>
     </div>
   );
+}
+
+function useFrameMessages(
+  frame: RefObject<HTMLIFrameElement | null>,
+  base: string,
+  onSelect?: (selection: PreviewSelection) => void,
+  highlight?: { before: string; after: string; id: number } | null,
+) {
+  const latest = useRef({ onSelect, highlight, base });
+  latest.current = { onSelect, highlight, base };
+
+  useEffect(() => {
+    const heard = (event: MessageEvent) => {
+      const here = frame.current;
+      if (!here || event.source !== here.contentWindow) return;
+      const origin = new URL(here.src, window.location.href).origin;
+      if (event.origin !== origin) return;
+      const said = event.data as Record<string, unknown> | null;
+      const { onSelect, highlight, base } = latest.current;
+      if (!said || !onSelect) return;
+      if (said.chatcms === "ready") {
+        here.contentWindow?.postMessage({ chatcms: "setup", label: say("preview.ask-about-this") }, origin);
+        if (highlight && Date.now() - highlight.id < highlightWhile) {
+          here.contentWindow?.postMessage({ chatcms: "highlight", before: highlight.before, after: highlight.after }, origin);
+        }
+        return;
+      }
+      if (said.chatcms !== "selection") return;
+      const { text, before, after, path } = said;
+      if (typeof text !== "string" || typeof before !== "string" || typeof after !== "string" || typeof path !== "string") return;
+      onSelect({ text: text.slice(0, 2000), before: before.slice(-200), after: after.slice(0, 200), path: within(base, path) });
+    };
+    window.addEventListener("message", heard);
+    return () => window.removeEventListener("message", heard);
+  }, [frame]);
+}
+
+const highlightWhile = 15_000;
+
+function within(base: string, path: string) {
+  const prefix = new URL(base, window.location.href).pathname;
+  return path.startsWith(prefix) ? "/" + path.slice(prefix.length) : path;
 }
 
 function baseOf(address: string | undefined, own: string) {

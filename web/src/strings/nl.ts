@@ -26,6 +26,9 @@ export const nl: Strings = {
   "assistant.change-undone": "{title} is weer zoals het was",
   "assistant.show": "Toon",
   "assistant.undo": "Ongedaan maken",
+  "assistant.about-this": "Over dit stuk van de pagina",
+  "assistant.leave-out-the-quote": "Laat het citaat weg",
+  "assistant.what-should-change": "Wat moet hier anders?",
   "refused.assistant-not-available": "De assistent is op deze installatie niet beschikbaar.",
   "refused.assistant-did-not-answer": "De assistent antwoordde niet. Probeer het zo nog eens.",
   // about
@@ -662,6 +665,7 @@ export const nl: Strings = {
   "preview.preview": "Voorbeeld ·",
   "preview.refresh": "Verversen",
   "preview.this-is-your-site-as-a": "Dit is je site zoals een bezoeker hem ziet. Wijzigingen zijn binnen een paar seconden zichtbaar.",
+  "preview.ask-about-this": "Vraag de assistent hiernaar",
   "preview.cannot-show-here": "Deze voorvertoning kan hier niet getoond worden.",
   "preview.open-the-result": "Open het resultaat",
   "preview.your-site": "Je site",

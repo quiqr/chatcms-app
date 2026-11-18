@@ -1,0 +1,122 @@
+package preview_test
+
+import (
+	"context"
+	"io"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
+	"strings"
+	"testing"
+	"testing/fstest"
+
+	"github.com/google/uuid"
+
+	"github.com/quiqr/chatcms-app/internal/preview"
+	"github.com/quiqr/chatcms-app/internal/workspace"
+)
+
+type idle struct{}
+
+func (idle) Endpoint(context.Context, workspace.Key, string) (workspace.Endpoint, error) {
+	return workspace.Endpoint{}, workspace.ErrNotReady
+}
+func (idle) Open(context.Context, workspace.Key, string) (workspace.State, error) { return "", nil }
+func (idle) Report(workspace.Key) (workspace.Report, bool)                        { return workspace.Report{}, false }
+func (idle) SleepProject(context.Context, string)                                 {}
+
+func decorated(t *testing.T, site http.HandlerFunc) (http.Handler, *[]http.Header) {
+	t.Helper()
+	var asked []http.Header
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		asked = append(asked, r.Header.Clone())
+		site(w, r)
+	}))
+	t.Cleanup(server.Close)
+	host, port, _ := net.SplitHostPort(strings.TrimPrefix(server.URL, "http://"))
+	number, _ := strconv.Atoi(port)
+
+	service, err := preview.NewService(sources{organisation: "o"}, idle{}, "https://app.example/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	service.ServeAssets(fstest.MapFS{
+		"select.js":          {Data: []byte("console.log('select')")},
+		"pdf/index.html":     {Data: []byte("<!doctype html><head><title>viewer</title>")},
+		"pdf/assets/view.js": {Data: []byte("view()")},
+	})
+	known := viewed{view: "k", key: workspace.Key{Person: uuid.New(), Project: uuid.New()}, endpoint: workspace.Endpoint{Host: host, Port: number}}
+	return preview.NewOrigin(service, known, func(context.Context, workspace.Key) (bool, error) { return true, nil }), &asked
+}
+
+func TestAnHTMLPageGetsTheSelectionScript(t *testing.T) {
+	origin, asked := decorated(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		io.WriteString(w, "<html><BODY><p>Fresh bread</p></BODY></html>")
+	})
+	answer := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "http://preview.example/v/k/posts/one/", nil)
+	request.Header.Set("Accept-Encoding", "br, zstd")
+	origin.ServeHTTP(answer, request)
+	body := answer.Body.String()
+	want := `<p>Fresh bread</p><script type="module" src="/v/k/__chatcms/select.js" data-app="https://app.example"></script></BODY>`
+	if !strings.Contains(body, want) {
+		t.Errorf("page = %s", body)
+	}
+	if answer.Header().Get("Content-Length") != strconv.Itoa(len(body)) {
+		t.Errorf("Content-Length = %s for %d bytes", answer.Header().Get("Content-Length"), len(body))
+	}
+	if got := (*asked)[0].Get("Accept-Encoding"); strings.Contains(got, "br") || strings.Contains(got, "zstd") {
+		t.Errorf("the workspace was asked for %q", got)
+	}
+}
+
+func TestAPageWithoutABodyGetsTheScriptAtItsEnd(t *testing.T) {
+	origin, _ := decorated(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		io.WriteString(w, "<p>bare")
+	})
+	if body := ask(origin, "/v/k/").Body.String(); !strings.HasPrefix(body, "<p>bare<script ") || !strings.HasSuffix(body, "</script>") {
+		t.Errorf("page = %s", body)
+	}
+}
+
+func TestEverythingElsePassesUnchanged(t *testing.T) {
+	for _, tc := range []struct {
+		kind   string
+		status int
+	}{{"text/css", 200}, {"application/pdf", 200}, {"text/html", 404}} {
+		origin, _ := decorated(t, func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", tc.kind)
+			w.WriteHeader(tc.status)
+			io.WriteString(w, "body{}")
+		})
+		if body := ask(origin, "/v/k/x").Body.String(); body != "body{}" {
+			t.Errorf("%s %d became %q", tc.kind, tc.status, body)
+		}
+	}
+}
+
+func TestTheAssetsAreServedNotProxied(t *testing.T) {
+	origin, asked := decorated(t, func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "from the site") })
+	for path, want := range map[string]string{
+		"/v/k/__chatcms/select.js":          "console.log('select')",
+		"/v/k/__chatcms/pdf/":               `<!doctype html><head><meta name="chatcms-app" content="https://app.example"><title>viewer</title>`,
+		"/v/k/__chatcms/pdf/assets/view.js": "view()",
+	} {
+		answer := ask(origin, path)
+		if answer.Code != http.StatusOK || answer.Body.String() != want {
+			t.Errorf("%s = %d %q", path, answer.Code, answer.Body)
+		}
+	}
+	if answer := ask(origin, "/v/k/__chatcms/nothing.js"); answer.Code != http.StatusNotFound {
+		t.Errorf("a missing asset = %d", answer.Code)
+	}
+	if ct := ask(origin, "/v/k/__chatcms/select.js").Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/javascript") {
+		t.Errorf("select.js Content-Type = %q", ct)
+	}
+	if len(*asked) != 0 {
+		t.Errorf("the workspace was asked %d times", len(*asked))
+	}
+}

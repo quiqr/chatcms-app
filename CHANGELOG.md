@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Previews can come from an origin of their own (`services.chatcms.previewUrl`,
   `CHATCMS_PREVIEW_URL`), away from the app's cookies.
 - The preview pane shows a PDF preview, and offers to open any other result.
+- Select text in the preview to ask the assistant about it; it changes the
+  right page, and the new text lights up when the preview reloads.
+- PDF previews show through PDF.js, selectable and at the same page after a
+  refresh.
 
 ### Changed
 

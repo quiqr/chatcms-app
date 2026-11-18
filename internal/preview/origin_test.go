@@ -41,7 +41,7 @@ func originRig(t *testing.T, allowed bool, check error) (*preview.Origin, *[]str
 	host, port, _ := net.SplitHostPort(strings.TrimPrefix(site.URL, "http://"))
 	number, _ := strconv.Atoi(port)
 	known := viewed{view: "the-key", key: workspace.Key{Person: uuid.New(), Project: uuid.New()}, endpoint: workspace.Endpoint{Host: host, Port: number}}
-	origin := preview.NewOrigin(known, func(ctx context.Context, key workspace.Key) (bool, error) {
+	origin := preview.NewOrigin(nil, known, func(ctx context.Context, key workspace.Key) (bool, error) {
 		if key != known.key {
 			t.Errorf("asked about %v", key)
 		}

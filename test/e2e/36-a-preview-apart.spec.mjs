@@ -2,10 +2,15 @@ import { test, expect, onAPhone } from "./fixtures.mjs";
 
 test.use({ previewApart: true });
 
+const stream = "BT /F1 24 Tf 20 100 Td (Opening hours) Tj ET";
 const pdf = `%PDF-1.4
 1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
 2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
-3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj
+4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
+5 0 obj << /Length ${stream.length} >> stream
+${stream}
+endstream endobj
 trailer << /Root 1 0 R >>
 %%EOF
 `;
@@ -55,12 +60,18 @@ test("a site whose runtime makes a PDF shows the PDF", async ({ signedIn: page, 
   await showThePreview(page, testInfo);
 
   const frame = page.locator('iframe[title="Your site"]');
-  await expect(frame).toHaveAttribute("src", new RegExp(`^${chatcms.previewUrl}/v/[A-Za-z0-9_-]+/report\\.pdf$`), { timeout: 90_000 });
+  await expect(frame).toHaveAttribute("src", new RegExp(`^${chatcms.previewUrl}/v/[A-Za-z0-9_-]+/__chatcms/pdf/\\?file=report\\.pdf$`), { timeout: 90_000 });
 
-  const src = await frame.getAttribute("src");
-  await expect(async () => {
-    const answer = await page.request.get(src);
+  await test.step("PDF.js shows its text, which can be selected", async () => {
+    const viewer = page.frameLocator('iframe[title="Your site"]');
+    await expect(viewer.locator(".textLayer")).toContainText("Opening hours", { timeout: 60_000 });
+  });
+
+  await test.step("the PDF itself comes from the preview", async () => {
+    const src = await frame.getAttribute("src");
+    const file = new URL("../../report.pdf", src).href;
+    const answer = await page.request.get(file);
     expect(answer.status()).toBe(200);
     expect((await answer.body()).subarray(0, 5).toString()).toBe("%PDF-");
-  }).toPass({ timeout: 60_000 });
+  });
 });

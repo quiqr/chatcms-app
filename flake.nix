@@ -48,6 +48,7 @@
           ./web/package-lock.json
           ./web/tsconfig.json
           ./web/vite.config.ts
+          ./web/vite.preview.config.ts
           ./web/vitest.setup.ts
           ./web/index.html
           ./web/src
@@ -62,7 +63,7 @@
         pname = "chatcms-web";
         inherit version;
         src = webSource;
-        npmDepsHash = "sha256-NmOT+1OfEUw4Oj72bI5iSXSQAnjD9p37pvE3efDEmH0=";
+        npmDepsHash = "sha256-sx0r3y4shTHJ3AG1n0SfR0HxtyzmEyhktTbZIbDCHWI=";
 
         nativeBuildInputs = [ pkgs.nodejs_22 ];
 

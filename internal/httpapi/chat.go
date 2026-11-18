@@ -13,12 +13,54 @@ type ChatView struct {
 
 type ChatService interface {
 	Chat(ctx context.Context, actor Actor, organisation, project string) (ChatView, error)
-	Ask(ctx context.Context, actor Actor, organisation, project, text string) error
+	Ask(ctx context.Context, actor Actor, organisation, project, text string, about *ChatSelection) error
 	Listen(ctx context.Context, actor Actor, organisation, project string, emit func(any) error) error
 }
 
+type ChatSelection struct {
+	Text   string `json:"text"`
+	Before string `json:"before"`
+	After  string `json:"after"`
+	Path   string `json:"path"`
+}
+
 type askRequest struct {
-	Text string `json:"text"`
+	Text      string         `json:"text"`
+	Selection *ChatSelection `json:"selection"`
+}
+
+const (
+	mostSelected = 2000
+	mostAround   = 200
+	mostPath     = 1000
+)
+
+func lastRunes(text string, most int) string {
+	runes := []rune(text)
+	if len(runes) <= most {
+		return text
+	}
+	return string(runes[len(runes)-most:])
+}
+
+func firstRunes(text string, most int) string {
+	runes := []rune(text)
+	if len(runes) <= most {
+		return text
+	}
+	return string(runes[:most])
+}
+
+func (s *ChatSelection) bounded() *ChatSelection {
+	if s == nil || s.Text == "" {
+		return nil
+	}
+	return &ChatSelection{
+		Text:   firstRunes(s.Text, mostSelected),
+		Before: lastRunes(s.Before, mostAround),
+		After:  firstRunes(s.After, mostAround),
+		Path:   firstRunes(s.Path, mostPath),
+	}
 }
 
 func chatHandlers(mux *http.ServeMux, service ChatService) {
@@ -39,7 +81,7 @@ func chatHandlers(mux *http.ServeMux, service ChatService) {
 			WriteDecodeError(w, err)
 			return
 		}
-		if err := service.Ask(r.Context(), ActorFrom(r.Context()), r.PathValue("organisation"), r.PathValue("project"), body.Text); err != nil {
+		if err := service.Ask(r.Context(), ActorFrom(r.Context()), r.PathValue("organisation"), r.PathValue("project"), body.Text, body.Selection.bounded()); err != nil {
 			writeTenancyError(w, err)
 			return
 		}

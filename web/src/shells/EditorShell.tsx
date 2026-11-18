@@ -1,5 +1,5 @@
 import { ArrowLeft } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { NavLink } from "react-router";
 
 import { ContentPanel } from "../routes/content/ContentPanel";
@@ -30,6 +30,7 @@ export type EditorShellProps = {
   form: ReactNode;
   preview: ReactNode;
   assistant?: (close: () => void) => ReactNode;
+  openAssistant?: number;
 };
 
 export function EditorShell({
@@ -45,10 +46,17 @@ export function EditorShell({
   form,
   preview,
   assistant,
+  openAssistant = 0,
 }: EditorShellProps) {
   const { organisation } = useHere();
   const [talking, setTalking] = useState(false);
   const [opened, setOpened] = useState(false);
+  useEffect(() => {
+    if (openAssistant > 0) {
+      setOpened(true);
+      setTalking(true);
+    }
+  }, [openAssistant]);
   return (
     <div data-testid="editor-shell" className="flex min-h-dvh flex-wrap">
       <SitePanel project={project} role={project.yourRole} />

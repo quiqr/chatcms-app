@@ -144,7 +144,7 @@ describe("a preview from its own origin", () => {
 
     render(<Preview organisation="technative" project="korenaar" page="posts/one" />);
 
-    expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "https://preview.example/v/k1/report.pdf");
+    expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "https://preview.example/v/k1/__chatcms/pdf/?file=report.pdf");
   });
 
   it("offers to open what it cannot show", async () => {
@@ -155,5 +155,61 @@ describe("a preview from its own origin", () => {
     const link = await screen.findByRole("link", { name: "Open the result" });
     expect(link).toHaveAttribute("href", "https://preview.example/v/k1/book.epub");
     expect(screen.queryByTitle("Your site")).toBeNull();
+  });
+});
+
+describe("selecting in the preview", () => {
+  const address = "https://preview.example/v/k1/";
+
+  async function framed(onSelect = vi.fn(), highlight: { before: string; after: string; id: number } | null = null) {
+    vi.stubGlobal("fetch", server([{ body: { state: "warm", address, type: "web", open: "/" } }]));
+    const view = render(<Preview organisation="technative" project="korenaar" page="posts/one" onSelect={onSelect} highlight={highlight} />);
+    const frame = (await screen.findByTitle("Your site")) as HTMLIFrameElement;
+    const sent = vi.fn();
+    Object.defineProperty(frame, "contentWindow", { value: { postMessage: sent }, configurable: true });
+    return { frame, sent, onSelect, view };
+  }
+
+  function fromFrame(frame: HTMLIFrameElement, data: unknown, origin = "https://preview.example") {
+    window.dispatchEvent(new MessageEvent("message", { data, origin, source: frame.contentWindow as MessageEventSource }));
+  }
+
+  it("answers the frame's hello with the button's label", async () => {
+    const { frame, sent } = await framed();
+    fromFrame(frame, { chatcms: "ready" });
+    expect(sent).toHaveBeenCalledWith({ chatcms: "setup", label: "Ask the assistant about this" }, "https://preview.example");
+  });
+
+  it("passes a selection on, with the address inside the preview", async () => {
+    const { frame, onSelect } = await framed();
+    fromFrame(frame, { chatcms: "selection", text: "Fresh bread", before: "Korenaar ", after: ".", path: "/v/k1/posts/one/" });
+    expect(onSelect).toHaveBeenCalledWith({ text: "Fresh bread", before: "Korenaar ", after: ".", path: "/posts/one/" });
+  });
+
+  it("ignores a message from another origin or another window", async () => {
+    const { frame, onSelect } = await framed();
+    fromFrame(frame, { chatcms: "selection", text: "x", before: "", after: "", path: "/" }, "https://elsewhere.example");
+    window.dispatchEvent(
+      new MessageEvent("message", { data: { chatcms: "selection", text: "x", before: "", after: "", path: "/" }, origin: "https://preview.example", source: window }),
+    );
+    fromFrame(frame, { chatcms: "selection", text: 3 });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("asks each reload shortly after the change to highlight it", async () => {
+    const { frame, sent } = await framed(vi.fn(), { before: "Korenaar ", after: ".", id: Date.now() });
+    fromFrame(frame, { chatcms: "ready" });
+    fromFrame(frame, { chatcms: "ready" });
+    const highlights = sent.mock.calls.filter(([data]) => (data as { chatcms: string }).chatcms === "highlight");
+    expect(highlights).toEqual([
+      [{ chatcms: "highlight", before: "Korenaar ", after: "." }, "https://preview.example"],
+      [{ chatcms: "highlight", before: "Korenaar ", after: "." }, "https://preview.example"],
+    ]);
+  });
+
+  it("does not highlight an old change", async () => {
+    const { frame, sent } = await framed(vi.fn(), { before: "Korenaar ", after: ".", id: Date.now() - 60_000 });
+    fromFrame(frame, { chatcms: "ready" });
+    expect(sent.mock.calls.some(([data]) => (data as { chatcms: string }).chatcms === "highlight")).toBe(false);
   });
 });

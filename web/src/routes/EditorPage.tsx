@@ -4,7 +4,7 @@ import { NavLink, useParams } from "react-router";
 
 import { Button } from "../components/ui/button";
 import { Segmented } from "../components/ui/segmented";
-import { readProject } from "../lib/tenancy";
+import { readProject, type PreviewSelection } from "../lib/tenancy";
 import { useAsync } from "../lib/useAsync";
 import { EditorShell, type EditorLayout } from "../shells/EditorShell";
 import { PhoneShell } from "../shells/PhoneShell";
@@ -29,6 +29,9 @@ export function EditorPage() {
   const [chatted, setChatted] = useState(false);
   const [showing, setShowing] = useState<"edit" | "preview">("edit");
   const [opened, setOpened] = useState<{ title: string; section: string } | null>(null);
+  const [quote, setQuote] = useState<PreviewSelection | null>(null);
+  const [highlight, setHighlight] = useState<{ before: string; after: string; id: number } | null>(null);
+  const [asked, setAsked] = useState(0);
   const onAPhone = useIsPhone();
   const place = usePlace(organisation, slug ?? "", page);
   useStartWorkspace(organisation, slug ?? "");
@@ -38,6 +41,18 @@ export function EditorPage() {
   }
 
   const project = loaded.value;
+
+  const changed = (about?: PreviewSelection) => {
+    setChanges((count) => count + 1);
+    if (about) setHighlight({ before: about.before, after: about.after, id: Date.now() });
+  };
+
+  const select = (selection: PreviewSelection) => {
+    setQuote(selection);
+    setAsked((count) => count + 1);
+    setChatted(true);
+    setTalking(true);
+  };
 
   if (!onAPhone) {
     return (
@@ -52,6 +67,7 @@ export function EditorPage() {
           stepper={<Stepper place={place} />}
           layout={layout}
           onLayoutChange={setLayout}
+          openAssistant={asked}
           form={
             <PageEditor
               key={changes}
@@ -61,12 +77,14 @@ export function EditorPage() {
               onSaved={() => setSaves((count) => count + 1)}
             />
           }
-          preview={<Preview organisation={organisation} project={slug ?? ""} page={page} showAgain={saves + changes} />}
+          preview={<Preview organisation={organisation} project={slug ?? ""} page={page} showAgain={saves + changes} onSelect={select} highlight={highlight} />}
           assistant={(close) => (
             <ChatPanel
               organisation={organisation}
               project={slug ?? ""}
-              onChanged={() => setChanges((count) => count + 1)}
+              onChanged={changed}
+              quote={quote}
+              onQuoteDropped={() => setQuote(null)}
               onClose={close}
             />
           )}
@@ -124,7 +142,9 @@ export function EditorPage() {
             <ChatPanel
               organisation={organisation}
               project={slug ?? ""}
-              onChanged={() => setChanges((count) => count + 1)}
+              onChanged={changed}
+              quote={quote}
+              onQuoteDropped={() => setQuote(null)}
               onClose={() => setTalking(false)}
             />
           </div>
@@ -144,6 +164,8 @@ export function EditorPage() {
               project={slug ?? ""}
               page={page}
               showAgain={saves + changes}
+              onSelect={select}
+              highlight={highlight}
             />
           </div>
         )}

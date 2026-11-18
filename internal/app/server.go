@@ -81,6 +81,7 @@ type Server struct {
 	aiMux         *http.ServeMux
 	chat          *assistant.Chat
 	chatWeb       *assistant.Web
+	sandbox       runner.Runner
 	previewOrigin *preview.Origin
 }
 
@@ -451,15 +452,26 @@ func (s *Server) startContent(ctx context.Context, tenancyStore *tenancy.Store) 
 	if err != nil {
 		return err
 	}
+	if assets, err := fs.Sub(webui.FS(), "__chatcms"); err == nil {
+		previewing.ServeAssets(assets)
+	}
 	if s.cfg.PreviewURL != "" {
 		previewing.ServeFrom(s.cfg.PreviewURL)
 		allowed := mayStillUse(sources.publishSources, tenancyStore)
-		s.previewOrigin = preview.NewOrigin(s.workspaces, allowed)
+		s.previewOrigin = preview.NewOrigin(previewing, s.workspaces, allowed)
 	}
 
 	s.chatWeb = assistant.NewWeb(s.chat, tenancyStore, func(organisation, project string) string {
 		return previewing.Under(httpapi.PreviewPrefix + organisation + "/" + project + "/")
 	})
+	if s.sandbox != nil {
+		s.chatWeb.Locating(pageLocator{
+			dir:       workspaceCopies{sites: s.sites}.Dir,
+			runtimeOf: s.projectHugo().Runtime,
+			runner:    s.sandbox,
+			memory:    s.cfg.BuildMemory,
+		}, s.logger)
+	}
 
 	s.preview, err = preview.NewWeb(previewing, tenancyStore)
 	return err
@@ -488,6 +500,8 @@ func (s *Server) startBuilds(ctx context.Context) error {
 		s.logger.Warn("builds are unavailable because they cannot be isolated on this machine", "reason", err)
 		return nil
 	}
+
+	s.sandbox = sandbox
 
 	builder, err := sitebuild.New(sandbox, s.cfg.HugoBin, sitebuild.Limits{
 		Timeout:     s.cfg.BuildTimeout,

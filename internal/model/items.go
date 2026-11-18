@@ -267,3 +267,34 @@ func FindItem(fsys fs.FS, c Collection, key string) (Item, bool) {
 	}
 	return Item{}, false
 }
+
+func (m *Model) KeyOf(file string) string {
+	if m == nil {
+		return ""
+	}
+	file = path.Clean(strings.TrimPrefix(file, "/"))
+	for _, single := range m.Singles {
+		if path.Clean(strings.TrimPrefix(single.File, "/")) == file {
+			return single.Key
+		}
+	}
+	best, key := "", ""
+	for _, c := range m.Collections {
+		root := c.Root()
+		if root == "" || root == "." || root == "/" || len(root) <= len(best) {
+			continue
+		}
+		rel, found := strings.CutPrefix(file, root+"/")
+		if !found {
+			continue
+		}
+		name := path.Base(rel)
+		stem := strings.TrimSuffix(name, path.Ext(name))
+		item := strings.TrimSuffix(rel, path.Ext(rel))
+		if c.contentStyle() && stem == "index" && strings.Contains(rel, "/") {
+			item = path.Dir(rel)
+		}
+		best, key = root, c.Key+"/"+item
+	}
+	return key
+}

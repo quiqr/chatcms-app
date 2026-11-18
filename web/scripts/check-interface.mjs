@@ -84,7 +84,9 @@ for (const path of sources(sourceDir)) {
 
   // Rule one: no colour written by hand, anywhere in the interface.
   const everyLine = text.split("\n");
+  const insideTheSite = name.startsWith(join("src", "preview"));
   for (const [index, line] of everyLine.entries()) {
+    if (insideTheSite) break;
     if (line.includes(AUDIENCE_MARKER)) continue;
     if (index > 0 && everyLine[index - 1].includes(CONTENT_COLOUR_MARKER)) continue;
     const match = line.match(COLOUR);

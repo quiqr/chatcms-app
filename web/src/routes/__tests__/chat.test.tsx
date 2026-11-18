@@ -66,6 +66,7 @@ describe("the assistant panel", () => {
 
     const message = await screen.findByRole("textbox", { name: "Your message" });
     await waitFor(() => expect(FakeSource.last?.url).toBe(`${base}/chat/events`));
+    FakeSource.last!.say({ type: "ready" });
     await userEvent.type(message, "Change the title{Enter}");
 
     await waitFor(() => expect(sent.some((call) => call.method === "POST" && call.path === `${base}/chat`)).toBe(true));
@@ -86,6 +87,7 @@ describe("the assistant panel", () => {
     vi.stubGlobal("fetch", server(true, sent));
     panel(changed);
     await waitFor(() => expect(FakeSource.last).not.toBeNull());
+    FakeSource.last!.say({ type: "ready" });
 
     FakeSource.last!.say({ type: "change", change: { page: "home", title: "Home page", before: "v1", after: "v2" } });
     expect(await screen.findByText("Changed Home page")).toBeInTheDocument();
@@ -104,6 +106,7 @@ describe("the assistant panel", () => {
     vi.stubGlobal("fetch", server(true));
     panel();
     await waitFor(() => expect(FakeSource.last).not.toBeNull());
+    FakeSource.last!.say({ type: "ready" });
     FakeSource.last!.say({ type: "error", message: "this organisation has used its AI budget" });
     expect(await screen.findByRole("alert")).toHaveTextContent("used its AI budget");
   });
@@ -112,7 +115,76 @@ describe("the assistant panel", () => {
     vi.stubGlobal("fetch", server(true));
     const { container } = panel();
     await waitFor(() => expect(FakeSource.last).not.toBeNull());
+    FakeSource.last!.say({ type: "ready" });
     FakeSource.last!.say({ type: "change", change: { page: "home", title: "Home page", before: "v1", after: "v2" } });
     expect(container.textContent).not.toMatch(/commit|branch|push|pull|merge|repository|conflict/i);
   });
+});
+
+describe("a quote from the preview", () => {
+  const quote = { text: "Fresh bread every morning", before: "Korenaar ", after: ", baked daily.", path: "/posts/one/" };
+
+  it("is shown, sent with the message, and given back with the change", async () => {
+    const sent: { method: string; path: string; body: unknown }[] = [];
+    vi.stubGlobal("fetch", server(true, sent));
+    const onChanged = vi.fn();
+    const dropped = vi.fn();
+    render(
+      <MemoryRouter>
+        <ChatPanel organisation="technative" project="korenaar" onChanged={onChanged} quote={quote} onQuoteDropped={dropped} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByLabelText("About this part of the page")).toHaveTextContent("Fresh bread every morning");
+    const message = screen.getByRole("textbox", { name: "Your message" });
+    expect(message).toHaveAttribute("placeholder", "What should change here?");
+    await waitFor(() => expect(FakeSource.last).not.toBeNull());
+    FakeSource.last!.say({ type: "ready" });
+    await userEvent.type(message, "Make it shorter{Enter}");
+
+    await waitFor(() => expect(sent.some((one) => one.method === "POST")).toBe(true));
+    expect(sent.find((one) => one.method === "POST")!.body).toEqual({ text: "Make it shorter", selection: quote });
+    expect(dropped).toHaveBeenCalled();
+
+    FakeSource.last!.say({ type: "change", change: { page: "posts/one", title: "One", before: "a", after: "b" } });
+    expect(onChanged).toHaveBeenCalledWith(quote);
+  });
+
+  it("can be left out", async () => {
+    vi.stubGlobal("fetch", server(true));
+    const dropped = vi.fn();
+    render(
+      <MemoryRouter>
+        <ChatPanel organisation="technative" project="korenaar" onChanged={() => undefined} quote={quote} onQuoteDropped={dropped} />
+      </MemoryRouter>,
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "Leave out the quote" }));
+    expect(dropped).toHaveBeenCalled();
+  });
+
+  it("is not sent once it is gone", async () => {
+    const sent: { method: string; path: string; body: unknown }[] = [];
+    vi.stubGlobal("fetch", server(true, sent));
+    panel();
+    const message = await screen.findByRole("textbox", { name: "Your message" });
+    await waitFor(() => expect(FakeSource.last).not.toBeNull());
+    FakeSource.last!.say({ type: "ready" });
+    await userEvent.type(message, "Change the title{Enter}");
+    await waitFor(() => expect(sent.some((one) => one.method === "POST")).toBe(true));
+    expect(sent.find((one) => one.method === "POST")!.body).toEqual({ text: "Change the title" });
+  });
+});
+
+it("holds a message until the assistant is listening", async () => {
+  const sent: { method: string; path: string; body: unknown }[] = [];
+  vi.stubGlobal("fetch", server(true, sent));
+  panel();
+  const message = await screen.findByRole("textbox", { name: "Your message" });
+  await waitFor(() => expect(FakeSource.last).not.toBeNull());
+  await userEvent.type(message, "Early{Enter}");
+  expect(sent.some((one) => one.method === "POST")).toBe(false);
+
+  FakeSource.last!.say({ type: "ready" });
+  await waitFor(() => expect(sent.some((one) => one.method === "POST")).toBe(true));
+  expect(sent.find((one) => one.method === "POST")!.body).toEqual({ text: "Early" });
 });
