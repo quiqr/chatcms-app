@@ -148,7 +148,7 @@ func (s *Service) Items(ctx context.Context, actor policy.Actor, projectID uuid.
 		return Listing{}, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return Listing{}, err
 	}

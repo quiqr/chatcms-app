@@ -114,7 +114,7 @@ type sources struct {
 	closed int
 }
 
-func (s *sources) Site(ctx context.Context, projectID uuid.UUID) (content.Site, func() error, error) {
+func (s *sources) Site(ctx context.Context, personID string, projectID uuid.UUID) (content.Site, func() error, error) {
 	return s.site, func() error { s.closed++; return nil }, nil
 }
 
@@ -128,7 +128,7 @@ func (s *sources) Who(ctx context.Context, personID uuid.UUID) (gitsync.Identity
 
 type syncer struct{ asked int }
 
-func (s *syncer) SyncSoon(ctx context.Context, projectID uuid.UUID) error {
+func (s *syncer) SyncSoon(ctx context.Context, personID string, projectID uuid.UUID) error {
 	s.asked++
 	return nil
 }

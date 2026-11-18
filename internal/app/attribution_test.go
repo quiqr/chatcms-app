@@ -85,3 +85,12 @@ func TestActingAsSomebodyElseDoesNotRenameAThirdPerson(t *testing.T) {
 		t.Errorf("the author reads %q, want Sam", wrote.Name)
 	}
 }
+
+func TestSomebodyWithoutANameIsWrittenByTheirAddress(t *testing.T) {
+	marieke := auth.Person{ID: uuid.New(), Email: "marieke@korenaar.example"}
+
+	wrote := whoWrote(t.Context(), marieke)
+	if wrote.Name != marieke.Email || wrote.Email != marieke.Email {
+		t.Errorf("the author is %+v, want the address as the name", wrote)
+	}
+}

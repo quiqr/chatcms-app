@@ -48,7 +48,7 @@ type versionedSources struct {
 	site *versionedSite
 }
 
-func (s *versionedSources) Site(ctx context.Context, projectID uuid.UUID) (content.Site, func() error, error) {
+func (s *versionedSources) Site(ctx context.Context, personID string, projectID uuid.UUID) (content.Site, func() error, error) {
 	return s.site, func() error { return nil }, nil
 }
 

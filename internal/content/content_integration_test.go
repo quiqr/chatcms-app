@@ -199,7 +199,7 @@ func (s aWholeSite) Model() (*model.Model, error) {
 	return model.Decode(assembly)
 }
 
-func (s theSources) Site(ctx context.Context, projectID uuid.UUID) (content.Site, func() error, error) {
+func (s theSources) Site(ctx context.Context, personID string, projectID uuid.UUID) (content.Site, func() error, error) {
 	repository, err := s.sites.Open(ctx, projectID.String())
 	if err != nil {
 		return nil, nil, err

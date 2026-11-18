@@ -149,3 +149,15 @@ type TemplateFeed struct {
 	Templates []byte             `json:"templates"`
 	FetchedAt pgtype.Timestamptz `json:"fetched_at"`
 }
+
+type Workspace struct {
+	ID         pgtype.UUID        `json:"id"`
+	PersonID   pgtype.UUID        `json:"person_id"`
+	ProjectID  pgtype.UUID        `json:"project_id"`
+	Backend    string             `json:"backend"`
+	State      string             `json:"state"`
+	Handle     string             `json:"handle"`
+	Reason     string             `json:"reason"`
+	LastUsedAt pgtype.Timestamptz `json:"last_used_at"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}

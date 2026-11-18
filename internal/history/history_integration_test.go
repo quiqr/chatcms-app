@@ -231,7 +231,7 @@ func (s theSources) open(ctx context.Context, projectID uuid.UUID) (theSite, fun
 	return theSite{Repo: repository}, repository.Close, nil
 }
 
-func (s theSources) Site(ctx context.Context, projectID uuid.UUID) (history.Site, func() error, error) {
+func (s theSources) Site(ctx context.Context, personID string, projectID uuid.UUID) (history.Site, func() error, error) {
 	site, done, err := s.open(ctx, projectID)
 	return site, done, err
 }
@@ -564,4 +564,8 @@ func TestGoingBackToWhereTheSiteAlreadyIsIsRefusedKindly(t *testing.T) {
 	if !strings.Contains(err.Error(), "already") {
 		t.Errorf("the refusal says %q, want it to say why", err)
 	}
+}
+
+func (s theSources) Share(ctx context.Context, personID string, projectID uuid.UUID) error {
+	return nil
 }

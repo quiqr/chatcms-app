@@ -26,7 +26,7 @@ type Site interface {
 
 // Sources opens a project's site, says what a person may do, and who they are.
 type Sources interface {
-	Site(ctx context.Context, projectID uuid.UUID) (Site, func() error, error)
+	Site(ctx context.Context, personID string, projectID uuid.UUID) (Site, func() error, error)
 	Resource(ctx context.Context, projectID uuid.UUID) (policy.Resource, error)
 	Who(ctx context.Context, personID uuid.UUID) (gitsync.Identity, error)
 }
@@ -34,7 +34,7 @@ type Sources interface {
 // Syncer is told the site changed, so a picture reaches the remote without
 // anybody waiting.
 type Syncer interface {
-	SyncSoon(ctx context.Context, projectID uuid.UUID) error
+	SyncSoon(ctx context.Context, personID string, projectID uuid.UUID) error
 }
 
 var ErrIncomplete = errors.New("media: the library is missing a part it needs")
@@ -58,7 +58,7 @@ func (l *Library) List(ctx context.Context, actor policy.Actor, projectID uuid.U
 		return nil, err
 	}
 
-	site, done, err := l.sources.Site(ctx, projectID)
+	site, done, err := l.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (l *Library) Add(ctx context.Context, actor policy.Actor, projectID uuid.UU
 		}
 	}
 
-	site, done, err := l.sources.Site(ctx, projectID)
+	site, done, err := l.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return Image{}, err
 	}
@@ -162,7 +162,7 @@ func (l *Library) Add(ctx context.Context, actor policy.Actor, projectID uuid.UU
 		return Image{}, err
 	}
 
-	l.syncSoon(ctx, projectID)
+	l.syncSoon(ctx, actor, projectID)
 	return Image{Path: where, Name: name, Size: int64(len(content)), By: who.Name}, nil
 }
 
@@ -204,7 +204,7 @@ func (l *Library) Describe(ctx context.Context, actor policy.Actor, projectID uu
 		return Image{}, err
 	}
 
-	site, done, err := l.sources.Site(ctx, projectID)
+	site, done, err := l.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return Image{}, err
 	}
@@ -235,7 +235,7 @@ func (l *Library) Describe(ctx context.Context, actor policy.Actor, projectID uu
 		return Image{}, err
 	}
 
-	l.syncSoon(ctx, projectID)
+	l.syncSoon(ctx, actor, projectID)
 	for _, picture := range l.pictures(ctx, site) {
 		if picture.Name == name {
 			return picture, nil
@@ -255,7 +255,7 @@ func (l *Library) Remove(ctx context.Context, actor policy.Actor, projectID uuid
 		return err
 	}
 
-	site, done, err := l.sources.Site(ctx, projectID)
+	site, done, err := l.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return err
 	}
@@ -301,7 +301,7 @@ func (l *Library) Remove(ctx context.Context, actor policy.Actor, projectID uuid
 		return err
 	}
 
-	l.syncSoon(ctx, projectID)
+	l.syncSoon(ctx, actor, projectID)
 	return nil
 }
 
@@ -321,7 +321,7 @@ func (l *Library) Read(ctx context.Context, actor policy.Actor, projectID uuid.U
 		return nil, "", err
 	}
 
-	site, done, err := l.sources.Site(ctx, projectID)
+	site, done, err := l.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return nil, "", err
 	}
@@ -350,11 +350,11 @@ func checkName(name string) error {
 	return nil
 }
 
-func (l *Library) syncSoon(ctx context.Context, projectID uuid.UUID) {
+func (l *Library) syncSoon(ctx context.Context, actor policy.Actor, projectID uuid.UUID) {
 	if l.sync == nil {
 		return
 	}
-	_ = l.sync.SyncSoon(ctx, projectID)
+	_ = l.sync.SyncSoon(ctx, actor.PersonID, projectID)
 }
 
 func (l *Library) who(ctx context.Context, actor policy.Actor) (gitsync.Identity, error) {

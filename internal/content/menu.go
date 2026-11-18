@@ -52,7 +52,7 @@ func (s *Service) Menu(ctx context.Context, actor policy.Actor, projectID uuid.U
 		return Menu{}, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return Menu{}, err
 	}
@@ -175,7 +175,7 @@ func (s *Service) Search(ctx context.Context, actor policy.Actor, projectID uuid
 		return []FoundGroup{}, nil
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return nil, err
 	}

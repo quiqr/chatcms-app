@@ -27,7 +27,7 @@ type Site interface {
 // Sources opens a project's site, says what a person may do with it, and who
 // they are.
 type Sources interface {
-	Site(ctx context.Context, projectID uuid.UUID) (Site, func() error, error)
+	Site(ctx context.Context, personID string, projectID uuid.UUID) (Site, func() error, error)
 	Resource(ctx context.Context, projectID uuid.UUID) (policy.Resource, error)
 	Who(ctx context.Context, personID uuid.UUID) (gitsync.Identity, error)
 }
@@ -35,7 +35,7 @@ type Sources interface {
 // Syncer is told that a site changed, so that the change reaches the remote
 // without anybody waiting for it.
 type Syncer interface {
-	SyncSoon(ctx context.Context, projectID uuid.UUID) error
+	SyncSoon(ctx context.Context, personID string, projectID uuid.UUID) error
 }
 
 var (
@@ -77,7 +77,7 @@ func (s *Service) Read(ctx context.Context, actor policy.Actor, projectID uuid.U
 		return Editable{}, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return Editable{}, err
 	}
@@ -163,7 +163,7 @@ func (s *Service) Save(ctx context.Context, actor policy.Actor, projectID uuid.U
 		return Editable{}, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return Editable{}, err
 	}
@@ -221,7 +221,7 @@ func (s *Service) Save(ctx context.Context, actor policy.Actor, projectID uuid.U
 		return Editable{}, err
 	}
 
-	s.syncSoon(ctx, projectID)
+	s.syncSoon(ctx, actor, projectID)
 	return s.after(ctx, site, key)
 }
 
@@ -249,13 +249,13 @@ func unwritable(err error) string {
 	return err.Error()
 }
 
-func (s *Service) syncSoon(ctx context.Context, projectID uuid.UUID) {
+func (s *Service) syncSoon(ctx context.Context, actor policy.Actor, projectID uuid.UUID) {
 	if s.sync == nil {
 		return
 	}
 	// A failure to queue is not a failure to save. The edit is already a
 	// version; the next sync will carry it.
-	_ = s.sync.SyncSoon(ctx, projectID)
+	_ = s.sync.SyncSoon(ctx, actor.PersonID, projectID)
 }
 
 func (s *Service) who(ctx context.Context, actor policy.Actor) (gitsync.Identity, error) {

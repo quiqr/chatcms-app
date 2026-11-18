@@ -607,3 +607,7 @@ func TestAKeptSiteIsNotPublishedUntilConnected(t *testing.T) {
 		t.Errorf("State = %q, want succeeded", record.State)
 	}
 }
+
+func (s theSources) Share(ctx context.Context, personID string, projectID uuid.UUID) error {
+	return nil
+}

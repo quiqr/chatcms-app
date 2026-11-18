@@ -5,6 +5,7 @@ import { readProject } from "../lib/tenancy";
 import { useHere } from "../lib/whoami";
 import { PhoneShell } from "../shells/PhoneShell";
 import { ProjectShell } from "../shells/ProjectShell";
+import { useStartWorkspace } from "../lib/workspace";
 import { useIsPhone } from "../shells/useIsPhone";
 import { Placeholder } from "./Placeholder";
 
@@ -25,6 +26,7 @@ export function ProjectPage({
   const { organisation, who } = useHere();
   const { project: slug = "" } = useParams();
   const onAPhone = useIsPhone();
+  useStartWorkspace(organisation, slug);
 
   // The project comes from the server. It used to come from the demo
   // scaffold, which is how the count on the Publish button came to disagree

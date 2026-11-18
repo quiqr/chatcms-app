@@ -29,7 +29,8 @@ projection: a cached, rebuildable view in Postgres of something git owns.
 | `internal/secrets`     | Encryption at rest, and generating deploy keys. The thing a hardware key store would replace |
 | `internal/onboarding`  | Bringing a customer's site in, its key, and where it publishes                |
 | `internal/redact`      | Removing credential-shaped text before it is logged, stored or shown          |
-| `internal/preview`     | A Hugo server per site, reached through the app, stopped when nobody looks    |
+| `internal/preview`     | A person's preview, reached through the app, proxied to their workspace       |
+| `internal/workspace`   | A workspace per person per project: lifecycle, limits, and the backend seam   |
 | `internal/runner`      | Sandboxed build execution behind an interface                                 |
 | `internal/sitebuild`   | Running the pinned Hugo over a site, through a runner                         |
 | `internal/builds`      | What is remembered about every build, and the state it ended in               |
@@ -67,6 +68,28 @@ knowing what the identifier is. The cost is that a git-specific capability
 that does not fit cannot be reached from outside; when one is genuinely
 needed, it is added as a method in this vocabulary rather than by handing out
 the repository path.
+
+Every person has their own copy of a site, at
+`<sites>/<project>/people/<person>/working-copy`, cloned from the shared copy
+at `<sites>/<project>/working-copy`. The shared copy is the person's copy's
+remote, so the exchange that brings a site level with its remote is the same
+one that brings a person's saves into the shared version: replay on top, then
+send, with the same per-field questions when two people changed the same
+thing. The shared copy accepts sends with `receive.denyCurrentBranch=updateInstead`
+and is never written by people directly. Only the shared copy reaches the
+site's remote and needs its key. `Sites.OpenFor`, `Sites.Share`,
+`Sites.Unshared` and `Sites.RemoveFor` say this in sites and people; no branch
+name or path leaves the package.
+
+**`internal/workspace.Workspaces`** gives each person their own workspace per
+project, asked for by (person, project) and answered with an address. It owns
+the lifecycle (starting, warm, sleeping), the limit on how many run, the idle
+sweep, the hourly cleanup, the startup steps and their log, and the reconcile
+on start-up; the state lives in the `workspaces` table. Where a workspace runs
+is a `Backend`: `internal/workspace/local` runs Hugo on this machine, and a
+micro VM or gVisor backend replaces it without a change outside the package.
+A backend says whether its workspaces run apart from the app; the local
+backend's do not, so they stop when the app stops.
 
 **`internal/runner.Runner`** executes a build in isolation. Milestone 1 ships a
 bubblewrap implementation. Firecracker micro virtual machines replace it
@@ -132,16 +155,16 @@ the thumbnail directory a cache in the strict sense: a changed picture gets a
 new name by itself, and deleting the whole directory costs only the work of
 making them again from the site in git.
 
-**`internal/preview`** runs a Hugo server per site. It binds this machine only
-and is reached through the app's own address, because the app is what asks who
+**`internal/preview`** answers a request for a person's preview. It checks
+the policy, asks the workspace manager for the person's workspace and proxies
+to it, live reload included. The workspace binds this machine only and is
+reached through the app's own address, because the app is what asks who
 somebody is: a preview listening on its own would be a customer's unpublished
 work with no sign-in in front of it.
 
-Nothing tells a preview to rebuild. Hugo watches the working copy that saving
+Nothing tells a preview to rebuild. Hugo watches the person's copy that saving
 writes to, so a change appears by itself; the test waits for it rather than
-sleeping for a guess. Previews are swept by one loop rather than a timer each,
-and the sweeper asks a function for the time so that a quarter of an hour of
-idleness can be tested in milliseconds.
+sleeping for a guess.
 
 **`internal/sitesync`** turns what the repository engine reports into
 something a content creator can act on. The engine answers in files; this
@@ -318,9 +341,12 @@ HTTP request
 ```
 
 A write to content is: validate against the model, write the file in the
-working copy, auto-commit through `gitsync`, queue a sync job. The user sees
-"saved" when the working copy write succeeds, not when the push lands. The sync
-indicator reports the rest.
+person's copy, auto-commit through `gitsync`, queue a `site-share` job. That
+job brings the person's saves into the shared version and then queues the
+`site-sync` of the shared copy with the remote. The user sees "saved" when the
+write to their copy succeeds, not when it reaches the shared version or the
+remote. The sync indicator reports the rest. Publishing shares the
+publisher's copy first, and refuses while a question about it waits.
 
 ## Frontend
 

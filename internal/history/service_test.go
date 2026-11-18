@@ -87,7 +87,7 @@ type sources struct {
 	who    gitsync.Identity
 }
 
-func (s *sources) Site(ctx context.Context, projectID uuid.UUID) (history.Site, func() error, error) {
+func (s *sources) Site(ctx context.Context, personID string, projectID uuid.UUID) (history.Site, func() error, error) {
 	return s.site, func() error { s.closed++; return nil }, nil
 }
 

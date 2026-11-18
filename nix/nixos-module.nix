@@ -231,6 +231,21 @@ in
       '';
     };
 
+    workspaceIdle = lib.mkOption {
+      type = lib.types.str;
+      default = "15m";
+      description = "How long a workspace nobody uses is kept warm before it sleeps.";
+    };
+
+    workspacesAtOnce = lib.mkOption {
+      type = lib.types.ints.positive;
+      default = 8;
+      description = ''
+        How many workspaces may be starting or warm at once. Each one runs a
+        preview of one person's copy of a site.
+      '';
+    };
+
     extraEnvironment = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
       default = { };
@@ -302,6 +317,8 @@ in
           lib.concatStringsSep ":" (map (tool: "${tool}/bin") cfg.workflowTools);
         CHATCMS_CHECK_TIMEOUT = cfg.checkTimeout;
         CHATCMS_CHECK_MEMORY = cfg.checkMemory;
+        CHATCMS_WORKSPACE_IDLE = cfg.workspaceIdle;
+        CHATCMS_WORKSPACES_AT_ONCE = toString cfg.workspacesAtOnce;
         CHATCMS_TEMPLATE_FEED = if cfg.templateFeed == null then "off" else cfg.templateFeed;
       } // lib.optionalAttrs (cfg.firstAdministrator != null) {
         CHATCMS_FIRST_ADMINISTRATOR = cfg.firstAdministrator;

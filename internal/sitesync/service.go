@@ -28,7 +28,7 @@ type Site interface {
 
 // Sources opens a project's site and says what a person may do with it.
 type Sources interface {
-	Site(ctx context.Context, projectID uuid.UUID) (Site, func() error, error)
+	Site(ctx context.Context, personID string, projectID uuid.UUID) (Site, func() error, error)
 	Resource(ctx context.Context, projectID uuid.UUID) (policy.Resource, error)
 	// Technical says where a site keeps its work, for somebody allowed to see
 	// such things. Nobody else is ever shown it.
@@ -93,7 +93,7 @@ func (s *Service) Standing(ctx context.Context, actor policy.Actor, projectID uu
 		return Standing{}, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return Standing{}, err
 	}
@@ -123,7 +123,7 @@ func (s *Service) Bring(ctx context.Context, actor policy.Actor, projectID uuid.
 		return Standing{}, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return Standing{}, err
 	}
@@ -210,7 +210,7 @@ func (s *Service) Answered(ctx context.Context, actor policy.Actor, projectID uu
 		return Standing{}, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return Standing{}, err
 	}
@@ -314,7 +314,7 @@ func (s *Service) Abandon(ctx context.Context, actor policy.Actor, projectID uui
 		return Standing{}, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return Standing{}, err
 	}

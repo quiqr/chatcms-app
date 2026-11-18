@@ -30,7 +30,7 @@ type Site interface {
 
 // Sources opens a project's site and says what a person may do with it.
 type Sources interface {
-	Site(ctx context.Context, projectID uuid.UUID) (Site, func() error, error)
+	Site(ctx context.Context, personID string, projectID uuid.UUID) (Site, func() error, error)
 	Resource(ctx context.Context, projectID uuid.UUID) (policy.Resource, error)
 	// Notes is what people wrote when they published, by the version each
 	// publish put live.
@@ -72,7 +72,7 @@ func (s *Service) Timeline(ctx context.Context, actor policy.Actor, projectID uu
 		return Timeline{}, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return Timeline{}, err
 	}
@@ -109,7 +109,7 @@ func (s *Service) Contents(ctx context.Context, actor policy.Actor, projectID uu
 		return publish.Summary{}, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return publish.Summary{}, err
 	}
@@ -157,7 +157,7 @@ func (s *Service) AsItWas(ctx context.Context, actor policy.Actor, projectID uui
 		return nil, nil, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -189,7 +189,7 @@ func (s *Service) Before(ctx context.Context, actor policy.Actor, projectID uuid
 		return Warning{}, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return Warning{}, err
 	}
@@ -252,7 +252,7 @@ func (s *Service) GoBackTo(
 		return Result{}, err
 	}
 
-	made, err := s.goBack(ctx, projectID, version, who, "Go back to: "+warning.Title)
+	made, err := s.goBack(ctx, actor, projectID, version, who, "Go back to: "+warning.Title)
 	if err != nil {
 		return Result{}, err
 	}
@@ -270,8 +270,8 @@ func (s *Service) GoBackTo(
 	return result, nil
 }
 
-func (s *Service) goBack(ctx context.Context, projectID uuid.UUID, version string, who gitsync.Identity, message string) (gitsync.Version, error) {
-	site, done, err := s.sources.Site(ctx, projectID)
+func (s *Service) goBack(ctx context.Context, actor policy.Actor, projectID uuid.UUID, version string, who gitsync.Identity, message string) (gitsync.Version, error) {
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return gitsync.Version{}, err
 	}

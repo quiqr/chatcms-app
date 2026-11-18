@@ -62,7 +62,8 @@ type Options struct {
 	// Sync serves how a site stands and settling what two people changed.
 	Sync SyncService
 	// Preview serves a site as a reader will see it.
-	Preview PreviewService
+	Preview   PreviewService
+	Workspace WorkspaceService
 }
 
 func New(opts Options) http.Handler {
@@ -271,6 +272,13 @@ func New(opts Options) http.Handler {
 
 	if opts.Preview != nil {
 		mux.Handle(PreviewPrefix, RequireActor(previewHandler(opts.Preview)))
+	}
+
+	if opts.Workspace != nil {
+		base := "/api/organisations/{organisation}/projects/{project}/workspace"
+		mux.Handle("GET "+base, RequireActor(workspaceStandingHandler(opts.Workspace)))
+		mux.Handle("POST "+base, RequireActor(openWorkspaceHandler(opts.Workspace)))
+		mux.HandleFunc(base, MethodNotAllowed)
 	}
 
 	mux.HandleFunc("/api/", NotFound)

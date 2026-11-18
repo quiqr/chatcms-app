@@ -297,7 +297,7 @@ func (r *repo) collectConflict(ctx context.Context) (*Conflict, error) {
 // because it is the version the rest of the working copy is consistent with.
 func (r *repo) writeCleanContent(path string, remote, local []byte) error {
 	contents := remote
-	if contents == nil {
+	if contents == nil || (r.ownFirst && local != nil) {
 		contents = local
 	}
 

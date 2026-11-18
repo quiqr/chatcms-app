@@ -6,6 +6,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Everyone edits their own copy of a site, with a preview of their own; two
+  people can preview different unfinished changes at once.
+- Saves reach the shared version by themselves; the same field changed by two
+  people is asked about, and each keeps seeing their own until answered.
+- Opening a project starts its preview; the preview says it is being prepared,
+  and implementers can unfold the steps and the log.
+- `services.chatcms.workspaceIdle` and `workspacesAtOnce` set how long an
+  unused preview stays and how many run.
+
+### Changed
+
+- `CHATCMS_WORKSPACE_IDLE` and `CHATCMS_WORKSPACES_AT_ONCE` replace the preview
+  names, which are still read for one release.
+- Publishing first brings the publisher's own saves in, and waits while a
+  question about them is open.
+
+### Fixed
+
+- A person without a display name can save; their address is used as the
+  author.
+
 ## [0.2.0] - 2026-11-17
 
 ### Added

@@ -120,18 +120,24 @@ type historySources struct {
 	publishSources
 	records *publish.Records
 	people  *auth.Service
+	queue   *jobs.Queue
 }
 
 type historyCopy struct {
 	workingCopy
 }
 
-func (h historySources) Site(ctx context.Context, projectID uuid.UUID) (history.Site, func() error, error) {
-	repository, err := h.open(ctx, projectID)
+func (h historySources) Site(ctx context.Context, personID string, projectID uuid.UUID) (history.Site, func() error, error) {
+	repository, err := h.openFor(ctx, personID, projectID)
 	if err != nil {
 		return nil, nil, err
 	}
-	return historyCopy{workingCopy{Repo: repository}}, repository.Close, nil
+	return sharedAfterGoingBack{
+		historyCopy: historyCopy{workingCopy{Repo: repository}},
+		queue:       h.queue,
+		personID:    personID,
+		project:     projectID,
+	}, repository.Close, nil
 }
 
 // Notes is what somebody wrote when they published, by the version that
@@ -188,8 +194,8 @@ type contentSources struct {
 	people *auth.Service
 }
 
-func (c contentSources) Site(ctx context.Context, projectID uuid.UUID) (content.Site, func() error, error) {
-	repository, err := c.open(ctx, projectID)
+func (c contentSources) Site(ctx context.Context, personID string, projectID uuid.UUID) (content.Site, func() error, error) {
+	repository, err := c.openFor(ctx, personID, projectID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -226,7 +232,7 @@ func whoWrote(ctx context.Context, person auth.Person) gitsync.Identity {
 			Email: who.Really.Email,
 		}
 	}
-	return gitsync.Identity{Name: person.DisplayName, Email: person.Email}
+	return gitsync.Identity{Name: said, Email: person.Email}
 }
 
 // queueSync asks for the site to be brought level with its remote soon, so
@@ -235,12 +241,8 @@ type queueSync struct {
 	queue *jobs.Queue
 }
 
-func (q queueSync) SyncSoon(ctx context.Context, projectID uuid.UUID) error {
-	if q.queue == nil {
-		return nil
-	}
-	_, err := q.queue.Enqueue(ctx, gitsync.SyncJobKind, projectID.String(), nil)
-	return err
+func (q queueSync) SyncSoon(ctx context.Context, personID string, projectID uuid.UUID) error {
+	return enqueueShare(ctx, q.queue, personID, projectID)
 }
 
 var _ content.Sources = contentSources{}
@@ -252,8 +254,8 @@ type mediaSources struct {
 	contentSources
 }
 
-func (m mediaSources) Site(ctx context.Context, projectID uuid.UUID) (media.Site, func() error, error) {
-	repository, err := m.open(ctx, projectID)
+func (m mediaSources) Site(ctx context.Context, personID string, projectID uuid.UUID) (media.Site, func() error, error) {
+	repository, err := m.openFor(ctx, personID, projectID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -268,12 +270,24 @@ type syncSources struct {
 	gitCfg gitsync.Config
 }
 
-func (s syncSources) Site(ctx context.Context, projectID uuid.UUID) (sitesync.Site, func() error, error) {
-	repository, err := s.open(ctx, projectID)
+func (s syncSources) Site(ctx context.Context, personID string, projectID uuid.UUID) (sitesync.Site, func() error, error) {
+	shared, err := s.open(ctx, projectID)
 	if err != nil {
 		return nil, nil, err
 	}
-	return workingCopy{Repo: repository}, repository.Close, nil
+	mine, err := s.openFor(ctx, personID, projectID)
+	if err != nil {
+		shared.Close()
+		return nil, nil, err
+	}
+	site := standingCopy{
+		workingCopy: workingCopy{Repo: mine},
+		shared:      shared,
+		sites:       s.sites,
+		site:        projectID.String(),
+		personID:    personID,
+	}
+	return site, func() error { shared.Close(); return mine.Close() }, nil
 }
 
 // Technical is where a site keeps its work, for somebody allowed to see such
@@ -301,17 +315,7 @@ func (s syncSources) Technical(ctx context.Context, projectID uuid.UUID) (sitesy
 
 var _ sitesync.Sources = syncSources{}
 
-// previewSources says where a site's working copy is, which is all a preview
-// needs beyond knowing who may see it.
-type previewSources struct {
-	publishSources
-}
-
-func (p previewSources) Dir(ctx context.Context, projectID uuid.UUID) (string, error) {
-	return p.sites.Dir(projectID.String())
-}
-
-var _ preview.Sources = previewSources{}
+var _ preview.Sources = publishSources{}
 
 func (p publishSources) open(ctx context.Context, projectID uuid.UUID) (gitsync.Repo, error) {
 	return openSite(ctx, p.sites, projectID)

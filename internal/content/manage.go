@@ -73,7 +73,7 @@ func (s *Service) Create(ctx context.Context, actor policy.Actor, projectID uuid
 		return Editable{}, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return Editable{}, err
 	}
@@ -116,7 +116,7 @@ func (s *Service) Create(ctx context.Context, actor policy.Actor, projectID uuid
 		return Editable{}, err
 	}
 
-	s.syncSoon(ctx, projectID)
+	s.syncSoon(ctx, actor, projectID)
 	return s.after(ctx, site, collection.Key+"/"+path.Join(folder, slug))
 }
 
@@ -230,7 +230,7 @@ func (s *Service) moveOrCopy(
 		return Editable{}, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return Editable{}, err
 	}
@@ -331,7 +331,7 @@ func (s *Service) moveOrCopy(
 		return Editable{}, err
 	}
 
-	s.syncSoon(ctx, projectID)
+	s.syncSoon(ctx, actor, projectID)
 	return s.after(ctx, site, collection.Key+"/"+path.Join(within, slug))
 }
 
@@ -365,7 +365,7 @@ func (s *Service) Delete(ctx context.Context, actor policy.Actor, projectID uuid
 		return err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return err
 	}
@@ -408,7 +408,7 @@ func (s *Service) Delete(ctx context.Context, actor policy.Actor, projectID uuid
 		return err
 	}
 
-	s.syncSoon(ctx, projectID)
+	s.syncSoon(ctx, actor, projectID)
 	return nil
 }
 
@@ -420,7 +420,7 @@ func (s *Service) List(ctx context.Context, actor policy.Actor, projectID uuid.U
 		return nil, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -465,7 +465,7 @@ func (s *Service) Address(ctx context.Context, actor policy.Actor, projectID uui
 		return Address{}, err
 	}
 
-	site, done, err := s.sources.Site(ctx, projectID)
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
 	if err != nil {
 		return Address{}, err
 	}

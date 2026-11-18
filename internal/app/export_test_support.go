@@ -12,3 +12,7 @@ import (
 func RegisterSyncJobForTest(worker *jobs.Worker, sites *gitsync.Sites, logger *slog.Logger) {
 	registerSyncJob(worker, sites, logger)
 }
+
+func RegisterShareJobForTest(worker *jobs.Worker, queue *jobs.Queue, sites *gitsync.Sites, logger *slog.Logger) {
+	registerShareJob(worker, queue, sites, logger)
+}

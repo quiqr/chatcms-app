@@ -585,3 +585,25 @@ export function archiveProject(organisation: string, project: string, archived: 
 export function zipPath(organisation: string, project: string) {
   return `/api/organisations/${organisation}/projects/${project}/zip`;
 }
+
+export type WorkspaceStepName = "starting-workspace" | "fetching-site" | "building-preview";
+
+export type WorkspaceStep = {
+  step: WorkspaceStepName;
+  state: "waiting" | "running" | "done" | "failed";
+};
+
+export type Workspace = {
+  state: "starting" | "warm" | "sleeping";
+  reason?: string;
+  steps?: WorkspaceStep[];
+  log?: string[];
+};
+
+export function openWorkspace(organisation: string, name: string) {
+  return post<Workspace>(`${project(organisation, name)}/workspace`);
+}
+
+export function readWorkspace(organisation: string, name: string) {
+  return get<Workspace>(`${project(organisation, name)}/workspace`);
+}

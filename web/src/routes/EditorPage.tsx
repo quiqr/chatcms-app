@@ -11,6 +11,7 @@ import { PhoneShell } from "../shells/PhoneShell";
 import { AssistantSlot } from "../shells/ProjectShell";
 import { useHere } from "../lib/whoami";
 import { useIsPhone } from "../shells/useIsPhone";
+import { useStartWorkspace } from "../lib/workspace";
 import { PageEditor } from "./PageEditor";
 import { Preview } from "./Preview";
 import { say } from "../lib/say";
@@ -26,6 +27,7 @@ export function EditorPage() {
   const [opened, setOpened] = useState<{ title: string; section: string } | null>(null);
   const onAPhone = useIsPhone();
   const place = usePlace(organisation, slug ?? "", page);
+  useStartWorkspace(organisation, slug ?? "");
 
   if (loaded.state !== "ready") {
     return <p className="p-6 text-[15px] text-muted-foreground">{say("common.looking")}</p>;

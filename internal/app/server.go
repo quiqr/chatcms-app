@@ -39,6 +39,7 @@ import (
 	"github.com/quiqr/chatcms-app/internal/webui"
 	"github.com/quiqr/chatcms-app/internal/wholesite"
 	"github.com/quiqr/chatcms-app/internal/workflows"
+	"github.com/quiqr/chatcms-app/internal/workspace"
 )
 
 var ErrShutdownForced = errors.New("in-flight requests did not finish within the shutdown timeout")
@@ -69,10 +70,13 @@ type Server struct {
 	media      *media.Web
 	standing   *sitesync.Web
 	preview    *preview.Web
-	previews   *preview.Servers
+	workspaces *workspace.Workspaces
 }
 
 func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, error) {
+	for _, warning := range cfg.Deprecated {
+		logger.Warn("a configuration name was renamed", "renamed", warning)
+	}
 	db, err := store.Open(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return nil, err
@@ -157,6 +161,7 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 	server.queue = jobs.NewQueue(db)
 	server.worker = jobs.NewWorker(server.queue, jobs.WorkerOptions{Logger: logger})
 	registerSyncJob(server.worker, server.sites, logger)
+	registerShareJob(server.worker, server.queue, server.sites, logger)
 	registerMailJob(server.worker, cfg.MailSettings(), logger)
 	registerTemplateJob(server.worker, server.queue, server.templates, logger)
 	if err := server.templates.Start(ctx, server.queue); err != nil {
@@ -171,7 +176,7 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 		logger.InfoContext(ctx, "no mail server is configured, so sign-in links go to this log")
 	}
 
-	if err := server.startContent(tenancyStore); err != nil {
+	if err := server.startContent(ctx, tenancyStore); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -197,6 +202,7 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 		Media:          server.media,
 		Sync:           server.standing,
 		Preview:        server.preview,
+		Workspace:      server.preview,
 		Secure:         strings.HasPrefix(strings.ToLower(cfg.BaseURL), "https://"),
 	})
 
@@ -291,8 +297,10 @@ func (s *Server) Serve(ctx context.Context) error {
 	}
 	workers.Wait()
 
-	if s.previews != nil {
-		s.previews.Close()
+	if s.workspaces != nil {
+		closing, cancel := context.WithTimeout(context.Background(), s.cfg.ShutdownTimeout)
+		s.workspaces.Close(closing)
+		cancel()
 	}
 	if err := s.keys.Close(); err != nil {
 		s.logger.Error("clearing the decrypted keys failed", "error", err)
@@ -306,10 +314,10 @@ func (s *Server) Serve(ctx context.Context) error {
 }
 
 func (s *Server) Close() error {
-	// A Hugo server outliving the app would hold a port and a working copy
-	// with nothing left to end it.
-	if s.previews != nil {
-		s.previews.Close()
+	if s.workspaces != nil {
+		closing, cancel := context.WithTimeout(context.Background(), s.cfg.ShutdownTimeout)
+		s.workspaces.Close(closing)
+		cancel()
 	}
 	if s.db != nil {
 		s.db.Close()
@@ -362,7 +370,7 @@ func (s *Server) Standing() *sitesync.Web { return s.standing }
 
 func (s *Server) Preview() *preview.Web { return s.preview }
 
-func (s *Server) startContent(tenancyStore *tenancy.Store) error {
+func (s *Server) startContent(ctx context.Context, tenancyStore *tenancy.Store) error {
 	sources := contentSources{
 		publishSources: publishSources{sites: s.sites, queries: s.db.Queries, baseURL: s.cfg.BaseURL},
 		people:         s.auth,
@@ -403,16 +411,12 @@ func (s *Server) startContent(tenancyStore *tenancy.Store) error {
 		return err
 	}
 
-	s.previews, err = preview.NewServers(preview.Settings{
-		HugoBin: s.cfg.HugoBin,
-		Idle:    s.cfg.PreviewIdle,
-		Most:    s.cfg.PreviewsAtOnce,
-	})
+	s.workspaces, err = s.startWorkspaces(ctx, tenancyStore)
 	if err != nil {
 		return err
 	}
 
-	previewing, err := preview.NewService(previewSources{publishSources: sources.publishSources}, s.previews, s.cfg.BaseURL)
+	previewing, err := preview.NewService(sources.publishSources, s.workspaces, s.cfg.BaseURL)
 	if err != nil {
 		return err
 	}
@@ -502,7 +506,7 @@ func (s *Server) startPublishing(ctx context.Context, tenancyStore *tenancy.Stor
 	}
 
 	timeline, err := history.NewService(
-		historySources{publishSources: sources, records: records, people: s.auth},
+		historySources{publishSources: sources, records: records, people: s.auth, queue: s.queue},
 		service,
 	)
 	if err != nil {

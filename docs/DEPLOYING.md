@@ -166,7 +166,7 @@ The ones that matter most often:
 | `mail.*` | Where invitations and resets are sent |
 | `buildMemory`, `buildTimeout` | What one site's build may use |
 | `checkMemory`, `checkTimeout` | What a site's own check may use |
-| `previewIdle`, `previewsAtOnce` | How long an unused preview is kept, and how many run |
+| `workspaceIdle`, `workspacesAtOnce` | How long an unused workspace stays warm, and how many run |
 | `workflowTools` | What a site's check step may run. Fixed and pinned. |
 | `templateFeed` | Which templates a new project can start from. `null` switches the gallery off. |
 

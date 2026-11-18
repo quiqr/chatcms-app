@@ -38,7 +38,7 @@ func (r *repo) Changes(ctx context.Context) ([]Change, error) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	against := r.remoteRef()
+	against := r.publishedRef()
 	if !r.git.succeeds(ctx, "rev-parse", "--verify", "--quiet", against) {
 		against = emptyTree
 	}
@@ -98,10 +98,10 @@ func (r *repo) attribute(ctx context.Context, change *Change) error {
 }
 
 func (r *repo) ReadPublished(ctx context.Context, name string) ([]byte, error) {
-	if !r.git.succeeds(ctx, "rev-parse", "--verify", "--quiet", r.remoteRef()) {
+	if !r.git.succeeds(ctx, "rev-parse", "--verify", "--quiet", r.publishedRef()) {
 		return nil, ErrNotPublished
 	}
-	out, err := r.git.runWith(ctx, nil, nil, "cat-file", "blob", r.remoteRef()+":"+name)
+	out, err := r.git.runWith(ctx, nil, nil, "cat-file", "blob", r.publishedRef()+":"+name)
 	if err != nil {
 		return nil, ErrNotPublished
 	}

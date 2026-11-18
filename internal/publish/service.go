@@ -29,6 +29,7 @@ type Sources interface {
 	// asks about, so this package decides nothing about roles itself.
 	Resource(ctx context.Context, projectID uuid.UUID) (policy.Resource, error)
 	Kept(ctx context.Context, projectID uuid.UUID) (bool, error)
+	Share(ctx context.Context, personID string, projectID uuid.UUID) error
 }
 
 type Engine interface {
@@ -67,6 +68,9 @@ func NewService(sources Sources, engine Engine, records Recorder) (*Service, err
 // Review is what a person sees before deciding to publish.
 func (s *Service) Review(ctx context.Context, actor policy.Actor, projectID uuid.UUID) (Summary, error) {
 	if err := s.allowed(ctx, actor, policy.ActionReadContent, projectID); err != nil {
+		return Summary{}, err
+	}
+	if err := s.sources.Share(ctx, actor.PersonID, projectID); err != nil {
 		return Summary{}, err
 	}
 
@@ -108,6 +112,9 @@ func (s *Service) Run(ctx context.Context, actor policy.Actor, projectID uuid.UU
 	}
 	if kept {
 		return Record{}, ErrNotConnected
+	}
+	if err := s.sources.Share(ctx, actor.PersonID, projectID); err != nil {
+		return Record{}, err
 	}
 
 	site, done, err := s.sources.Site(ctx, projectID)

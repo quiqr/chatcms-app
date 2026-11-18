@@ -1,6 +1,7 @@
 package preview_test
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -9,11 +10,21 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
+	"github.com/quiqr/chatcms-app/internal/httpapi"
+	"github.com/quiqr/chatcms-app/internal/policy"
 	"github.com/quiqr/chatcms-app/internal/preview"
+	"github.com/quiqr/chatcms-app/internal/workspace"
+	"github.com/quiqr/chatcms-app/internal/workspace/local"
+	"github.com/quiqr/chatcms-app/internal/workspace/workspacetest"
 )
+
+const under = "/preview/an/org/"
 
 func hugoBin(t *testing.T) string {
 	t.Helper()
@@ -28,16 +39,13 @@ func hugoBin(t *testing.T) string {
 	return found
 }
 
-// aSite writes a Hugo site that renders, so that what is tested is a preview
-// of a site rather than a process that happens to listen.
-func aSite(t *testing.T, title string) string {
+func writeSite(t *testing.T, dir, title, layout string) {
 	t.Helper()
 
-	dir := t.TempDir()
 	files := map[string]string{
 		"hugo.toml":          "baseURL = \"https://example.org/\"\ntitle = \"" + title + "\"\n",
 		"content/_index.md":  "---\ntitle: " + title + "\n---\n\nThe body of " + title + ".\n",
-		"layouts/index.html": "<!doctype html><html><body><h1>{{ .Title }}</h1>{{ .Content }}</body></html>\n",
+		"layouts/index.html": layout,
 	}
 	for name, content := range files {
 		where := filepath.Join(dir, name)
@@ -48,222 +56,370 @@ func aSite(t *testing.T, title string) string {
 			t.Fatal(err)
 		}
 	}
-	return dir
 }
 
-func servers(t *testing.T, settings preview.Settings) *preview.Servers {
+const goodLayout = "<!doctype html><html><body><h1>{{ .Title }}</h1>{{ .Content }}</body></html>\n"
+
+type copies struct {
+	mu   sync.Mutex
+	root string
+	made map[workspace.Key]string
+	t    *testing.T
+}
+
+func (c *copies) Dir(ctx context.Context, key workspace.Key) (string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if dir, found := c.made[key]; found {
+		return dir, nil
+	}
+	dir := filepath.Join(c.root, key.Project.String(), key.Person.String(), "working-copy")
+	writeSite(c.t, dir, "Korenaar Bakery", goodLayout)
+	c.made[key] = dir
+	return dir, nil
+}
+
+func (c *copies) Unshared(ctx context.Context, key workspace.Key) (int, error) { return 0, nil }
+
+func (c *copies) Remove(ctx context.Context, key workspace.Key) error { return nil }
+
+type sources struct{ organisation string }
+
+func (s sources) Resource(ctx context.Context, projectID uuid.UUID) (policy.Resource, error) {
+	return policy.Project(s.organisation, projectID.String()), nil
+}
+
+type harness struct {
+	copies  *copies
+	w       *workspace.Workspaces
+	service *preview.Service
+	project uuid.UUID
+}
+
+func newHarness(t *testing.T, most int) *harness {
 	t.Helper()
 
-	settings.HugoBin = hugoBin(t)
-	if settings.Ready == 0 {
-		settings.Ready = 60 * time.Second
-	}
-	made, err := preview.NewServers(settings)
+	backend, err := local.New(local.Settings{HugoBin: hugoBin(t), Ready: 60 * time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(made.Close)
-	return made
+	h := &harness{
+		copies:  &copies{root: t.TempDir(), made: map[workspace.Key]string{}, t: t},
+		project: uuid.New(),
+	}
+	allowed := func(ctx context.Context, key workspace.Key) (bool, error) { return true, nil }
+	h.w, err = workspace.New(backend, workspacetest.NewStore(), h.copies, allowed, workspace.Settings{Most: most, Idle: 15 * time.Minute})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { h.w.Close(context.Background()) })
+
+	h.service, err = preview.NewService(sources{organisation: uuid.NewString()}, h.w, "http://example.org/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return h
 }
 
-// asked is what a browser asking for the site's front page sees.
+func (h *harness) editor() policy.Actor {
+	return policy.Actor{PersonID: uuid.NewString(), Projects: map[string]policy.Role{h.project.String(): policy.RoleEditor}}
+}
+
+func (h *harness) viewer() policy.Actor {
+	return policy.Actor{PersonID: uuid.NewString(), Projects: map[string]policy.Role{h.project.String(): policy.RoleViewer}}
+}
+
+func (h *harness) dirOf(t *testing.T, actor policy.Actor) string {
+	t.Helper()
+	dir, _ := h.copies.Dir(t.Context(), workspace.Key{Person: uuid.MustParse(actor.PersonID), Project: h.project})
+	return dir
+}
+
+func (h *harness) handler(t *testing.T, actor policy.Actor) http.Handler {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
+	defer cancel()
+	handler, err := h.service.Handler(ctx, actor, h.project, under)
+	if err != nil {
+		t.Fatalf("Handler() error = %v", err)
+	}
+	return handler
+}
+
 func asked(t *testing.T, handler http.Handler, path string) (int, string) {
 	t.Helper()
 
 	request := httptest.NewRequest(http.MethodGet, path, nil)
 	recorder := httptest.NewRecorder()
 	handler.ServeHTTP(recorder, request)
-
 	body, _ := io.ReadAll(recorder.Body)
 	return recorder.Code, string(body)
 }
 
+func waitToSee(t *testing.T, h *harness, actor policy.Actor, want string) string {
+	t.Helper()
+
+	deadline := time.Now().Add(20 * time.Second)
+	for {
+		_, body := asked(t, h.handler(t, actor), "http://example.org"+under)
+		if strings.Contains(body, want) {
+			return body
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("%q did not show within 20 seconds; the preview says %q", want, body)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 func TestAPreviewShowsTheSite(t *testing.T) {
-	made := servers(t, preview.Settings{})
+	h := newHarness(t, 8)
 
-	handler, err := made.For(t.Context(), "one", aSite(t, "Korenaar Bakery"), "http://example.org/preview/an/org/")
-	if err != nil {
-		t.Fatalf("For() error = %v", err)
-	}
-
-	status, body := asked(t, handler, "http://example.org/preview/an/org/")
-	if status != http.StatusOK {
-		t.Fatalf("status = %d, want 200: %s", status, body)
-	}
-	if !strings.Contains(body, "Korenaar Bakery") {
-		t.Errorf("the preview shows %q, want the site", body)
+	status, body := asked(t, h.handler(t, h.editor()), "http://example.org"+under)
+	if status != http.StatusOK || !strings.Contains(body, "Korenaar Bakery") {
+		t.Fatalf("status = %d, body %q, want the site", status, body)
 	}
 }
 
 func TestAChangeShowsInThePreviewWithoutRestartingIt(t *testing.T) {
-	dir := aSite(t, "Korenaar Bakery")
-	made := servers(t, preview.Settings{})
+	h := newHarness(t, 8)
+	anna := h.editor()
+	waitToSee(t, h, anna, "The body of Korenaar Bakery")
 
-	handler, err := made.For(t.Context(), "one", dir, "http://example.org/preview/an/org/")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, body := asked(t, handler, "http://example.org/preview/an/org/"); !strings.Contains(body, "The body of Korenaar Bakery") {
-		t.Fatalf("the preview starts with %q", body)
-	}
-
-	if err := os.WriteFile(filepath.Join(dir, "content/_index.md"),
+	if err := os.WriteFile(filepath.Join(h.dirOf(t, anna), "content/_index.md"),
 		[]byte("---\ntitle: Korenaar Bakery\n---\n\nNow with plums.\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	waitToSee(t, h, anna, "Now with plums")
 
-	// Hugo watches the files. The change is waited for by asking until it
-	// shows, with a deadline, rather than by sleeping for a guess.
-	deadline := time.Now().Add(20 * time.Second)
-	for {
-		_, body := asked(t, handler, "http://example.org/preview/an/org/")
-		if strings.Contains(body, "Now with plums") {
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatalf("the change did not show within 20 seconds; the preview says %q", body)
-		}
-		time.Sleep(100 * time.Millisecond)
+	if h.w.Running() != 1 {
+		t.Errorf("%d previews are running, want the same one", h.w.Running())
+	}
+}
+
+func TestTwoPeopleSeeTheirOwnChange(t *testing.T) {
+	h := newHarness(t, 8)
+	anna, bert := h.editor(), h.editor()
+	for name, actor := range map[string]policy.Actor{"Anna's plums": anna, "Bert's pears": bert} {
+		writeSite(t, h.dirOf(t, actor), name, goodLayout)
 	}
 
-	if made.Running() != 1 {
-		t.Errorf("%d previews are running, want the same one", made.Running())
+	annaSees := waitToSee(t, h, anna, "Anna&rsquo;s plums")
+	bertSees := waitToSee(t, h, bert, "Bert&rsquo;s pears")
+	if strings.Contains(annaSees, "Bert") || strings.Contains(bertSees, "Anna") {
+		t.Errorf("one person sees the other's change")
+	}
+	if h.w.Running() != 2 {
+		t.Errorf("%d previews are running, want one each", h.w.Running())
 	}
 }
 
 func TestAskingTwiceUsesTheSamePreview(t *testing.T) {
-	dir := aSite(t, "Korenaar Bakery")
-	made := servers(t, preview.Settings{})
+	h := newHarness(t, 8)
+	anna := h.editor()
+	h.handler(t, anna)
+	h.handler(t, anna)
 
-	if _, err := made.For(t.Context(), "one", dir, "http://example.org/preview/an/org/"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := made.For(t.Context(), "one", dir, "http://example.org/preview/an/org/"); err != nil {
-		t.Fatal(err)
-	}
-
-	if made.Running() != 1 {
-		t.Errorf("%d previews are running, want one", made.Running())
+	if h.w.Running() != 1 {
+		t.Errorf("%d previews are running, want one", h.w.Running())
 	}
 }
 
 func TestAPreviewNobodyHasLookedAtIsStopped(t *testing.T) {
-	made := servers(t, preview.Settings{Idle: 15 * time.Minute})
+	h := newHarness(t, 8)
+	anna, bert := h.editor(), h.editor()
+	h.handler(t, anna)
+	kept := h.handler(t, bert)
 
-	if _, err := made.For(t.Context(), "one", aSite(t, "Korenaar Bakery"), "http://example.org/preview/an/org/"); err != nil {
-		t.Fatal(err)
+	later := time.Now().Add(20 * time.Minute)
+	h.w.PretendTimeIs(func() time.Time { return later })
+	h.handler(t, bert)
+	h.w.PretendTimeIs(func() time.Time { return later.Add(time.Minute) })
+	h.w.SweepNow()
+
+	if h.w.Running() != 1 {
+		t.Errorf("%d previews are running, want only the one somebody is looking at", h.w.Running())
 	}
-	if made.Running() != 1 {
-		t.Fatalf("%d previews are running, want one", made.Running())
-	}
-
-	// A quarter of an hour later, as far as the idle check is concerned.
-	made.PretendTimeIs(func() time.Time { return time.Now().Add(20 * time.Minute) })
-	made.SweepNow()
-
-	if made.Running() != 0 {
-		t.Errorf("%d previews are still running, want none", made.Running())
-	}
-}
-
-func TestAPreviewSomebodyIsLookingAtIsKept(t *testing.T) {
-	dir := aSite(t, "Korenaar Bakery")
-	made := servers(t, preview.Settings{Idle: 15 * time.Minute})
-
-	handler, err := made.For(t.Context(), "one", dir, "http://example.org/preview/an/org/")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	made.PretendTimeIs(func() time.Time { return time.Now().Add(20 * time.Minute) })
-	// Asking for it again is what looking at it does.
-	if _, err := made.For(t.Context(), "one", dir, "http://example.org/preview/an/org/"); err != nil {
-		t.Fatal(err)
-	}
-	made.SweepNow()
-
-	if made.Running() != 1 {
-		t.Errorf("%d previews are running, want the one somebody is looking at", made.Running())
-	}
-	if status, _ := asked(t, handler, "http://example.org/preview/an/org/"); status != http.StatusOK {
+	if status, _ := asked(t, kept, "http://example.org"+under); status != http.StatusOK {
 		t.Errorf("the kept preview answers %d", status)
 	}
 }
 
 func TestOnlySoManyPreviewsRunAtOnce(t *testing.T) {
-	made := servers(t, preview.Settings{Most: 2})
+	h := newHarness(t, 2)
+	h.handler(t, h.editor())
+	h.handler(t, h.editor())
 
-	for _, id := range []string{"one", "two"} {
-		if _, err := made.For(t.Context(), id, aSite(t, id), "http://example.org/preview/an/org/"); err != nil {
-			t.Fatalf("For(%q) error = %v", id, err)
-		}
+	_, err := h.service.Handler(t.Context(), h.editor(), h.project, under)
+	var refused *httpapi.RefusedError
+	if !errors.As(err, &refused) || refused.Key != "refused.too-many-sites-being-previewed" {
+		t.Fatalf("Handler() error = %v, want the cap's refusal", err)
 	}
-
-	_, err := made.For(t.Context(), "three", aSite(t, "three"), "http://example.org/preview/an/org/")
-	if !errors.Is(err, preview.ErrTooMany) {
-		t.Fatalf("For() error = %v, want ErrTooMany", err)
-	}
-	if made.Running() != 2 {
-		t.Errorf("%d previews are running, want the two allowed", made.Running())
-	}
-}
-
-func TestAPreviewIsStoppedWhenItsSiteMoves(t *testing.T) {
-	made := servers(t, preview.Settings{})
-
-	if _, err := made.For(t.Context(), "one", aSite(t, "First"), "http://example.org/preview/an/org/"); err != nil {
-		t.Fatal(err)
-	}
-
-	handler, err := made.For(t.Context(), "one", aSite(t, "Second"), "http://example.org/preview/an/org/")
-	if err != nil {
-		t.Fatalf("For() with a new working copy error = %v", err)
-	}
-
-	if made.Running() != 1 {
-		t.Errorf("%d previews are running, want one", made.Running())
-	}
-	_, body := asked(t, handler, "http://example.org/preview/an/org/")
-	if !strings.Contains(body, "Second") {
-		t.Errorf("the preview shows %q, want the site it was pointed at", body)
+	if h.w.Running() != 2 {
+		t.Errorf("%d previews are running, want the two allowed", h.w.Running())
 	}
 }
 
 func TestStoppingEverythingLeavesNothingRunning(t *testing.T) {
-	made := servers(t, preview.Settings{})
+	h := newHarness(t, 8)
+	h.handler(t, h.editor())
 
-	if _, err := made.For(t.Context(), "one", aSite(t, "Korenaar Bakery"), "http://example.org/preview/an/org/"); err != nil {
-		t.Fatal(err)
+	h.w.Close(t.Context())
+	h.w.Close(t.Context())
+
+	if h.w.Running() != 0 {
+		t.Errorf("%d previews survived", h.w.Running())
 	}
+}
 
-	made.Close()
+func TestStopSleepsEveryPreviewOfTheSite(t *testing.T) {
+	h := newHarness(t, 8)
+	h.handler(t, h.editor())
+	h.handler(t, h.editor())
 
-	if made.Running() != 0 {
-		t.Errorf("%d previews survived", made.Running())
+	h.service.Stop(h.project)
+
+	if h.w.Running() != 0 {
+		t.Errorf("%d previews are running after stopping the site's", h.w.Running())
 	}
-	// Closing twice is what a shutdown that was already shutting down does.
-	made.Close()
 }
 
 func TestAPreviewOfSomethingThatWillNotBuildSaysSo(t *testing.T) {
-	broken := t.TempDir()
-	if err := os.WriteFile(filepath.Join(broken, "hugo.toml"), []byte("this is not = [valid\n"), 0o644); err != nil {
+	h := newHarness(t, 8)
+	anna := h.editor()
+	if err := os.WriteFile(filepath.Join(h.dirOf(t, anna), "hugo.toml"), []byte("this is not = [valid\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	made := servers(t, preview.Settings{Ready: 3 * time.Second})
-
-	_, err := made.For(t.Context(), "one", broken, "http://example.org/preview/an/org/")
-	if !errors.Is(err, preview.ErrNotReady) {
-		t.Fatalf("For() error = %v, want ErrNotReady", err)
+	_, err := h.service.Handler(t.Context(), anna, h.project, under)
+	var refused *httpapi.RefusedError
+	if !errors.As(err, &refused) || refused.Key != "refused.preview-did-not-start-site" {
+		t.Fatalf("Handler() error = %v, want the did-not-start refusal", err)
 	}
-	if made.Running() != 0 {
-		t.Errorf("%d previews are running after one that could not start", made.Running())
+	if h.w.Running() != 0 {
+		t.Errorf("%d previews are running after one that could not start", h.w.Running())
 	}
 }
 
-func TestServersNeedAHugo(t *testing.T) {
-	if _, err := preview.NewServers(preview.Settings{}); !errors.Is(err, preview.ErrNoHugo) {
-		t.Errorf("NewServers() error = %v, want ErrNoHugo", err)
+func TestAViewerMayPreview(t *testing.T) {
+	h := newHarness(t, 8)
+	if _, body := asked(t, h.handler(t, h.viewer()), "http://example.org"+under); !strings.Contains(body, "Korenaar") {
+		t.Errorf("a viewer was not shown the preview")
+	}
+}
+
+func TestSomebodyWithNoPartInTheProjectIsToldThereIsNothing(t *testing.T) {
+	h := newHarness(t, 8)
+	stranger := policy.Actor{PersonID: uuid.NewString()}
+
+	if _, err := h.service.Handler(t.Context(), stranger, h.project, under); !errors.Is(err, httpapi.ErrMissing) {
+		t.Errorf("Handler() error = %v, want ErrMissing", err)
+	}
+	if h.w.Running() != 0 {
+		t.Errorf("a preview started for somebody with no part in the project")
+	}
+}
+
+func TestSomebodyWithoutAnIdentityIsRefused(t *testing.T) {
+	h := newHarness(t, 8)
+	nameless := policy.Actor{PersonID: "", Projects: map[string]policy.Role{h.project.String(): policy.RoleEditor}}
+
+	if _, err := h.service.Handler(t.Context(), nameless, h.project, under); err == nil {
+		t.Errorf("Handler() for somebody nameless succeeded, want it refused")
+	}
+}
+
+func TestNewServiceRefusesMissingParts(t *testing.T) {
+	if _, err := preview.NewService(nil, nil, ""); !errors.Is(err, preview.ErrIncomplete) {
+		t.Errorf("NewService() error = %v, want ErrIncomplete", err)
+	}
+}
+
+func TestRefusalLeavesOtherErrorsAlone(t *testing.T) {
+	other := errors.New("other")
+	if preview.Refusal(other) != other {
+		t.Errorf("Refusal() changed an unrelated error")
+	}
+}
+
+func (h *harness) implementer() policy.Actor {
+	return policy.Actor{PersonID: uuid.NewString(), Projects: map[string]policy.Role{h.project.String(): policy.RoleImplementer}}
+}
+
+func TestOpeningStartsTheWorkspaceAndAnImplementerSeesTheSteps(t *testing.T) {
+	h := newHarness(t, 8)
+	implementer := h.implementer()
+
+	standing, err := h.service.Open(t.Context(), implementer, h.project, under)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	if standing.State == workspace.Sleeping {
+		t.Fatalf("Open() state = %v, want it starting or warm", standing.State)
+	}
+
+	deadline := time.Now().Add(60 * time.Second)
+	for standing.State != workspace.Warm && time.Now().Before(deadline) {
+		time.Sleep(50 * time.Millisecond)
+		standing, _ = h.service.Standing(t.Context(), implementer, h.project)
+	}
+	if standing.State != workspace.Warm {
+		t.Fatalf("state = %v, want warm", standing.State)
+	}
+	if len(standing.Steps) != 3 || len(standing.Log) == 0 {
+		t.Errorf("an implementer sees %+v, want the steps and the log", standing)
+	}
+}
+
+func TestAContentCreatorIsNotGivenTheSteps(t *testing.T) {
+	h := newHarness(t, 8)
+	for name, actor := range map[string]policy.Actor{"somebody who edits": h.editor(), "somebody who looks": h.viewer()} {
+		if _, err := h.service.Open(t.Context(), actor, h.project, under); err != nil {
+			t.Fatalf("%s Open() error = %v", name, err)
+		}
+		standing, err := h.service.Standing(t.Context(), actor, h.project)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if standing.Steps != nil || standing.Log != nil {
+			t.Errorf("a %s was given %+v, want no steps or log", name, standing)
+		}
+	}
+}
+
+func TestAFailedStartGivesAReasonWorthShowing(t *testing.T) {
+	h := newHarness(t, 8)
+	anna := h.editor()
+	if err := os.WriteFile(filepath.Join(h.dirOf(t, anna), "hugo.toml"), []byte("this is not = [valid\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	h.service.Handler(t.Context(), anna, h.project, under)
+
+	standing, err := h.service.Standing(t.Context(), anna, h.project)
+	if err != nil || standing.State != workspace.Sleeping || standing.Reason != "refused.preview-did-not-start-site" {
+		t.Errorf("Standing() = %+v, %v, want sleeping with the did-not-start reason", standing, err)
+	}
+}
+
+func TestOpeningAtTheCapIsRefused(t *testing.T) {
+	h := newHarness(t, 1)
+	h.handler(t, h.editor())
+
+	_, err := h.service.Open(t.Context(), h.editor(), h.project, under)
+	var refused *httpapi.RefusedError
+	if !errors.As(err, &refused) || refused.Key != "refused.too-many-sites-being-previewed" {
+		t.Errorf("Open() error = %v, want the cap's refusal", err)
+	}
+}
+
+func TestStandingNeedsAPartInTheProject(t *testing.T) {
+	h := newHarness(t, 8)
+	stranger := policy.Actor{PersonID: uuid.NewString()}
+	if _, err := h.service.Standing(t.Context(), stranger, h.project); !errors.Is(err, httpapi.ErrMissing) {
+		t.Errorf("Standing() error = %v, want ErrMissing", err)
+	}
+	if _, err := h.service.Open(t.Context(), stranger, h.project, under); !errors.Is(err, httpapi.ErrMissing) {
+		t.Errorf("Open() error = %v, want ErrMissing", err)
 	}
 }

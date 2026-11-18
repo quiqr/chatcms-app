@@ -70,6 +70,8 @@ type repo struct {
 	// not asked twice during a replay.
 	conflicted map[string]bool
 	resolved   map[string][]byte
+
+	ownFirst bool
 }
 
 var (
@@ -127,6 +129,10 @@ func Open(ctx context.Context, cfg Config, dir string) (Repo, error) {
 }
 
 func open(ctx context.Context, cfg Config, dir string) (Repo, error) {
+	return openWith(ctx, cfg, dir, false)
+}
+
+func openWith(ctx context.Context, cfg Config, dir string, ownFirst bool) (Repo, error) {
 	home, err := gitHome(dir)
 	if err != nil {
 		return nil, err
@@ -138,6 +144,7 @@ func open(ctx context.Context, cfg Config, dir string) (Repo, error) {
 		git:        newRunner(cfg, dir, home),
 		conflicted: map[string]bool{},
 		resolved:   map[string][]byte{},
+		ownFirst:   ownFirst,
 	}
 
 	branch, err := r.currentBranch(ctx)

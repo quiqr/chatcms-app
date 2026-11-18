@@ -75,3 +75,30 @@ func queueSyncs(ctx context.Context, queue *jobs.Queue, sites *gitsync.Sites, lo
 		}
 	}
 }
+
+func registerShareJob(worker *jobs.Worker, queue *jobs.Queue, sites *gitsync.Sites, logger *slog.Logger) {
+	worker.Handle(ShareJobKind, func(ctx context.Context, job jobs.Job) error {
+		project, person, ok := parseShareSubject(job.Subject)
+		if !ok {
+			logger.Warn("a share job names no site and person", "subject", job.Subject)
+			return nil
+		}
+
+		result, err := sites.Share(ctx, project, person)
+		if errors.Is(err, gitsync.ErrExchangeInProgress) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if result.Conflict != nil {
+			logger.Info("a change waits on a question", "site", project, "pages", len(result.Conflict.Paths))
+			return nil
+		}
+		if queue == nil {
+			return nil
+		}
+		_, err = queue.Enqueue(ctx, gitsync.SyncJobKind, project, nil)
+		return err
+	})
+}

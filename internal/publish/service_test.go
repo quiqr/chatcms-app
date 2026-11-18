@@ -22,6 +22,13 @@ type sources struct {
 	baseURL  string
 	closed   int
 	err      error
+	shared   []string
+	shareErr error
+}
+
+func (s *sources) Share(ctx context.Context, personID string, projectID uuid.UUID) error {
+	s.shared = append(s.shared, personID)
+	return s.shareErr
 }
 
 func (s *sources) Site(ctx context.Context, projectID uuid.UUID) (publish.Site, func() error, error) {
@@ -447,5 +454,32 @@ func TestTheSiteIsReleasedEvenWhenAPublishFails(t *testing.T) {
 
 	if src.closed != 1 {
 		t.Errorf("the site was released %d times, want once", src.closed)
+	}
+}
+
+func TestPublishSharesThePublishersSavesFirst(t *testing.T) {
+	project := uuid.New()
+	src := &sources{site: anEditedHomePage()}
+	actor := anImplementer(project)
+
+	if _, err := service(t, src, &engine{}, &records{lastErr: publish.ErrNoSuchPublish}).Run(context.Background(), actor, project, ""); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if len(src.shared) != 1 || src.shared[0] != actor.PersonID {
+		t.Errorf("shared = %v, want the publisher's copy shared once", src.shared)
+	}
+}
+
+func TestPublishStopsWhenSharingFails(t *testing.T) {
+	project := uuid.New()
+	waiting := errors.New("a question is waiting")
+	src := &sources{site: anEditedHomePage(), shareErr: waiting}
+	eng := &engine{}
+
+	if _, err := service(t, src, eng, &records{lastErr: publish.ErrNoSuchPublish}).Run(context.Background(), anImplementer(project), project, ""); !errors.Is(err, waiting) {
+		t.Fatalf("Run() error = %v, want the sharing error", err)
+	}
+	if _, err := service(t, src, eng, &records{lastErr: publish.ErrNoSuchPublish}).Review(context.Background(), anImplementer(project), project); !errors.Is(err, waiting) {
+		t.Errorf("Review() error = %v, want the sharing error", err)
 	}
 }

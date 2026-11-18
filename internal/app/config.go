@@ -30,24 +30,25 @@ type Config struct {
 	FirstAdministrator string
 	// Mail is where messages are sent, and as whom. With no host there is
 	// nowhere to send, and links go to the log instead.
-	MailHost       string
-	MailPort       string
-	MailUsername   string
-	MailPassword   string
-	MailFrom       string
-	MailFromName   string
-	MailStartTLS   string
-	SyncInterval   time.Duration
-	BwrapBin       string
-	PrlimitBin     string
-	BuildTimeout   time.Duration
-	BuildMemory    int64
-	WorkflowTools  []string
-	CheckTimeout   time.Duration
-	CheckMemory    int64
-	PreviewIdle    time.Duration
-	PreviewsAtOnce int
-	TemplateFeed   string
+	MailHost         string
+	MailPort         string
+	MailUsername     string
+	MailPassword     string
+	MailFrom         string
+	MailFromName     string
+	MailStartTLS     string
+	SyncInterval     time.Duration
+	BwrapBin         string
+	PrlimitBin       string
+	BuildTimeout     time.Duration
+	BuildMemory      int64
+	WorkflowTools    []string
+	CheckTimeout     time.Duration
+	CheckMemory      int64
+	WorkspaceIdle    time.Duration
+	WorkspacesAtOnce int
+	TemplateFeed     string
+	Deprecated       []string
 }
 
 // SitesDir is where every site's working copy lives.
@@ -126,7 +127,6 @@ func LoadConfig(lookup Lookup) (Config, error) {
 		{"CHATCMS_SYNC_INTERVAL", &cfg.SyncInterval, "2m"},
 		{"CHATCMS_BUILD_TIMEOUT", &cfg.BuildTimeout, "10m"},
 		{"CHATCMS_CHECK_TIMEOUT", &cfg.CheckTimeout, "5m"},
-		{"CHATCMS_PREVIEW_IDLE", &cfg.PreviewIdle, "15m"},
 	}
 
 	for _, field := range durations {
@@ -168,16 +168,28 @@ func LoadConfig(lookup Lookup) (Config, error) {
 		*field.target = value
 	}
 
-	atOnce, err := resolve(lookup, "CHATCMS_PREVIEWS_AT_ONCE")
+	idle, idleName, err := renamed(lookup, "CHATCMS_WORKSPACE_IDLE", "CHATCMS_PREVIEW_IDLE", &cfg.Deprecated)
+	if err != nil {
+		return Config{}, err
+	}
+	if idle == "" {
+		idle = "15m"
+	}
+	cfg.WorkspaceIdle, err = time.ParseDuration(idle)
+	if err != nil || cfg.WorkspaceIdle <= 0 {
+		return Config{}, &ConfigError{Variable: idleName, Reason: reasonInvalid}
+	}
+
+	atOnce, atOnceName, err := renamed(lookup, "CHATCMS_WORKSPACES_AT_ONCE", "CHATCMS_PREVIEWS_AT_ONCE", &cfg.Deprecated)
 	if err != nil {
 		return Config{}, err
 	}
 	if atOnce == "" {
 		atOnce = "8"
 	}
-	cfg.PreviewsAtOnce, err = strconv.Atoi(atOnce)
-	if err != nil || cfg.PreviewsAtOnce <= 0 {
-		return Config{}, &ConfigError{Variable: "CHATCMS_PREVIEWS_AT_ONCE", Reason: reasonInvalid}
+	cfg.WorkspacesAtOnce, err = strconv.Atoi(atOnce)
+	if err != nil || cfg.WorkspacesAtOnce <= 0 {
+		return Config{}, &ConfigError{Variable: atOnceName, Reason: reasonInvalid}
 	}
 
 	tools, err := resolve(lookup, "CHATCMS_WORKFLOW_TOOLS")
@@ -261,6 +273,19 @@ func ParseBytes(raw string) (int64, error) {
 		return 0, fmt.Errorf("a size must be more than nothing")
 	}
 	return value * scale, nil
+}
+
+func renamed(lookup Lookup, name, old string, deprecated *[]string) (string, string, error) {
+	value, err := resolve(lookup, name)
+	if err != nil || value != "" {
+		return value, name, err
+	}
+	value, err = resolve(lookup, old)
+	if err != nil || value == "" {
+		return value, name, err
+	}
+	*deprecated = append(*deprecated, old+" is now "+name)
+	return value, old, nil
 }
 
 func resolve(lookup Lookup, name string) (string, error) {

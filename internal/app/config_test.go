@@ -458,3 +458,71 @@ func TestTheTemplateFeed(t *testing.T) {
 		}
 	}
 }
+
+func workspaceConfig(t *testing.T, extra map[string]string) (Config, error) {
+	t.Helper()
+
+	pairs := map[string]string{
+		"CHATCMS_DATABASE_URL":    "postgres:///chatcms",
+		"CHATCMS_SECRET_KEY_FILE": "/run/secrets/master-key",
+	}
+	for key, value := range extra {
+		pairs[key] = value
+	}
+	return LoadConfig(lookupFrom(pairs))
+}
+
+func TestWorkspaceSettingsHaveDefaults(t *testing.T) {
+	cfg, err := workspaceConfig(t, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.WorkspaceIdle != 15*time.Minute || cfg.WorkspacesAtOnce != 8 || len(cfg.Deprecated) != 0 {
+		t.Errorf("got %v, %d, %v, want 15m, 8 and nothing renamed", cfg.WorkspaceIdle, cfg.WorkspacesAtOnce, cfg.Deprecated)
+	}
+}
+
+func TestWorkspaceSettingsComeFromTheEnvironment(t *testing.T) {
+	cfg, err := workspaceConfig(t, map[string]string{
+		"CHATCMS_WORKSPACE_IDLE":     "5m",
+		"CHATCMS_WORKSPACES_AT_ONCE": "3",
+		"CHATCMS_PREVIEW_IDLE":       "1h",
+		"CHATCMS_PREVIEWS_AT_ONCE":   "30",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.WorkspaceIdle != 5*time.Minute || cfg.WorkspacesAtOnce != 3 || len(cfg.Deprecated) != 0 {
+		t.Errorf("got %v, %d, %v, want the new names to win", cfg.WorkspaceIdle, cfg.WorkspacesAtOnce, cfg.Deprecated)
+	}
+}
+
+func TestTheOldPreviewNamesAreStillRead(t *testing.T) {
+	cfg, err := workspaceConfig(t, map[string]string{
+		"CHATCMS_PREVIEW_IDLE":     "1h",
+		"CHATCMS_PREVIEWS_AT_ONCE": "30",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.WorkspaceIdle != time.Hour || cfg.WorkspacesAtOnce != 30 {
+		t.Errorf("got %v, %d, want the old names read", cfg.WorkspaceIdle, cfg.WorkspacesAtOnce)
+	}
+	if len(cfg.Deprecated) != 2 || !strings.Contains(cfg.Deprecated[0], "CHATCMS_WORKSPACE_IDLE") {
+		t.Errorf("Deprecated = %v, want both renames named", cfg.Deprecated)
+	}
+}
+
+func TestAnInvalidWorkspaceSettingNamesTheVariableUsed(t *testing.T) {
+	for variable, value := range map[string]string{
+		"CHATCMS_WORKSPACE_IDLE":     "soon",
+		"CHATCMS_WORKSPACES_AT_ONCE": "0",
+		"CHATCMS_PREVIEWS_AT_ONCE":   "many",
+	} {
+		_, err := workspaceConfig(t, map[string]string{variable: value})
+		var configErr *ConfigError
+		if !errors.As(err, &configErr) || configErr.Variable != variable {
+			t.Errorf("%s=%s error = %v, want it named", variable, value, err)
+		}
+	}
+}
