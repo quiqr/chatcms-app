@@ -1,11 +1,11 @@
 ---
 # chatcms-4b6f
 title: Previews on their own origin
-status: todo
+status: completed
 type: feature
 priority: normal
 created_at: 2026-11-18T12:51:49Z
-updated_at: 2026-11-18T12:51:49Z
+updated_at: 2026-11-18T22:25:27Z
 parent: chatcms-64h1
 blocked_by:
     - chatcms-rmne
