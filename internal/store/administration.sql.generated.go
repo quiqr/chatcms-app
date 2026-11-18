@@ -108,7 +108,7 @@ func (q *Queries) ListAdministrators(ctx context.Context) ([]Person, error) {
 }
 
 const listEveryOrganisation = `-- name: ListEveryOrganisation :many
-SELECT o.id, o.slug, o.name, o.created_at, o.updated_at, o.max_members, o.max_projects, o.created_by,
+SELECT o.id, o.slug, o.name, o.created_at, o.updated_at, o.max_members, o.max_projects, o.created_by, o.ai_requests_per_minute, o.ai_tokens_per_month,
        (SELECT count(*) FROM projects p
         WHERE p.organisation_id = o.id AND p.archived_at IS NULL) AS project_count,
        (SELECT count(*) FROM organisation_members m WHERE m.organisation_id = o.id) AS people_count,
@@ -144,18 +144,20 @@ type ListEveryOrganisationParams struct {
 }
 
 type ListEveryOrganisationRow struct {
-	ID           pgtype.UUID        `json:"id"`
-	Slug         string             `json:"slug"`
-	Name         string             `json:"name"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
-	MaxMembers   *int32             `json:"max_members"`
-	MaxProjects  *int32             `json:"max_projects"`
-	CreatedBy    pgtype.UUID        `json:"created_by"`
-	ProjectCount int64              `json:"project_count"`
-	PeopleCount  int64              `json:"people_count"`
-	Admins       []byte             `json:"admins"`
-	MadeBy       string             `json:"made_by"`
+	ID                  pgtype.UUID        `json:"id"`
+	Slug                string             `json:"slug"`
+	Name                string             `json:"name"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+	MaxMembers          *int32             `json:"max_members"`
+	MaxProjects         *int32             `json:"max_projects"`
+	CreatedBy           pgtype.UUID        `json:"created_by"`
+	AiRequestsPerMinute *int32             `json:"ai_requests_per_minute"`
+	AiTokensPerMonth    *int64             `json:"ai_tokens_per_month"`
+	ProjectCount        int64              `json:"project_count"`
+	PeopleCount         int64              `json:"people_count"`
+	Admins              []byte             `json:"admins"`
+	MadeBy              string             `json:"made_by"`
 }
 
 // Every organisation with what it holds, who administers it and who made it,
@@ -180,6 +182,8 @@ func (q *Queries) ListEveryOrganisation(ctx context.Context, arg ListEveryOrgani
 			&i.MaxMembers,
 			&i.MaxProjects,
 			&i.CreatedBy,
+			&i.AiRequestsPerMinute,
+			&i.AiTokensPerMonth,
 			&i.ProjectCount,
 			&i.PeopleCount,
 			&i.Admins,
@@ -575,7 +579,7 @@ func (q *Queries) RemoveProject(ctx context.Context, id pgtype.UUID) error {
 const renameOrganisation = `-- name: RenameOrganisation :one
 UPDATE organisations SET name = $2, updated_at = now()
 WHERE id = $1
-RETURNING id, slug, name, created_at, updated_at, max_members, max_projects, created_by
+RETURNING id, slug, name, created_at, updated_at, max_members, max_projects, created_by, ai_requests_per_minute, ai_tokens_per_month
 `
 
 type RenameOrganisationParams struct {
@@ -595,6 +599,8 @@ func (q *Queries) RenameOrganisation(ctx context.Context, arg RenameOrganisation
 		&i.MaxMembers,
 		&i.MaxProjects,
 		&i.CreatedBy,
+		&i.AiRequestsPerMinute,
+		&i.AiTokensPerMonth,
 	)
 	return i, err
 }

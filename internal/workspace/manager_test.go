@@ -479,3 +479,111 @@ func TestAHugoThatCannotBeHadStopsTheStart(t *testing.T) {
 		t.Errorf("Report() = %+v, want sleeping with the Hugo's error", report)
 	}
 }
+
+type tokens struct {
+	mu      sync.Mutex
+	issued  map[workspace.Key]int
+	revoked map[workspace.Key]int
+	fail    error
+}
+
+func (t *tokens) Issue(ctx context.Context, key workspace.Key) (string, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.fail != nil {
+		return "", t.fail
+	}
+	t.issued[key]++
+	return "token-" + key.Person.String(), nil
+}
+
+func (t *tokens) Revoke(ctx context.Context, key workspace.Key) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.revoked[key]++
+	return nil
+}
+
+func (t *tokens) counts(key workspace.Key) (int, int) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.issued[key], t.revoked[key]
+}
+
+func withTokens(t *testing.T, h *harness) (*workspace.Workspaces, *tokens) {
+	t.Helper()
+	issued := &tokens{issued: map[workspace.Key]int{}, revoked: map[workspace.Key]int{}}
+	made, err := workspace.New(h.backend, h.store, h.copies, h.isAllowed, workspace.Settings{Tokens: issued, Idle: 15 * time.Minute})
+	if err != nil {
+		t.Fatal(err)
+	}
+	made.PretendTimeIs(h.now)
+	t.Cleanup(func() { made.Close(context.Background()) })
+	return made, issued
+}
+
+func TestAStartingWorkspaceIsGivenAToken(t *testing.T) {
+	h := newHarness(t, 8)
+	made, issued := withTokens(t, h)
+	key := aKey()
+
+	endpoint(t, made, key)
+	if got := h.backend.Started[0].Token; got != "token-"+key.Person.String() {
+		t.Errorf("the backend was given token %q", got)
+	}
+	if n, _ := issued.counts(key); n != 1 {
+		t.Errorf("issued %d tokens, want one", n)
+	}
+}
+
+func TestATokenStopsWorkingWhenItsWorkspaceSleeps(t *testing.T) {
+	h := newHarness(t, 8)
+	made, issued := withTokens(t, h)
+	key := aKey()
+	endpoint(t, made, key)
+
+	h.pass(20 * time.Minute)
+	made.SweepNow()
+	if _, revoked := issued.counts(key); revoked != 1 {
+		t.Errorf("revoked %d times after sleeping, want once", revoked)
+	}
+}
+
+func TestATokenStopsWorkingWhenAStartFails(t *testing.T) {
+	h := newHarness(t, 8)
+	h.backend.Fail = workspace.ErrNotReady
+	made, issued := withTokens(t, h)
+	key := aKey()
+
+	made.Endpoint(t.Context(), key, "u")
+	if issuedN, revoked := issued.counts(key); issuedN != 1 || revoked != 1 {
+		t.Errorf("issued %d, revoked %d, want the token revoked after the failure", issuedN, revoked)
+	}
+}
+
+func TestATokenThatCannotBeIssuedStopsTheStart(t *testing.T) {
+	h := newHarness(t, 8)
+	made, issued := withTokens(t, h)
+	issued.fail = errors.New("no tokens today")
+
+	if _, err := made.Endpoint(t.Context(), aKey(), "u"); err == nil {
+		t.Errorf("a workspace started without its token")
+	}
+	if h.backend.StartCount() != 0 {
+		t.Errorf("the backend was started")
+	}
+}
+
+func TestReconcileRevokesTheTokensOfWhatIsGone(t *testing.T) {
+	h := newHarness(t, 8)
+	key := aKey()
+	h.store.Put(workspace.Record{ID: uuid.New(), Key: key, Backend: "fake", State: workspace.Warm, Handle: "gone"})
+
+	made, issued := withTokens(t, h)
+	if err := made.Reconcile(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if _, revoked := issued.counts(key); revoked != 1 {
+		t.Errorf("revoked %d times, want the gone workspace's token revoked", revoked)
+	}
+}

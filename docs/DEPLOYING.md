@@ -169,6 +169,7 @@ The ones that matter most often:
 | `workspaceIdle`, `workspacesAtOnce` | How long an unused workspace stays warm, and how many run |
 | `workspaceBackend` | `local` (a process per preview) or `microvm` (a micro VM each; needs KVM) |
 | `pinHugo`, `nixhubUrl` | Whether a project's own Hugo version is used, and where versions are looked up |
+| `ai.providerUrl`, `ai.model`, `ai.keyFile` | The model the assistant uses; the key stays on the host |
 | `workflowTools` | What a site's check step may run. Fixed and pinned. |
 | `templateFeed` | Which templates a new project can start from. `null` switches the gallery off. |
 
@@ -206,4 +207,16 @@ for a Hugo version, and builds it with the machine's Nix.
 
 For development, `scripts/dev-taps.sh up 4` makes the same devices with sudo
 and `down` removes them; `nix build .#workspace-guest` builds the guest.
+
+## The AI gateway
+
+Set `services.chatcms.ai.providerUrl` to an OpenAI-compatible endpoint,
+`ai.model` to its model and `ai.keyFile` to a file holding its key. The key is
+handed to the service by systemd and never enters a workspace: each workspace
+gets a token of its own that works only through the gateway and only while
+the workspace runs. With the microvm backend the gateway listens on port 8091
+(`ai.port`) and both firewalls open that port, and only that one, to the TAP
+devices; otherwise it listens on 127.0.0.1. Per organisation, the platform
+admin can cap requests a minute and tokens a month on the organisation's page;
+there is no cap until one is set.
 

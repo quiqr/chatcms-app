@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   only the package store and the person's copy, reaching nothing but the host.
 - A project's own Hugo version is used for its preview and its builds, found
   once through Nixhub and built with Nix (`pinHugo`).
+- An AI gateway on the host: workspaces reach the model with a token of their
+  own, never the provider's key (`services.chatcms.ai`).
+- Per organisation, the platform admin can cap AI requests a minute and tokens
+  a month, and sees this month's use.
 
 ### Changed
 

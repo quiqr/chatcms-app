@@ -36,6 +36,7 @@ type Spec struct {
 	Dir   string
 	Under string
 	Hugo  string
+	Token string
 }
 
 type Endpoint struct {
@@ -84,3 +85,8 @@ type Copies interface {
 }
 
 type Allowed func(ctx context.Context, key Key) (bool, error)
+
+type Tokens interface {
+	Issue(ctx context.Context, key Key) (string, error)
+	Revoke(ctx context.Context, key Key) error
+}

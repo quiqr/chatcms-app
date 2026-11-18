@@ -28,6 +28,7 @@ table inet chatcms_workspaces {
   chain input {
     type filter hook input priority -10; policy accept;
     iifname "chv*" ct state established,related accept
+    iifname "chv*" tcp dport 8091 accept
     iifname "chv*" drop
   }
 }

@@ -567,3 +567,31 @@ func TestAnUnusableWorkspaceSettingIsNamed(t *testing.T) {
 		}
 	}
 }
+
+func TestTheAIGatewayIsOffUntilItHasAProviderAKeyAndAModel(t *testing.T) {
+	cfg, err := workspaceConfig(t, nil)
+	if err != nil || cfg.AIConfigured() || cfg.AIListen != "127.0.0.1:8091" {
+		t.Errorf("got %+v, %v, want the gateway off", cfg, err)
+	}
+
+	cfg, err = workspaceConfig(t, map[string]string{
+		"CHATCMS_AI_PROVIDER_URL": "https://api.deepseek.com/v1",
+		"CHATCMS_AI_KEY":          "sk-test",
+		"CHATCMS_AI_MODEL":        "deepseek-chat",
+	})
+	if err != nil || !cfg.AIConfigured() {
+		t.Errorf("got %+v, %v, want the gateway on", cfg, err)
+	}
+
+	for missing, given := range map[string]map[string]string{
+		"CHATCMS_AI_KEY":          {"CHATCMS_AI_PROVIDER_URL": "https://x", "CHATCMS_AI_MODEL": "m"},
+		"CHATCMS_AI_PROVIDER_URL": {"CHATCMS_AI_KEY": "k", "CHATCMS_AI_MODEL": "m"},
+		"CHATCMS_AI_MODEL":        {"CHATCMS_AI_PROVIDER_URL": "https://x", "CHATCMS_AI_KEY": "k"},
+	} {
+		_, err := workspaceConfig(t, given)
+		var configErr *ConfigError
+		if !errors.As(err, &configErr) || configErr.Variable != missing {
+			t.Errorf("without %s error = %v", missing, err)
+		}
+	}
+}

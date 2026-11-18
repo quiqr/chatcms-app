@@ -67,7 +67,7 @@ func (q *Queries) CountProjectAdministrators(ctx context.Context, projectID pgty
 }
 
 const createOrganisation = `-- name: CreateOrganisation :one
-INSERT INTO organisations (slug, name) VALUES ($1, $2) RETURNING id, slug, name, created_at, updated_at, max_members, max_projects, created_by
+INSERT INTO organisations (slug, name) VALUES ($1, $2) RETURNING id, slug, name, created_at, updated_at, max_members, max_projects, created_by, ai_requests_per_minute, ai_tokens_per_month
 `
 
 type CreateOrganisationParams struct {
@@ -87,6 +87,8 @@ func (q *Queries) CreateOrganisation(ctx context.Context, arg CreateOrganisation
 		&i.MaxMembers,
 		&i.MaxProjects,
 		&i.CreatedBy,
+		&i.AiRequestsPerMinute,
+		&i.AiTokensPerMonth,
 	)
 	return i, err
 }
@@ -135,7 +137,7 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 }
 
 const getOrganisation = `-- name: GetOrganisation :one
-SELECT id, slug, name, created_at, updated_at, max_members, max_projects, created_by FROM organisations WHERE id = $1
+SELECT id, slug, name, created_at, updated_at, max_members, max_projects, created_by, ai_requests_per_minute, ai_tokens_per_month FROM organisations WHERE id = $1
 `
 
 func (q *Queries) GetOrganisation(ctx context.Context, id pgtype.UUID) (Organisation, error) {
@@ -150,12 +152,14 @@ func (q *Queries) GetOrganisation(ctx context.Context, id pgtype.UUID) (Organisa
 		&i.MaxMembers,
 		&i.MaxProjects,
 		&i.CreatedBy,
+		&i.AiRequestsPerMinute,
+		&i.AiTokensPerMonth,
 	)
 	return i, err
 }
 
 const getOrganisationBySlug = `-- name: GetOrganisationBySlug :one
-SELECT id, slug, name, created_at, updated_at, max_members, max_projects, created_by FROM organisations WHERE slug = $1
+SELECT id, slug, name, created_at, updated_at, max_members, max_projects, created_by, ai_requests_per_minute, ai_tokens_per_month FROM organisations WHERE slug = $1
 `
 
 func (q *Queries) GetOrganisationBySlug(ctx context.Context, slug string) (Organisation, error) {
@@ -170,6 +174,8 @@ func (q *Queries) GetOrganisationBySlug(ctx context.Context, slug string) (Organ
 		&i.MaxMembers,
 		&i.MaxProjects,
 		&i.CreatedBy,
+		&i.AiRequestsPerMinute,
+		&i.AiTokensPerMonth,
 	)
 	return i, err
 }
@@ -336,7 +342,7 @@ func (q *Queries) ListOrganisationMembershipsForPerson(ctx context.Context, pers
 }
 
 const listOrganisationsForPerson = `-- name: ListOrganisationsForPerson :many
-SELECT DISTINCT organisations.id, organisations.slug, organisations.name, organisations.created_at, organisations.updated_at, organisations.max_members, organisations.max_projects, organisations.created_by
+SELECT DISTINCT organisations.id, organisations.slug, organisations.name, organisations.created_at, organisations.updated_at, organisations.max_members, organisations.max_projects, organisations.created_by, organisations.ai_requests_per_minute, organisations.ai_tokens_per_month
 FROM organisations
 LEFT JOIN organisation_members
        ON organisation_members.organisation_id = organisations.id
@@ -367,6 +373,8 @@ func (q *Queries) ListOrganisationsForPerson(ctx context.Context, personID pgtyp
 			&i.MaxMembers,
 			&i.MaxProjects,
 			&i.CreatedBy,
+			&i.AiRequestsPerMinute,
+			&i.AiTokensPerMonth,
 		); err != nil {
 			return nil, err
 		}
@@ -619,7 +627,7 @@ const setOrganisationLimits = `-- name: SetOrganisationLimits :one
 UPDATE organisations
 SET max_members = $2, max_projects = $3, updated_at = now()
 WHERE id = $1
-RETURNING id, slug, name, created_at, updated_at, max_members, max_projects, created_by
+RETURNING id, slug, name, created_at, updated_at, max_members, max_projects, created_by, ai_requests_per_minute, ai_tokens_per_month
 `
 
 type SetOrganisationLimitsParams struct {
@@ -640,6 +648,8 @@ func (q *Queries) SetOrganisationLimits(ctx context.Context, arg SetOrganisation
 		&i.MaxMembers,
 		&i.MaxProjects,
 		&i.CreatedBy,
+		&i.AiRequestsPerMinute,
+		&i.AiTokensPerMonth,
 	)
 	return i, err
 }

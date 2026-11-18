@@ -46,6 +46,7 @@ const (
 	BeganActingAs         What = "began acting as somebody"
 	StoppedActingAs       What = "stopped acting as somebody"
 	SetTheLimits          What = "set what an organisation is allowed"
+	SetTheAILimits        What = "set how much AI an organisation may use"
 	ChangedAnAccount      What = "changed an account"
 	SentAPasswordReset    What = "sent a password reset"
 	DeletedAnAccount      What = "deleted an account"

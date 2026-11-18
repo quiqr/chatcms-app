@@ -176,3 +176,21 @@ export type About = {
 export function readAbout() {
   return get<About>("/api/administration/about");
 }
+
+export type AIUse = {
+  requestsPerMinute: number | null;
+  tokensPerMonth: number | null;
+  requestsThisMonth: number;
+  tokensThisMonth: number;
+};
+
+export function readAIUse(organisation: string) {
+  return get<AIUse>(`/api/administration/organisations/${organisation}/ai`);
+}
+
+export function setAILimits(organisation: string, requestsPerMinute: number | null, tokensPerMonth: number | null) {
+  return put<AIUse>(`/api/administration/organisations/${organisation}/ai`, {
+    requestsPerMinute,
+    tokensPerMonth,
+  });
+}

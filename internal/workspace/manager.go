@@ -26,6 +26,7 @@ type Settings struct {
 	Forget  time.Duration
 	Logger  *slog.Logger
 	HugoFor func(ctx context.Context, key Key) (string, error)
+	Tokens  Tokens
 }
 
 func (s Settings) withDefaults() Settings {
@@ -123,6 +124,7 @@ func (w *Workspaces) Reconcile(ctx context.Context) error {
 			}
 			_ = w.backend.Stop(ctx, record.Handle)
 		}
+		w.revoke(ctx, record.Key)
 		if err := w.store.Sleep(ctx, record.ID, ""); err != nil {
 			return err
 		}
@@ -281,6 +283,9 @@ func (w *Workspaces) start(held *live) {
 			held.progress.logf("hugo " + held.spec.Hugo)
 		}
 	}
+	if err == nil && w.settings.Tokens != nil {
+		held.spec.Token, err = w.settings.Tokens.Issue(ctx, held.spec.Key)
+	}
 	var handle Handle
 	var endpoint Endpoint
 	if err == nil {
@@ -310,6 +315,7 @@ func (w *Workspaces) start(held *live) {
 
 	held.progress.finish(err != nil)
 	if err != nil {
+		w.revoke(ctx, held.spec.Key)
 		held.progress.logf(err.Error())
 		if sleepErr := w.store.Sleep(ctx, held.record.ID, reasonFor(err)); sleepErr != nil {
 			w.settings.Logger.Warn("recording a failed start failed", "error", sleepErr)
@@ -409,6 +415,7 @@ func (w *Workspaces) stopOne(ctx context.Context, held *live) {
 	if state != Warm {
 		return
 	}
+	w.revoke(ctx, held.spec.Key)
 	if err := w.backend.Stop(ctx, handle); err != nil {
 		w.settings.Logger.Warn("stopping a workspace failed", "error", err)
 	}
@@ -519,4 +526,13 @@ func (w *Workspaces) PretendTimeIs(now func() time.Time) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.now = now
+}
+
+func (w *Workspaces) revoke(ctx context.Context, key Key) {
+	if w.settings.Tokens == nil {
+		return
+	}
+	if err := w.settings.Tokens.Revoke(ctx, key); err != nil {
+		w.settings.Logger.Warn("revoking a workspace's token failed", "error", err)
+	}
 }

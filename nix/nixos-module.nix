@@ -5,6 +5,7 @@ let
   cfg = config.services.chatcms;
   system = pkgs.stdenv.hostPlatform.system;
   microvm = cfg.workspaceBackend == "microvm";
+  aiOn = cfg.ai.providerUrl != null;
   taps = lib.range 0 (cfg.workspacesAtOnce - 1);
   tapsUp = pkgs.writeShellScript "chatcms-taps-up" ''
     set -eu
@@ -26,6 +27,7 @@ let
         chain input {
           type filter hook input priority -10; policy accept;
           iifname "chv*" ct state established,related accept
+          ${lib.optionalString aiOn ''iifname "chv*" tcp dport ${toString cfg.ai.port} accept''}
           iifname "chv*" drop
         }
       }
@@ -307,6 +309,40 @@ in
       description = "The package index a project's Hugo version is looked up in.";
     };
 
+    ai = {
+      providerUrl = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        example = "https://api.deepseek.com/v1";
+        description = ''
+          An OpenAI-compatible endpoint the assistant's model is reached at.
+          Null switches the AI gateway off.
+        '';
+      };
+
+      model = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        example = "deepseek-chat";
+        description = "The model every workspace's requests go to.";
+      };
+
+      keyFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.path;
+        default = null;
+        description = ''
+          A file holding the provider's API key. It is read by systemd and
+          handed to the service; it never enters a workspace.
+        '';
+      };
+
+      port = lib.mkOption {
+        type = lib.types.port;
+        default = 8091;
+        description = "The port the AI gateway listens on.";
+      };
+    };
+
     extraEnvironment = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
       default = { };
@@ -315,7 +351,15 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    networking.firewall.interfaces = lib.mkIf (microvm && aiOn) {
+      "chv+".allowedTCPPorts = [ cfg.ai.port ];
+    };
+
     assertions = [
+      {
+        assertion = !aiOn || (cfg.ai.keyFile != null && cfg.ai.model != "");
+        message = "services.chatcms: set ai.keyFile and ai.model when ai.providerUrl is set.";
+      }
       {
         assertion = cfg.database.createLocally || cfg.database.urlFile != null;
         message = "services.chatcms: set database.urlFile when database.createLocally is false.";
@@ -392,6 +436,11 @@ in
         CHATCMS_VIRTIOFSD_BIN = "${pkgs.virtiofsd}/bin/virtiofsd";
         CHATCMS_WORKSPACE_TAPS = toString cfg.workspacesAtOnce;
         CHATCMS_WORKSPACE_RUN_DIR = "/run/chatcms/w";
+      } // lib.optionalAttrs aiOn {
+        CHATCMS_AI_PROVIDER_URL = cfg.ai.providerUrl;
+        CHATCMS_AI_MODEL = cfg.ai.model;
+        CHATCMS_AI_KEY_FILE = "%d/ai-key";
+        CHATCMS_AI_LISTEN = "${if microvm then "0.0.0.0" else "127.0.0.1"}:${toString cfg.ai.port}";
       } // lib.optionalAttrs (cfg.firstAdministrator != null) {
         CHATCMS_FIRST_ADMINISTRATOR = cfg.firstAdministrator;
       } // lib.optionalAttrs (cfg.mail.host != null) {
@@ -414,6 +463,7 @@ in
       serviceConfig = {
         ExecStart = "${lib.getExe cfg.package}";
         LoadCredential = [ "master-key:${cfg.secretKeyFile}" ]
+          ++ lib.optional (aiOn && cfg.ai.keyFile != null) "ai-key:${cfg.ai.keyFile}"
           ++ lib.optional (cfg.mail.passwordFile != null) "mail-password:${cfg.mail.passwordFile}";
         User = cfg.user;
         Group = cfg.group;

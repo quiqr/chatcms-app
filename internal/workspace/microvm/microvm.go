@@ -73,6 +73,7 @@ type Settings struct {
 	Ready           time.Duration
 	HugoBin         string
 	Store           string
+	GatewayPort     int
 }
 
 type vm struct {
@@ -185,7 +186,7 @@ func (b *Backend) hugo(spec workspace.Spec) (string, error) {
 	return real, nil
 }
 
-func (b *Backend) Cmdline(slot int, hugo, under string) string {
+func (b *Backend) Cmdline(slot int, hugo, under, token string) string {
 	parts := []string{
 		b.settings.Guest.Cmdline,
 		"chatcms.ip=" + b.guestAddress(slot) + "/30",
@@ -196,17 +197,22 @@ func (b *Backend) Cmdline(slot int, hugo, under string) string {
 	if port := browserPort(under); port > 0 {
 		parts = append(parts, "chatcms.reload="+strconv.Itoa(port))
 	}
+	if token != "" && b.settings.GatewayPort > 0 {
+		parts = append(parts,
+			"chatcms.ai="+fmt.Sprintf("http://%s:%d/v1", b.hostAddress(slot), b.settings.GatewayPort),
+			"chatcms.token="+token)
+	}
 	return strings.Join(parts, " ")
 }
 
-func (b *Backend) hypervisorArguments(slot int, dir, hugo, under string) []string {
+func (b *Backend) hypervisorArguments(slot int, dir, hugo, under, token string) []string {
 	guest := b.settings.Guest
 	return []string{
 		"--cpus", "boot=" + strconv.Itoa(guest.VCPU),
 		"--memory", "size=" + strconv.Itoa(guest.Memory) + "M,shared=on",
 		"--kernel", guest.Kernel,
 		"--initramfs", guest.Initrd,
-		"--cmdline", strings.Replace(b.Cmdline(slot, hugo, under), "console=ttyS0", "console=hvc0", 1),
+		"--cmdline", strings.Replace(b.Cmdline(slot, hugo, under, token), "console=ttyS0", "console=hvc0", 1),
 		"--seccomp", "true",
 		"--fs", "tag=ro-store,socket=" + filepath.Join(dir, "s"), "tag=site,socket=" + filepath.Join(dir, "t"),
 		"--net", "tap=" + b.tap(slot) + ",mac=" + mac(slot),
@@ -226,7 +232,7 @@ func shareArguments(socket, source, cache string) []string {
 }
 
 func (b *Backend) Start(ctx context.Context, spec workspace.Spec, log io.Writer) (workspace.Handle, workspace.Endpoint, error) {
-	if strings.ContainsAny(spec.Under, " \t\n") || strings.ContainsAny(spec.Dir, "\n") {
+	if strings.ContainsAny(spec.Under, " \t\n") || strings.ContainsAny(spec.Token, " \t\n") || strings.ContainsAny(spec.Dir, "\n") {
 		return "", workspace.Endpoint{}, fmt.Errorf("microvm: an address or directory this cannot pass on")
 	}
 	hugo, err := b.hugo(spec)
@@ -270,7 +276,7 @@ func (b *Backend) Start(ctx context.Context, spec workspace.Spec, log io.Writer)
 	}
 
 	fmt.Fprintf(log, "starting a micro VM on %s\n", b.tap(slot))
-	if err := b.launch(machine, log, b.settings.CloudHypervisor, b.hypervisorArguments(slot, dir, hugo, spec.Under)); err != nil {
+	if err := b.launch(machine, log, b.settings.CloudHypervisor, b.hypervisorArguments(slot, dir, hugo, spec.Under, spec.Token)); err != nil {
 		return fail(err)
 	}
 

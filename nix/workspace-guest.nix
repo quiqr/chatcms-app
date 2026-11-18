@@ -8,6 +8,13 @@ let
     hugo=$(param hugo)
     under=$(param under)
     reload=$(param reload)
+    ai=$(param ai)
+    token=$(param token)
+
+    if [ -n "$token" ]; then
+      mkdir -p /run/chatcms
+      ( umask 077; printf 'CHATCMS_AI_URL=%s\nCHATCMS_AI_TOKEN=%s\n' "$ai" "$token" > /run/chatcms/ai.env )
+    fi
 
     link=$(ip -o link show | grep -v ' lo:' | head -n1 | sed 's/^[0-9]*: \([^:@]*\).*/\1/')
     ip link set lo up

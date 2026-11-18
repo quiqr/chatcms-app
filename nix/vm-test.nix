@@ -27,6 +27,10 @@ pkgs.testers.runNixOSTest {
           od -An -tx1 -N32 /dev/urandom | tr -d " \n" > /run/chatcms-secrets/master.key
           chmod 600 /run/chatcms-secrets/master.key
         fi
+        if [ ! -f /run/chatcms-secrets/ai.key ]; then
+          echo "sk-$(od -An -tx1 -N16 /dev/urandom | tr -d ' \n')" > /run/chatcms-secrets/ai.key
+          chmod 600 /run/chatcms-secrets/ai.key
+        fi
       '';
     };
 
@@ -38,6 +42,11 @@ pkgs.testers.runNixOSTest {
       database.createLocally = true;
       workspaceBackend = "microvm";
       workspacesAtOnce = 2;
+      ai = {
+        providerUrl = "http://127.0.0.1:9/v1";
+        model = "test-model";
+        keyFile = "/run/chatcms-secrets/ai.key";
+      };
     };
 
     environment.systemPackages = [ pkgs.curl pkgs.jq pkgs.nftables ];
@@ -114,6 +123,20 @@ pkgs.testers.runNixOSTest {
         devices = machine.succeed("systemctl show chatcms.service -p DeviceAllow")
         assert "/dev/kvm" in devices and "/dev/net/tun" in devices, devices
         machine.succeed("test -d /run/chatcms")
+
+    with subtest("the AI gateway listens apart, wants a token, and only the VMs may reach its port"):
+        machine.wait_for_open_port(8091)
+        status = machine.succeed(
+            "curl -s -o /dev/null -w '%{http_code}' -X POST -d '{}' http://127.0.0.1:8091/v1/chat/completions"
+        ).strip()
+        assert status == "401", status
+        rules = machine.succeed("nft list table inet chatcms_workspaces")
+        assert 'iifname "chv*" tcp dport 8091 accept' in rules, rules
+        firewall = machine.succeed("iptables -S nixos-fw")
+        assert "-i chv+ -p tcp -m tcp --dport 8091" in firewall, firewall
+        environment = machine.succeed("systemctl show chatcms.service -p Environment")
+        assert "CHATCMS_AI_KEY_FILE=%d/ai-key" in environment or "CHATCMS_AI_KEY_FILE=/run/credentials" in environment, environment
+        machine.succeed("! grep -rl \"$(cat /run/chatcms-secrets/ai.key)\" /nix/store 2>/dev/null | grep -q .")
 
     with subtest("the template feed defaults to the community feed"):
         environment = machine.succeed("systemctl show chatcms.service -p Environment")

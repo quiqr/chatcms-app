@@ -33,6 +33,7 @@ projection: a cached, rebuildable view in Postgres of something git owns.
 | `internal/workspace`   | A workspace per person per project: lifecycle, limits, and the backend seam   |
 | `internal/workspace/microvm` | A workspace in a Cloud Hypervisor micro VM of its own                  |
 | `internal/nixpin`      | A package at a given version, found through Nixhub and built with Nix         |
+| `internal/aigateway`   | The host's OpenAI-compatible gateway: workspace tokens, limits, usage         |
 | `internal/runner`      | Sandboxed build execution behind an interface                                 |
 | `internal/sitebuild`   | Running the pinned Hugo over a site, through a runner                         |
 | `internal/builds`      | What is remembered about every build, and the state it ended in               |
@@ -105,6 +106,19 @@ NixOS module makes (`chv<i>`, `10.231.<i>.1` on the host, `.2` in the guest),
 and an nftables table lets the VMs reach nothing but replies from the host.
 The VM sees no key and no git directory it could use. Its processes are
 children of the server, so they stop with it. A cold start takes about 6 s.
+
+**`internal/aigateway`** is how a workspace reaches a language model without
+holding the provider's key. It listens apart from the app
+(`CHATCMS_AI_LISTEN`, port 8091), answers only from this machine and from
+`10.231.0.0/16`, and only `POST /v1/chat/completions` and `GET /v1/models`.
+A workspace gets a token when it starts, issued and revoked through
+`workspace.Settings.Tokens` and stored as a SHA-256 in `ai_tokens`; a micro VM
+gets it, with the gateway's address on its host side, on its kernel command
+line and keeps it in `/run/chatcms/ai.env`. The gateway puts the provider's
+key and the configured model in place of what the request carried, streams
+answers through as they come, refuses past an organisation's requests a
+minute or tokens a month, and records every call in `ai_usage`. The platform
+admin sets the limits and sees the month's use on the organisation's page.
 
 **`internal/nixpin`** turns a package name and version into a store path: it
 asks Nixhub which nixpkgs revision has it, builds that with `nix build`

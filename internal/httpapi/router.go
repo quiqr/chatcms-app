@@ -41,6 +41,7 @@ type Options struct {
 	// Administration serves what somebody who administers the installation
 	// may do: organisations, who is in them, and who administers.
 	Administration AdministrationService
+	AIUse          AIUseService
 	About          AboutSource
 	// Onboarding serves setting a project up: its key, its site, and where
 	// it publishes.
@@ -150,6 +151,10 @@ func New(opts Options) http.Handler {
 	if opts.WhoAmI != nil {
 		mux.Handle("GET /api/whoami", RequireActor(whoAmIHandler(opts.WhoAmI)))
 		mux.HandleFunc("/api/whoami", MethodNotAllowed)
+	}
+
+	if opts.AIUse != nil {
+		aiUseHandlers(mux, opts.AIUse)
 	}
 
 	if opts.Administration != nil {

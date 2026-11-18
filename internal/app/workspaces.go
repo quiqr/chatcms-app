@@ -79,6 +79,7 @@ func (s *Server) workspaceBackend() (workspace.Backend, error) {
 		RunDir:          s.cfg.WorkspaceRunDir,
 		Taps:            s.cfg.WorkspaceTaps,
 		HugoBin:         s.cfg.HugoBin,
+		GatewayPort:     s.gatewayPort(),
 	})
 }
 
@@ -124,6 +125,7 @@ func (s *Server) startWorkspaces(ctx context.Context, tenancyStore *tenancy.Stor
 			HugoFor: func(ctx context.Context, key workspace.Key) (string, error) {
 				return hugo.For(ctx, key.Project)
 			},
+			Tokens: s.workspaceTokens(),
 		},
 	)
 	if err != nil {

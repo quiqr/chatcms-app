@@ -169,6 +169,7 @@ func newRig(t *testing.T, taps int) *rig {
 		Ready:           5 * time.Second,
 		HugoBin:         hugo,
 		Store:           store,
+		GatewayPort:     8091,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -459,5 +460,33 @@ func TestNewNeedsItsParts(t *testing.T) {
 	}
 	if made.tap(3) != "chv3" || mac(3) != "02:00:0a:e7:03:02" {
 		t.Errorf("tap(3) = %s, mac(3) = %s", made.tap(3), mac(3))
+	}
+}
+
+func TestAVMIsGivenItsTokenAndTheGatewayOnItsHostAddress(t *testing.T) {
+	r := newRig(t, 2)
+	r.start(t, r.spec(t))
+	spec := r.spec(t)
+	spec.Token = "a-token"
+	_, endpoint := r.start(t, spec)
+
+	body := get(t, endpoint)
+	if !strings.Contains(body, "chatcms.ai=http://127.231.1.1:8091/v1") || !strings.Contains(body, "chatcms.token=a-token") {
+		t.Errorf("the VM was not given its gateway and token: %s", body)
+	}
+
+	spec = r.spec(t)
+	spec.Token = "two words"
+	r.backend.Stop(t.Context(), workspace.Handle(""))
+	if _, _, err := r.backend.Start(t.Context(), spec, io.Discard); err == nil {
+		t.Errorf("a token with a space was passed on to the kernel")
+	}
+}
+
+func TestAVMWithoutATokenIsToldNoGateway(t *testing.T) {
+	r := newRig(t, 1)
+	_, endpoint := r.start(t, r.spec(t))
+	if body := get(t, endpoint); strings.Contains(body, "chatcms.ai=") || strings.Contains(body, "chatcms.token=") {
+		t.Errorf("a VM without a token was told about the gateway: %s", body)
 	}
 }

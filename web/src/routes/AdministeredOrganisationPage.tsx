@@ -16,6 +16,7 @@ import {
   takeSomebodyOut,
 } from "../lib/administration";
 import { useAsync } from "../lib/useAsync";
+import { AIUseSection } from "./AIUseSection";
 import { renameOrganisation } from "../lib/whoami";
 import { plural, say } from "../lib/say";
 import { whatWentWrong } from "../lib/api";
@@ -218,6 +219,8 @@ export function AdministeredOrganisationPage() {
       </section>
 
       <Limits organisation={organisation} usage={here.usage} onSaved={again} />
+
+      <AIUseSection organisation={organisation} />
 
       <section className="flex flex-col gap-4 rounded-xl border border-destructive-soft p-4">
         <h2 className="text-[15px] font-semibold text-destructive-foreground">

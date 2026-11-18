@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/quiqr/chatcms-app/internal/admin"
+	"github.com/quiqr/chatcms-app/internal/aigateway"
 	"github.com/quiqr/chatcms-app/internal/auth"
 	"github.com/quiqr/chatcms-app/internal/builds"
 	"github.com/quiqr/chatcms-app/internal/content"
@@ -72,6 +73,9 @@ type Server struct {
 	preview    *preview.Web
 	workspaces *workspace.Workspaces
 	hugo       *hugos
+	aiListener net.Listener
+	aiHTTP     *http.Server
+	aiTokens   *aigateway.Tokens
 }
 
 func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, error) {
@@ -129,7 +133,9 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 	server.tenancy.KnowsWhatTheyChose(server.auth)
 
 	adminStore := admin.NewStore(db)
-	server.admin = admin.NewWeb(admin.NewService(adminStore, tenancyStore, server.auth))
+	administering := admin.NewService(adminStore, tenancyStore, server.auth)
+	administering.UseAIBooks(aigateway.NewBooks(aigateway.NewPostgres(db.Queries), nil))
+	server.admin = admin.NewWeb(administering)
 	appointTheFirstAdministrator(ctx, adminStore, cfg.FirstAdministrator, logger)
 
 	importer := onboarding.NewImporter(db, server.sites, server.keys,
@@ -177,6 +183,10 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 		logger.InfoContext(ctx, "no mail server is configured, so sign-in links go to this log")
 	}
 
+	if err := server.startAI(); err != nil {
+		db.Close()
+		return nil, err
+	}
 	if err := server.startContent(ctx, tenancyStore); err != nil {
 		db.Close()
 		return nil, err
@@ -191,6 +201,7 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 		WhoAmI:         server.tenancy,
 		Account:        server.auth,
 		Administration: server.admin,
+		AIUse:          server.admin,
 		About:          server.about,
 		Onboarding:     server.onboarding,
 		Templates:      server.onboarding,
@@ -269,6 +280,9 @@ func (s *Server) Serve(ctx context.Context) error {
 
 	errs := make(chan error, 1)
 	go func() {
+		if s.aiHTTP != nil {
+			go s.aiHTTP.Serve(s.aiListener)
+		}
 		err := s.http.Serve(s.listener)
 		if errors.Is(err, http.ErrServerClosed) {
 			err = nil
@@ -289,6 +303,9 @@ func (s *Server) Serve(ctx context.Context) error {
 
 	s.logger.Info("shutting down", "timeout", s.cfg.ShutdownTimeout)
 
+	if s.aiHTTP != nil {
+		gracefulShutdown(s.aiHTTP, s.cfg.ShutdownTimeout)
+	}
 	shutdownErr := gracefulShutdown(s.http, s.cfg.ShutdownTimeout)
 	<-errs
 
@@ -319,6 +336,9 @@ func (s *Server) Close() error {
 		closing, cancel := context.WithTimeout(context.Background(), s.cfg.ShutdownTimeout)
 		s.workspaces.Close(closing)
 		cancel()
+	}
+	if s.aiHTTP != nil {
+		s.aiHTTP.Close()
 	}
 	if s.db != nil {
 		s.db.Close()

@@ -39,6 +39,7 @@ func TestARealMicroVMServesThePersonsSite(t *testing.T) {
 		Taps:            1,
 		HugoBin:         needs(t, "CHATCMS_HUGO_BIN"),
 		Ready:           2 * time.Minute,
+		GatewayPort:     8091,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -58,6 +59,7 @@ func TestARealMicroVMServesThePersonsSite(t *testing.T) {
 	handle, endpoint, err := backend.Start(t.Context(), workspace.Spec{
 		Key: workspace.Key{Person: uuid.New(), Project: uuid.New()}, Dir: site,
 		Under: "http://127.0.0.1:8080/preview/o/p/",
+		Token: "a-boot-test-token",
 	}, os.Stderr)
 	if err != nil {
 		t.Fatalf("Start() error = %v", err)

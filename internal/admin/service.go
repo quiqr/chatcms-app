@@ -40,6 +40,7 @@ type Service struct {
 	store    *Store
 	tenancy  Tenancy
 	accounts Accounts
+	ai       AIBooks
 }
 
 // Accounts is what administering needs from identity: an account can be

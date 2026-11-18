@@ -55,11 +55,19 @@ type Config struct {
 	VirtiofsdBin     string
 	NixBin           string
 	NixhubURL        string
+	AIListen         string
+	AIProviderURL    string
+	AIModel          string
+	AIKey            string
 	TemplateFeed     string
 	Deprecated       []string
 }
 
 // SitesDir is where every site's working copy lives.
+func (c Config) AIConfigured() bool {
+	return c.AIProviderURL != "" && c.AIKey != "" && c.AIModel != ""
+}
+
 func (c Config) SitesDir() string {
 	return filepath.Join(c.StateDir, "sites")
 }
@@ -117,6 +125,10 @@ func LoadConfig(lookup Lookup) (Config, error) {
 		{"CHATCMS_VIRTIOFSD_BIN", &cfg.VirtiofsdBin, "virtiofsd", false},
 		{"CHATCMS_NIX_BIN", &cfg.NixBin, "", false},
 		{"CHATCMS_NIXHUB_URL", &cfg.NixhubURL, "https://search.devbox.sh", false},
+		{"CHATCMS_AI_LISTEN", &cfg.AIListen, "127.0.0.1:8091", false},
+		{"CHATCMS_AI_PROVIDER_URL", &cfg.AIProviderURL, "", false},
+		{"CHATCMS_AI_MODEL", &cfg.AIModel, "", false},
+		{"CHATCMS_AI_KEY", &cfg.AIKey, "", false},
 	}
 
 	for _, field := range fields {
@@ -217,6 +229,17 @@ func LoadConfig(lookup Lookup) (Config, error) {
 		if err != nil || cfg.WorkspaceTaps <= 0 || cfg.WorkspaceTaps > 250 {
 			return Config{}, &ConfigError{Variable: "CHATCMS_WORKSPACE_TAPS", Reason: reasonInvalid}
 		}
+	}
+
+	if (cfg.AIProviderURL == "") != (cfg.AIKey == "") || (cfg.AIProviderURL != "" && cfg.AIModel == "") {
+		missing := "CHATCMS_AI_KEY"
+		switch {
+		case cfg.AIProviderURL == "":
+			missing = "CHATCMS_AI_PROVIDER_URL"
+		case cfg.AIModel == "":
+			missing = "CHATCMS_AI_MODEL"
+		}
+		return Config{}, &ConfigError{Variable: missing, Reason: reasonMissing}
 	}
 
 	switch cfg.WorkspaceBackend {

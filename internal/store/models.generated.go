@@ -19,6 +19,27 @@ type AdministrationRecord struct {
 	At          pgtype.Timestamptz `json:"at"`
 }
 
+type AiToken struct {
+	TokenHash      []byte             `json:"token_hash"`
+	PersonID       pgtype.UUID        `json:"person_id"`
+	ProjectID      pgtype.UUID        `json:"project_id"`
+	OrganisationID pgtype.UUID        `json:"organisation_id"`
+	IssuedAt       pgtype.Timestamptz `json:"issued_at"`
+	RevokedAt      pgtype.Timestamptz `json:"revoked_at"`
+}
+
+type AiUsage struct {
+	ID             int64              `json:"id"`
+	At             pgtype.Timestamptz `json:"at"`
+	OrganisationID pgtype.UUID        `json:"organisation_id"`
+	ProjectID      pgtype.UUID        `json:"project_id"`
+	PersonID       pgtype.UUID        `json:"person_id"`
+	Model          string             `json:"model"`
+	TokensIn       int64              `json:"tokens_in"`
+	TokensOut      int64              `json:"tokens_out"`
+	Status         int32              `json:"status"`
+}
+
 type Build struct {
 	ID         pgtype.UUID        `json:"id"`
 	ProjectID  pgtype.UUID        `json:"project_id"`
@@ -64,14 +85,16 @@ type NixPackage struct {
 }
 
 type Organisation struct {
-	ID          pgtype.UUID        `json:"id"`
-	Slug        string             `json:"slug"`
-	Name        string             `json:"name"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
-	MaxMembers  *int32             `json:"max_members"`
-	MaxProjects *int32             `json:"max_projects"`
-	CreatedBy   pgtype.UUID        `json:"created_by"`
+	ID                  pgtype.UUID        `json:"id"`
+	Slug                string             `json:"slug"`
+	Name                string             `json:"name"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+	MaxMembers          *int32             `json:"max_members"`
+	MaxProjects         *int32             `json:"max_projects"`
+	CreatedBy           pgtype.UUID        `json:"created_by"`
+	AiRequestsPerMinute *int32             `json:"ai_requests_per_minute"`
+	AiTokensPerMonth    *int64             `json:"ai_tokens_per_month"`
 }
 
 type OrganisationMember struct {
