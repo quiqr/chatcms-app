@@ -5,8 +5,8 @@ status: todo
 type: feature
 priority: normal
 created_at: 2026-11-18T12:51:49Z
-updated_at: 2026-11-18T12:51:49Z
-parent: chatcms-6jxg
+updated_at: 2026-11-18T21:41:32Z
+parent: chatcms-9iuz
 blocked_by:
     - chatcms-7j75
 ---

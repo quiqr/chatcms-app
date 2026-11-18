@@ -1,11 +1,11 @@
 ---
 # chatcms-r1wn
 title: Live reload does not pass through the preview proxy
-status: todo
+status: completed
 type: bug
 priority: normal
 created_at: 2026-11-18T14:50:03Z
-updated_at: 2026-11-18T14:50:03Z
+updated_at: 2026-11-18T21:41:32Z
 ---
 
 ## What happens

@@ -1,11 +1,11 @@
 ---
 # chatcms-v924
 title: A chat panel with streamed replies
-status: todo
+status: completed
 type: feature
 priority: normal
 created_at: 2026-11-18T12:51:49Z
-updated_at: 2026-11-18T12:51:49Z
+updated_at: 2026-11-18T21:41:32Z
 parent: chatcms-6jxg
 blocked_by:
     - chatcms-y5s9
