@@ -43,6 +43,15 @@ type Service struct {
 	sources    Sources
 	workspaces Workspaces
 	baseURL    string
+	origin     string
+}
+
+func (s *Service) ServeFrom(origin string) {
+	s.origin = strings.TrimSuffix(origin, "/")
+}
+
+func (s *Service) Apart() bool {
+	return s.origin != ""
 }
 
 func NewService(sources Sources, workspaces Workspaces, baseURL string) (*Service, error) {
@@ -53,6 +62,9 @@ func NewService(sources Sources, workspaces Workspaces, baseURL string) (*Servic
 }
 
 func (s *Service) Under(under string) string {
+	if s.origin != "" {
+		return s.origin + "/v/" + workspace.ViewPlaceholder + "/"
+	}
 	return s.baseURL + under
 }
 
@@ -97,10 +109,13 @@ func (s *Service) Stop(projectID uuid.UUID) {
 }
 
 type Standing struct {
-	State  workspace.State
-	Reason string
-	Steps  []workspace.StepReport
-	Log    []string
+	State   workspace.State
+	Address string
+	Type    string
+	Open    string
+	Reason  string
+	Steps   []workspace.StepReport
+	Log     []string
 }
 
 func (s *Service) Open(ctx context.Context, actor policy.Actor, projectID uuid.UUID, under string) (Standing, error) {
@@ -140,7 +155,7 @@ func (s *Service) keyFor(ctx context.Context, actor policy.Actor, projectID uuid
 
 func (s *Service) standing(key workspace.Key, technical bool) Standing {
 	report, _ := s.workspaces.Report(key)
-	standing := Standing{State: report.State}
+	standing := Standing{State: report.State, Address: report.Address, Type: report.Type, Open: report.Open}
 	if report.Reason != "" {
 		standing.Reason = refusedNotReady.Key
 		var refused *httpapi.RefusedError
@@ -153,4 +168,46 @@ func (s *Service) standing(key workspace.Key, technical bool) Standing {
 		standing.Log = report.Log
 	}
 	return standing
+}
+
+type Viewed interface {
+	ByView(view string) (workspace.Key, workspace.Endpoint, bool)
+}
+
+type Origin struct {
+	workspaces Viewed
+	allowed    func(ctx context.Context, key workspace.Key) (bool, error)
+}
+
+func NewOrigin(workspaces Viewed, allowed func(ctx context.Context, key workspace.Key) (bool, error)) *Origin {
+	return &Origin{workspaces: workspaces, allowed: allowed}
+}
+
+func (o *Origin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	rest, found := strings.CutPrefix(r.URL.Path, "/v/")
+	view, _, _ := strings.Cut(rest, "/")
+	if !found || view == "" {
+		http.NotFound(w, r)
+		return
+	}
+	key, endpoint, live := o.workspaces.ByView(view)
+	if !live {
+		http.NotFound(w, r)
+		return
+	}
+	allowed, err := o.allowed(r.Context(), key)
+	if err != nil {
+		http.Error(w, "the preview cannot be checked right now", http.StatusServiceUnavailable)
+		return
+	}
+	if !allowed {
+		http.NotFound(w, r)
+		return
+	}
+	where, err := url.Parse("http://" + endpoint.Address())
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	httputil.NewSingleHostReverseProxy(where).ServeHTTP(w, r)
 }

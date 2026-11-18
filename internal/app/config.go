@@ -60,6 +60,7 @@ type Config struct {
 	AIModel          string
 	AIKey            string
 	OpenCodeBin      string
+	PreviewURL       string
 	TemplateFeed     string
 	Deprecated       []string
 }
@@ -131,6 +132,7 @@ func LoadConfig(lookup Lookup) (Config, error) {
 		{"CHATCMS_AI_MODEL", &cfg.AIModel, "", false},
 		{"CHATCMS_AI_KEY", &cfg.AIKey, "", false},
 		{"CHATCMS_OPENCODE_BIN", &cfg.OpenCodeBin, "", false},
+		{"CHATCMS_PREVIEW_URL", &cfg.PreviewURL, "", false},
 	}
 
 	for _, field := range fields {
@@ -242,6 +244,14 @@ func LoadConfig(lookup Lookup) (Config, error) {
 			missing = "CHATCMS_AI_MODEL"
 		}
 		return Config{}, &ConfigError{Variable: missing, Reason: reasonMissing}
+	}
+
+	if cfg.PreviewURL != "" {
+		parsed, err := url.Parse(cfg.PreviewURL)
+		app, _ := url.Parse(cfg.BaseURL)
+		if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" || (parsed.Path != "" && parsed.Path != "/") || (app != nil && app.Host == parsed.Host) {
+			return Config{}, &ConfigError{Variable: "CHATCMS_PREVIEW_URL", Reason: reasonInvalid}
+		}
 	}
 
 	switch cfg.WorkspaceBackend {

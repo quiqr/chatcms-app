@@ -7,9 +7,10 @@ import { Harness, administrator, owner } from "./harness.mjs";
 // they run in cannot matter and a failure is never somebody else's leftovers.
 export const test = base.extend({
   assistant: [false, { option: true }],
+  previewApart: [false, { option: true }],
 
-  chatcms: async ({ assistant }, use) => {
-    const harness = new Harness({ assistant });
+  chatcms: async ({ assistant, previewApart }, use) => {
+    const harness = new Harness({ assistant, previewApart });
     // Starting can fail with a PostgreSQL already running, so the teardown
     // covers the start as well. Otherwise one bad start leaves a database
     // behind for the rest of the afternoon.

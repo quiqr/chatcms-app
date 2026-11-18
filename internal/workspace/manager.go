@@ -2,11 +2,21 @@ package workspace
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/quiqr/chatcms-app/internal/runtime"
 )
 
 const (
@@ -21,12 +31,12 @@ const (
 )
 
 type Settings struct {
-	Most    int
-	Idle    time.Duration
-	Forget  time.Duration
-	Logger  *slog.Logger
-	HugoFor func(ctx context.Context, key Key) (string, error)
-	Tokens  Tokens
+	Most       int
+	Idle       time.Duration
+	Forget     time.Duration
+	Logger     *slog.Logger
+	RuntimeFor func(ctx context.Context, key Key, dir string) (runtime.Resolved, error)
+	Tokens     Tokens
 }
 
 func (s Settings) withDefaults() Settings {
@@ -46,11 +56,14 @@ func (s Settings) withDefaults() Settings {
 }
 
 type Report struct {
-	State  State        `json:"state"`
-	Reason string       `json:"reason,omitempty"`
-	Err    error        `json:"-"`
-	Steps  []StepReport `json:"steps,omitempty"`
-	Log    []string     `json:"log,omitempty"`
+	State   State        `json:"state"`
+	Reason  string       `json:"reason,omitempty"`
+	Address string       `json:"address,omitempty"`
+	Type    string       `json:"type,omitempty"`
+	Open    string       `json:"open,omitempty"`
+	Err     error        `json:"-"`
+	Steps   []StepReport `json:"steps,omitempty"`
+	Log     []string     `json:"log,omitempty"`
 }
 
 type live struct {
@@ -63,6 +76,9 @@ type live struct {
 	progress *progress
 	used     time.Time
 	written  time.Time
+	under    string
+	view     string
+	made     string
 }
 
 type Workspaces struct {
@@ -218,10 +234,11 @@ func (w *Workspaces) open(ctx context.Context, key Key, under string) (*live, er
 	w.mu.Lock()
 	held, found := w.live[key]
 	if found && held.state != Sleeping {
-		if held.spec.Under == "" {
-			held.spec.Under = under
+		if held.under == "" {
+			held.under = under
+			held.spec.Under = strings.ReplaceAll(under, ViewPlaceholder, held.view)
 		}
-		if held.spec.Under == under {
+		if held.under == under && !held.changed() {
 			w.touchLocked(ctx, held)
 			w.mu.Unlock()
 			return held, nil
@@ -241,6 +258,22 @@ func (w *Workspaces) open(ctx context.Context, key Key, under string) (*live, er
 	return w.begin(ctx, Spec{Key: key, Dir: dir, Under: under})
 }
 
+func definitionIn(dir string) string {
+	if dir == "" {
+		return ""
+	}
+	data, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(runtime.File)))
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
+}
+
+func (held *live) changed() bool {
+	return held.state == Warm && held.spec.Dir != "" && definitionIn(held.spec.Dir) != held.made
+}
+
 func (w *Workspaces) begin(ctx context.Context, spec Spec) (*live, error) {
 	now := w.clock()
 	record, err := w.store.Reserve(ctx, spec.Key, w.backend.Name(), w.settings.Most, now)
@@ -253,6 +286,9 @@ func (w *Workspaces) begin(ctx context.Context, spec Spec) (*live, error) {
 		w.mu.Unlock()
 		return held, nil
 	}
+	view := randomKey()
+	under := spec.Under
+	spec.Under = strings.ReplaceAll(under, ViewPlaceholder, view)
 	held := &live{
 		record:   record,
 		spec:     spec,
@@ -261,6 +297,9 @@ func (w *Workspaces) begin(ctx context.Context, spec Spec) (*live, error) {
 		progress: newProgress(),
 		used:     now,
 		written:  now,
+		under:    under,
+		view:     view,
+		made:     definitionIn(spec.Dir),
 	}
 	w.live[spec.Key] = held
 	w.mu.Unlock()
@@ -277,10 +316,10 @@ func (w *Workspaces) start(held *live) {
 	held.progress.begin(StepFetching)
 	held.progress.logf("fetching " + held.spec.Dir)
 	var err error
-	if w.settings.HugoFor != nil {
-		held.spec.Hugo, err = w.settings.HugoFor(ctx, held.spec.Key)
-		if held.spec.Hugo != "" {
-			held.progress.logf("hugo " + held.spec.Hugo)
+	if w.settings.RuntimeFor != nil {
+		held.spec.Run, err = w.settings.RuntimeFor(ctx, held.spec.Key, held.spec.Dir)
+		if held.spec.Run.Preview.Program != "" {
+			held.progress.logf("preview with " + held.spec.Run.Preview.Program)
 		}
 	}
 	if err == nil && w.settings.Tokens != nil {
@@ -355,7 +394,10 @@ func (w *Workspaces) Report(key Key) (Report, bool) {
 		w.mu.Unlock()
 		return Report{State: Sleeping}, false
 	}
-	report := Report{State: held.state, Err: held.err}
+	report := Report{State: held.state, Err: held.err, Type: held.spec.Run.Type, Open: held.spec.Run.Open}
+	if held.state == Warm {
+		report.Address = held.spec.Under
+	}
 	if held.err != nil {
 		report.Reason = reasonFor(held.err)
 	}
@@ -549,4 +591,27 @@ func (w *Workspaces) Agent(ctx context.Context, key Key, under string) (Endpoint
 		return Endpoint{}, "", ErrNotFound
 	}
 	return endpoint, held.spec.Token, nil
+}
+
+const ViewPlaceholder = "{view}"
+
+func randomKey() string {
+	raw := make([]byte, 32)
+	rand.Read(raw)
+	return base64.RawURLEncoding.EncodeToString(raw)
+}
+
+func (w *Workspaces) ByView(view string) (Key, Endpoint, bool) {
+	if view == "" {
+		return Key{}, Endpoint{}, false
+	}
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	for key, held := range w.live {
+		if held.state == Warm && held.view != "" && subtle.ConstantTimeCompare([]byte(held.view), []byte(view)) == 1 && strings.Contains(held.under, ViewPlaceholder) {
+			w.touchLocked(context.Background(), held)
+			return key, held.endpoint, true
+		}
+	}
+	return Key{}, Endpoint{}, false
 }

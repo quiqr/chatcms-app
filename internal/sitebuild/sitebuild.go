@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"io/fs"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/quiqr/chatcms-app/internal/runner"
+	"github.com/quiqr/chatcms-app/internal/runtime"
 )
 
 const (
@@ -42,24 +45,20 @@ type Options struct {
 }
 
 type Builder struct {
-	runner  runner.Runner
-	hugo    string
-	limits  Limits
-	hugoFor func(ctx context.Context, project uuid.UUID) (string, error)
+	runner     runner.Runner
+	hugo       string
+	limits     Limits
+	runtimeFor func(ctx context.Context, project uuid.UUID, site fs.FS) (runtime.Resolved, error)
 }
 
-func (b *Builder) UseHugoOf(hugoFor func(ctx context.Context, project uuid.UUID) (string, error)) {
-	b.hugoFor = hugoFor
+func (b *Builder) UseRuntimeOf(runtimeFor func(ctx context.Context, project uuid.UUID, site fs.FS) (runtime.Resolved, error)) {
+	b.runtimeFor = runtimeFor
 }
 
-func (b *Builder) hugoBin(ctx context.Context, project uuid.UUID) (string, error) {
-	if b.hugoFor == nil || project == uuid.Nil {
-		return b.hugo, nil
-	}
-	return b.hugoFor(ctx, project)
-}
-
-var ErrNoHugo = errors.New("sitebuild: no Hugo was named")
+var (
+	ErrNoHugo  = errors.New("sitebuild: no Hugo was named")
+	ErrNoBuild = errors.New("sitebuild: this site's runtime definition declares no build and no Hugo")
+)
 
 func New(r runner.Runner, hugoBin string, limits Limits) (*Builder, error) {
 	if r == nil {
@@ -71,11 +70,34 @@ func New(r runner.Runner, hugoBin string, limits Limits) (*Builder, error) {
 	return &Builder{runner: r, hugo: hugoBin, limits: limits.withDefaults()}, nil
 }
 
+func (b *Builder) resolved(ctx context.Context, site fs.FS, project uuid.UUID) (runtime.Resolved, error) {
+	if b.runtimeFor != nil && project != uuid.Nil {
+		return b.runtimeFor(ctx, project, site)
+	}
+	return runtime.Resolved{Path: []string{filepath.Dir(b.hugo)}, Preview: runtime.Command{Program: b.hugo}}, nil
+}
+
+func findHugo(resolved runtime.Resolved, fallback string) string {
+	if filepath.Base(resolved.Preview.Program) == "hugo" {
+		return resolved.Preview.Program
+	}
+	for _, dir := range resolved.Path {
+		candidate := filepath.Join(dir, "hugo")
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			return candidate
+		}
+	}
+	if !resolved.Declared {
+		return fallback
+	}
+	return ""
+}
+
 func (b *Builder) Build(ctx context.Context, site fs.FS, opts Options) (*runner.Result, error) {
 	if site == nil {
 		return nil, errors.New("sitebuild: no site to build")
 	}
-	hugo, err := b.hugoBin(ctx, opts.Project)
+	resolved, err := b.resolved(ctx, site, opts.Project)
 	if err != nil {
 		return nil, err
 	}
@@ -85,37 +107,58 @@ func (b *Builder) Build(ctx context.Context, site fs.FS, opts Options) (*runner.
 		environment = defaultEnvironment
 	}
 
-	arguments := []string{
-		"--destination", Output,
-		"--cleanDestinationDir",
-		"--cacheDir", cacheInside,
-		"--environment", environment,
-		"--logLevel", "info",
-		"--noBuildLock",
-	}
-	if opts.BaseURL != "" {
-		arguments = append(arguments, "--baseURL", opts.BaseURL)
-	}
-	if opts.Drafts {
-		arguments = append(arguments, "--buildDrafts")
-	}
-
-	result, err := b.runner.Run(ctx, runner.Task{
-		Inputs:    site,
-		Command:   hugo,
-		Arguments: arguments,
+	task := runner.Task{
+		Inputs: site,
 		Environment: map[string]string{
 			"HUGO_ENV":         environment,
 			"HUGO_ENVIRONMENT": environment,
 		},
-		Tools:       []string{hugo},
-		Outputs:     []string{Output},
+		Tools:       append([]string{}, resolved.Path...),
 		Timeout:     b.limits.Timeout,
 		MemoryBytes: b.limits.MemoryBytes,
-	})
+	}
+	root := Output
+
+	if resolved.Build != nil {
+		root = resolved.Output
+		task.Command = resolved.Build.Program
+		task.Arguments = runtime.Fill(resolved.Build.Args, map[string]string{
+			"{output}": resolved.Output,
+			"{cache}":  cacheInside,
+			"{url}":    opts.BaseURL,
+			"{source}": ".",
+		})
+	} else {
+		hugo := findHugo(resolved, b.hugo)
+		if hugo == "" {
+			return nil, ErrNoBuild
+		}
+		task.Command = hugo
+		task.Arguments = []string{
+			"--destination", Output,
+			"--cleanDestinationDir",
+			"--cacheDir", cacheInside,
+			"--environment", environment,
+			"--logLevel", "info",
+			"--noBuildLock",
+		}
+		if opts.BaseURL != "" {
+			task.Arguments = append(task.Arguments, "--baseURL", opts.BaseURL)
+		}
+		if opts.Drafts {
+			task.Arguments = append(task.Arguments, "--buildDrafts")
+		}
+	}
+	task.Tools = append(task.Tools, task.Command)
+	task.Outputs = []string{root}
+
+	result, err := b.runner.Run(ctx, task)
 	var missing *runner.MissingOutputError
 	if errors.As(err, &missing) {
-		return nil, fmt.Errorf("sitebuild: Hugo reported success but wrote no %s", Output)
+		return nil, fmt.Errorf("sitebuild: the build reported success but wrote no %s", root)
+	}
+	if result != nil {
+		result.Root = root
 	}
 	return result, err
 }
@@ -127,7 +170,11 @@ func Pages(result *runner.Result) fs.FS {
 	if result == nil || result.Outputs == nil {
 		return nil
 	}
-	pages, err := fs.Sub(result.Outputs, Output)
+	root := result.Root
+	if root == "" {
+		root = Output
+	}
+	pages, err := fs.Sub(result.Outputs, root)
 	if err != nil {
 		return result.Outputs
 	}

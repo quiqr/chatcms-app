@@ -3,12 +3,16 @@ package workspace_test
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/quiqr/chatcms-app/internal/runtime"
 	"github.com/quiqr/chatcms-app/internal/workspace"
 	"github.com/quiqr/chatcms-app/internal/workspace/workspacetest"
 )
@@ -442,8 +446,11 @@ func TestATouchIsRecordedAtMostOnceAMinute(t *testing.T) {
 func TestTheProjectsHugoReachesTheBackend(t *testing.T) {
 	h := newHarness(t, 8)
 	made, err := workspace.New(h.backend, h.store, h.copies, h.isAllowed, workspace.Settings{
-		HugoFor: func(ctx context.Context, key workspace.Key) (string, error) {
-			return "/nix/store/x-hugo-0.139.0/bin/hugo", nil
+		RuntimeFor: func(ctx context.Context, key workspace.Key, dir string) (runtime.Resolved, error) {
+			if dir == "" {
+				t.Errorf("the runtime was asked for without the person's copy")
+			}
+			return runtime.Resolved{Preview: runtime.Command{Program: "/nix/store/x-hugo-0.139.0/bin/hugo"}}, nil
 		},
 	})
 	if err != nil {
@@ -452,7 +459,7 @@ func TestTheProjectsHugoReachesTheBackend(t *testing.T) {
 	t.Cleanup(func() { made.Close(context.Background()) })
 
 	endpoint(t, made, aKey())
-	if got := h.backend.Started[0].Hugo; got != "/nix/store/x-hugo-0.139.0/bin/hugo" {
+	if got := h.backend.Started[0].Run.Preview.Program; got != "/nix/store/x-hugo-0.139.0/bin/hugo" {
 		t.Errorf("backend was given Hugo %q", got)
 	}
 }
@@ -461,7 +468,9 @@ func TestAHugoThatCannotBeHadStopsTheStart(t *testing.T) {
 	h := newHarness(t, 8)
 	unknown := errors.New("no such Hugo")
 	made, err := workspace.New(h.backend, h.store, h.copies, h.isAllowed, workspace.Settings{
-		HugoFor: func(ctx context.Context, key workspace.Key) (string, error) { return "", unknown },
+		RuntimeFor: func(ctx context.Context, key workspace.Key, dir string) (runtime.Resolved, error) {
+			return runtime.Resolved{}, unknown
+		},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -601,5 +610,64 @@ func TestTheAgentIsFoundWithItsSecret(t *testing.T) {
 	h.backend.Fail = workspace.ErrNotReady
 	if _, _, err := made.Agent(t.Context(), aKey(), "u"); !errors.Is(err, workspace.ErrNotReady) {
 		t.Errorf("Agent() of a workspace that does not start = %v", err)
+	}
+}
+
+func TestAWarmWorkspaceIsFoundByItsViewKeyOnly(t *testing.T) {
+	h := newHarness(t, 8)
+	key := aKey()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	if _, err := h.w.Endpoint(ctx, key, "https://preview.test/v/{view}/"); err != nil {
+		t.Fatal(err)
+	}
+	under := h.backend.Started[0].Under
+	view := strings.TrimSuffix(strings.TrimPrefix(under, "https://preview.test/v/"), "/")
+	if view == "" || strings.Contains(view, "{") {
+		t.Fatalf("the backend was given %q", under)
+	}
+	found, at, ok := h.w.ByView(view)
+	if !ok || found != key || at.Host == "" {
+		t.Errorf("ByView(%q) = %v, %+v, %v", view, found, at, ok)
+	}
+	for _, wrong := range []string{"", view + "x", view[1:], "{view}"} {
+		if _, _, ok := h.w.ByView(wrong); ok {
+			t.Errorf("ByView(%q) found a workspace", wrong)
+		}
+	}
+	if report, _ := h.w.Report(key); report.Address != under {
+		t.Errorf("Report().Address = %q, want %q", report.Address, under)
+	}
+}
+
+func TestAWorkspaceOnTheAppsOwnAddressHasNoViewKey(t *testing.T) {
+	h := newHarness(t, 8)
+	endpoint(t, h.w, aKey())
+	if _, _, ok := h.w.ByView(""); ok {
+		t.Error("an empty key found a workspace")
+	}
+}
+
+func TestAChangedRuntimeDefinitionStartsAfresh(t *testing.T) {
+	h := newHarness(t, 8)
+	h.copies.Root = t.TempDir()
+	key := aKey()
+	endpoint(t, h.w, key)
+	endpoint(t, h.w, key)
+	if len(h.backend.Started) != 1 {
+		t.Fatalf("started %d times before any change", len(h.backend.Started))
+	}
+
+	dir, _ := h.copies.Dir(t.Context(), key)
+	if err := os.MkdirAll(filepath.Join(dir, "quiqr"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "quiqr", "runtime.yaml"), []byte("packages: {hugo: 0.139.0}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	endpoint(t, h.w, key)
+	endpoint(t, h.w, key)
+	if len(h.backend.Started) != 2 || h.backend.Running() != 1 {
+		t.Errorf("started %d, running %d, want 2 and 1", len(h.backend.Started), h.backend.Running())
 	}
 }

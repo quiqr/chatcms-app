@@ -119,3 +119,41 @@ describe("starting a workspace", () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
   });
 });
+
+describe("a preview from its own origin", () => {
+  it("shows the page at the address the workspace gives", async () => {
+    vi.stubGlobal("fetch", server([{ body: { state: "warm", address: "https://preview.example/v/k1/", type: "web", open: "/" } }]));
+
+    render(<Preview organisation="technative" project="korenaar" page="posts/one" />);
+
+    const frame = await screen.findByTitle("Your site");
+    expect(frame).toHaveAttribute("src", "https://preview.example/v/k1/posts/one/");
+  });
+
+  it("keeps the app's own path when the address is the app's", async () => {
+    const own = `${window.location.origin}/preview/technative/korenaar/`;
+    vi.stubGlobal("fetch", server([{ body: { state: "warm", address: own, type: "web" } }]));
+
+    render(<Preview organisation="technative" project="korenaar" />);
+
+    expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "/preview/technative/korenaar/");
+  });
+
+  it("shows a PDF at the page the runtime opens", async () => {
+    vi.stubGlobal("fetch", server([{ body: { state: "warm", address: "https://preview.example/v/k1/", type: "pdf", open: "/report.pdf" } }]));
+
+    render(<Preview organisation="technative" project="korenaar" page="posts/one" />);
+
+    expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "https://preview.example/v/k1/report.pdf");
+  });
+
+  it("offers to open what it cannot show", async () => {
+    vi.stubGlobal("fetch", server([{ body: { state: "warm", address: "https://preview.example/v/k1/", type: "other", open: "/book.epub" } }]));
+
+    render(<Preview organisation="technative" project="korenaar" />);
+
+    const link = await screen.findByRole("link", { name: "Open the result" });
+    expect(link).toHaveAttribute("href", "https://preview.example/v/k1/book.epub");
+    expect(screen.queryByTitle("Your site")).toBeNull();
+  });
+});

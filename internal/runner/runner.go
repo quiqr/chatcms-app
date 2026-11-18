@@ -36,6 +36,7 @@ type Result struct {
 	Outputs  fs.FS
 	Duration time.Duration
 	Reached  Limit
+	Root     string
 
 	OnRelease func() error
 }

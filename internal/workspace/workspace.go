@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/quiqr/chatcms-app/internal/runtime"
 )
 
 var (
@@ -35,7 +37,7 @@ type Spec struct {
 	Key   Key
 	Dir   string
 	Under string
-	Hugo  string
+	Run   runtime.Resolved
 	Token string
 }
 

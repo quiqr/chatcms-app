@@ -2,6 +2,8 @@ package microvm
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +21,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/quiqr/chatcms-app/internal/runtime"
 	"github.com/quiqr/chatcms-app/internal/workspace"
 )
 
@@ -79,8 +82,16 @@ func fakeHypervisor() {
 		if value, found := strings.CutPrefix(part, "chatcms.ip="); found {
 			address, _, _ = strings.Cut(value, "/")
 		}
-		if value, found := strings.CutPrefix(part, "chatcms.hugo="); found {
-			hugo = value
+		if value, found := strings.CutPrefix(part, "chatcms.run="); found {
+			data, _ := base64.RawURLEncoding.DecodeString(value)
+			var run struct {
+				Cmd  []string `json:"cmd"`
+				Path []string `json:"path"`
+			}
+			json.Unmarshal(data, &run)
+			if len(run.Cmd) > 0 {
+				hugo = run.Cmd[0] + " RUN=" + strings.Join(run.Cmd[1:], " ") + " PATH=" + strings.Join(run.Path, ":")
+			}
 		}
 	}
 	if _, err := os.Stat(filepath.Join(here, "hang")); err == nil {
@@ -231,11 +242,12 @@ func TestAWorkspaceStartsInAVMOfItsOwn(t *testing.T) {
 	}
 	body := get(t, endpoint)
 	for _, want := range []string{
-		"hugo=" + r.hugo,
+		"hugo=" + r.hugo + " RUN=server --source /site --bind 0.0.0.0 --port",
+		"--baseURL http://127.0.0.1:8080/preview/o/p/",
+		"--liveReloadPort 8080",
+		"--cacheDir /run/preview/cache",
 		"chatcms.ip=127.231.0.2/30",
 		"chatcms.gateway=127.231.0.1",
-		"chatcms.under=http://127.0.0.1:8080/preview/o/p/",
-		"chatcms.reload=8080",
 		"console=hvc0",
 	} {
 		if !strings.Contains(body, want) {
@@ -255,7 +267,7 @@ func TestTheProjectsHugoMustBeInTheStore(t *testing.T) {
 	spec := r.spec(t)
 	outside := filepath.Join(t.TempDir(), "hugo")
 	os.WriteFile(outside, []byte("#!/bin/sh\n"), 0o755)
-	spec.Hugo = outside
+	spec.Run = runtime.Resolved{Path: []string{filepath.Dir(outside)}, Preview: runtime.Command{Program: outside, Args: []string{"server"}}, Type: runtime.Web, Open: "/"}
 
 	if _, _, err := r.backend.Start(t.Context(), spec, io.Discard); !errors.Is(err, ErrNoHugo) {
 		t.Errorf("Start() with a Hugo outside the store error = %v, want ErrNoHugo", err)
@@ -494,5 +506,37 @@ func TestAVMWithoutATokenIsToldNoGateway(t *testing.T) {
 	}
 	if body := get(t, endpoint); strings.Contains(body, "chatcms.ai=") || strings.Contains(body, "chatcms.token=") {
 		t.Errorf("a VM without a token was told about the gateway: %s", body)
+	}
+}
+
+func TestADeclaredPreviewReachesTheVMWithItsPackages(t *testing.T) {
+	r := newRig(t, 1)
+	spec := r.spec(t)
+	store := r.backend.settings.Store
+	quarto := filepath.Join(store, "q-quarto", "bin", "quarto")
+	os.MkdirAll(filepath.Dir(quarto), 0o755)
+	os.WriteFile(quarto, []byte("#!/bin/sh\n"), 0o755)
+	spec.Run = runtime.Resolved{
+		Path:    []string{filepath.Dir(quarto), filepath.Dir(r.hugo)},
+		Preview: runtime.Command{Program: quarto, Args: []string{"preview", "{source}", "--port", "{port}", "--host", "{host}"}},
+		Type:    runtime.PDF,
+		Open:    "/book.pdf",
+	}
+	_, endpoint := r.start(t, spec)
+	body := get(t, endpoint)
+	if !strings.Contains(body, quarto+" RUN=preview /site --port") || !strings.Contains(body, "--host 0.0.0.0") || !strings.Contains(body, "PATH="+filepath.Dir(quarto)+":") {
+		t.Errorf("the VM was told %s", body)
+	}
+}
+
+func TestACommandTooLongForTheKernelIsRefused(t *testing.T) {
+	r := newRig(t, 1)
+	spec := r.spec(t)
+	spec.Run = runtime.Resolved{Path: []string{filepath.Dir(r.hugo)}, Preview: runtime.Command{Program: r.hugo, Args: []string{strings.Repeat("x", 2000)}}, Type: runtime.Web, Open: "/"}
+	if _, _, err := r.backend.Start(t.Context(), spec, io.Discard); !errors.Is(err, ErrTooLong) {
+		t.Errorf("Start() error = %v, want ErrTooLong", err)
+	}
+	if r.backend.Free() != 1 {
+		t.Errorf("a refused start kept its slot")
 	}
 }

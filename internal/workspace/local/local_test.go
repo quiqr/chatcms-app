@@ -18,6 +18,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/quiqr/chatcms-app/internal/runtime"
 	"github.com/quiqr/chatcms-app/internal/workspace"
 )
 
@@ -222,7 +223,11 @@ func TestALocalWorkspaceRunsTheProjectsHugo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	handle, _, err := made.Start(t.Context(), workspace.Spec{Dir: aSite(t, "Korenaar", false), Under: "http://127.0.0.1/", Hugo: hugoBin(t)}, io.Discard)
+	run, err := runtime.Resolver{InstalledHugo: hugoBin(t)}.Resolve(t.Context(), runtime.Default(""), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle, _, err := made.Start(t.Context(), workspace.Spec{Dir: aSite(t, "Korenaar", false), Under: "http://127.0.0.1/", Run: run}, io.Discard)
 	if err != nil {
 		t.Fatalf("Start() with the project's Hugo error = %v", err)
 	}
@@ -279,5 +284,31 @@ func TestALocalWorkspaceStartsItsAgentWhenItHasOne(t *testing.T) {
 	defer without.Stop(context.Background(), other)
 	if plain.AgentPort != 0 {
 		t.Errorf("a workspace without a token was given an agent")
+	}
+}
+
+func TestALocalWorkspaceRunsTheDeclaredPreviewCommand(t *testing.T) {
+	definition, err := runtime.Parse([]byte("packages: {hugo: \"0.139.0\"}\npreview:\n  command: [hugo, server, --source, \"{source}\", --bind, \"{host}\", --port, \"{port}\", --baseURL, \"{url}\", --appendPort=false, --renderToMemory]\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	run, err := runtime.Resolver{InstalledHugo: hugoBin(t)}.Resolve(t.Context(), definition, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	made := backend(t)
+	handle, endpoint, err := made.Start(t.Context(), workspace.Spec{Dir: aSite(t, "Declared", false), Under: "http://127.0.0.1:8080/preview/o/p/", Run: run}, io.Discard)
+	if err != nil {
+		t.Fatalf("Start() error = %v", err)
+	}
+	defer made.Stop(context.Background(), handle)
+	answer, err := http.Get("http://" + endpoint.Address() + "/preview/o/p/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer answer.Body.Close()
+	body, _ := io.ReadAll(answer.Body)
+	if !strings.Contains(string(body), "Declared") {
+		t.Errorf("served %q", body)
 	}
 }

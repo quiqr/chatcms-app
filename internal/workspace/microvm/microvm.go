@@ -2,6 +2,7 @@ package microvm
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/quiqr/chatcms-app/internal/runtime"
 	"github.com/quiqr/chatcms-app/internal/workspace"
 )
 
@@ -24,13 +26,15 @@ const (
 	DefaultReady  = 60 * time.Second
 	DefaultPort   = 1313
 	AgentPort     = 4096
+	MaxCmdline    = 1900
 	DefaultPrefix = "chv"
 	DefaultSubnet = "10.231"
 )
 
 var (
 	ErrIncomplete = errors.New("microvm: the backend is missing a part it needs")
-	ErrNoHugo     = errors.New("microvm: Hugo is not in the package store, so the VM cannot see it")
+	ErrNoHugo     = errors.New("microvm: the preview's program is not in the package store, so the VM cannot see it")
+	ErrTooLong    = errors.New("microvm: the preview command is too long to give a VM")
 )
 
 type Guest struct {
@@ -162,22 +166,15 @@ func (b *Backend) Free() int {
 	return b.settings.Taps - len(b.taken)
 }
 
-func (b *Backend) hugo(spec workspace.Spec) (string, error) {
-	hugo := spec.Hugo
-	if hugo == "" {
-		hugo = b.settings.HugoBin
-	}
-	if hugo == "" {
-		return "", ErrNoHugo
-	}
-	if !filepath.IsAbs(hugo) {
-		found, err := exec.LookPath(hugo)
+func (b *Backend) inStore(path string) (string, error) {
+	if !filepath.IsAbs(path) {
+		found, err := exec.LookPath(path)
 		if err != nil {
 			return "", fmt.Errorf("%w: %v", ErrNoHugo, err)
 		}
-		hugo = found
+		path = found
 	}
-	real, err := filepath.EvalSymlinks(hugo)
+	real, err := filepath.EvalSymlinks(path)
 	if err != nil {
 		return "", fmt.Errorf("%w: %v", ErrNoHugo, err)
 	}
@@ -187,16 +184,60 @@ func (b *Backend) hugo(spec workspace.Spec) (string, error) {
 	return real, nil
 }
 
-func (b *Backend) Cmdline(slot int, hugo, under, token string) string {
+func (b *Backend) run(spec workspace.Spec) (string, error) {
+	resolved := spec.Run
+	if resolved.Preview.Program == "" {
+		if b.settings.HugoBin == "" {
+			return "", ErrNoHugo
+		}
+		hugo, err := b.inStore(b.settings.HugoBin)
+		if err != nil {
+			return "", err
+		}
+		resolved, err = runtime.Resolver{InstalledHugo: hugo, Exists: func(string) bool { return true }}.Resolve(context.Background(), runtime.Default(""), false)
+		if err != nil {
+			return "", err
+		}
+	}
+	program, err := b.inStore(resolved.Preview.Program)
+	if err != nil {
+		return "", err
+	}
+	path := make([]string, 0, len(resolved.Path))
+	for _, dir := range resolved.Path {
+		real, err := filepath.EvalSymlinks(dir)
+		if err != nil || !strings.HasPrefix(real, b.settings.Store+"/") {
+			return "", fmt.Errorf("%w: %s", ErrNoHugo, dir)
+		}
+		path = append(path, real)
+	}
+
+	values := map[string]string{
+		"{host}":   "0.0.0.0",
+		"{port}":   strconv.Itoa(b.settings.Port),
+		"{url}":    spec.Under,
+		"{source}": "/site",
+		"{cache}":  "/run/preview/cache",
+	}
+	if port := browserPort(spec.Under); port > 0 {
+		values["{reload}"] = strconv.Itoa(port)
+	}
+	data, err := json.Marshal(map[string]any{
+		"cmd":  append([]string{program}, runtime.Fill(resolved.Preview.Args, values)...),
+		"path": path,
+	})
+	if err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(data), nil
+}
+
+func (b *Backend) Cmdline(slot int, run, under, token string) string {
 	parts := []string{
 		b.settings.Guest.Cmdline,
 		"chatcms.ip=" + b.guestAddress(slot) + "/30",
 		"chatcms.gateway=" + b.hostAddress(slot),
-		"chatcms.hugo=" + hugo,
-		"chatcms.under=" + under,
-	}
-	if port := browserPort(under); port > 0 {
-		parts = append(parts, "chatcms.reload="+strconv.Itoa(port))
+		"chatcms.run=" + run,
 	}
 	if token != "" && b.settings.GatewayPort > 0 {
 		parts = append(parts,
@@ -206,14 +247,14 @@ func (b *Backend) Cmdline(slot int, hugo, under, token string) string {
 	return strings.Join(parts, " ")
 }
 
-func (b *Backend) hypervisorArguments(slot int, dir, hugo, under, token string) []string {
+func (b *Backend) hypervisorArguments(slot int, dir, run, under, token string) []string {
 	guest := b.settings.Guest
 	return []string{
 		"--cpus", "boot=" + strconv.Itoa(guest.VCPU),
 		"--memory", "size=" + strconv.Itoa(guest.Memory) + "M,shared=on",
 		"--kernel", guest.Kernel,
 		"--initramfs", guest.Initrd,
-		"--cmdline", strings.Replace(b.Cmdline(slot, hugo, under, token), "console=ttyS0", "console=hvc0", 1),
+		"--cmdline", strings.Replace(b.Cmdline(slot, run, under, token), "console=ttyS0", "console=hvc0", 1),
 		"--seccomp", "true",
 		"--fs", "tag=ro-store,socket=" + filepath.Join(dir, "s"), "tag=site,socket=" + filepath.Join(dir, "t"),
 		"--net", "tap=" + b.tap(slot) + ",mac=" + mac(slot),
@@ -236,9 +277,12 @@ func (b *Backend) Start(ctx context.Context, spec workspace.Spec, log io.Writer)
 	if strings.ContainsAny(spec.Under, " \t\n") || strings.ContainsAny(spec.Token, " \t\n") || strings.ContainsAny(spec.Dir, "\n") {
 		return "", workspace.Endpoint{}, fmt.Errorf("microvm: an address or directory this cannot pass on")
 	}
-	hugo, err := b.hugo(spec)
+	run, err := b.run(spec)
 	if err != nil {
 		return "", workspace.Endpoint{}, err
+	}
+	if length := len(b.Cmdline(255, run, spec.Under, spec.Token)); length > MaxCmdline {
+		return "", workspace.Endpoint{}, fmt.Errorf("%w: the preview command makes a kernel command line of %d bytes, more than %d", ErrTooLong, length, MaxCmdline)
 	}
 	slot, err := b.take()
 	if err != nil {
@@ -277,7 +321,7 @@ func (b *Backend) Start(ctx context.Context, spec workspace.Spec, log io.Writer)
 	}
 
 	fmt.Fprintf(log, "starting a micro VM on %s\n", b.tap(slot))
-	if err := b.launch(machine, log, b.settings.CloudHypervisor, b.hypervisorArguments(slot, dir, hugo, spec.Under, spec.Token)); err != nil {
+	if err := b.launch(machine, log, b.settings.CloudHypervisor, b.hypervisorArguments(slot, dir, run, spec.Under, spec.Token)); err != nil {
 		return fail(err)
 	}
 

@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"errors"
+	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/google/uuid"
@@ -11,6 +13,7 @@ import (
 	"github.com/quiqr/chatcms-app/internal/gitsync"
 	"github.com/quiqr/chatcms-app/internal/nixpin"
 	"github.com/quiqr/chatcms-app/internal/policy"
+	"github.com/quiqr/chatcms-app/internal/runtime"
 	"github.com/quiqr/chatcms-app/internal/tenancy"
 	"github.com/quiqr/chatcms-app/internal/workspace"
 	"github.com/quiqr/chatcms-app/internal/workspace/local"
@@ -91,7 +94,14 @@ func (s *Server) projectHugo() hugos {
 	if s.hugo != nil {
 		return *s.hugo
 	}
-	found := hugos{installed: s.cfg.HugoBin, versionOf: projectHugoVersion(s.db.Queries)}
+	installed := s.cfg.HugoBin
+	if found, err := exec.LookPath(installed); err == nil {
+		installed = found
+	}
+	if absolute, err := filepath.Abs(installed); err == nil {
+		installed = absolute
+	}
+	found := hugos{installed: installed, versionOf: projectHugoVersion(s.db.Queries)}
 	s.hugo = &found
 	if s.cfg.NixBin == "" {
 		return found
@@ -126,8 +136,8 @@ func (s *Server) startWorkspaces(ctx context.Context, tenancyStore *tenancy.Stor
 			Most:   s.cfg.WorkspacesAtOnce,
 			Idle:   s.cfg.WorkspaceIdle,
 			Logger: s.logger,
-			HugoFor: func(ctx context.Context, key workspace.Key) (string, error) {
-				return hugo.For(ctx, key.Project)
+			RuntimeFor: func(ctx context.Context, key workspace.Key, dir string) (runtime.Resolved, error) {
+				return hugo.Runtime(ctx, key.Project, os.DirFS(dir))
 			},
 			Tokens: s.workspaceTokens(),
 		},

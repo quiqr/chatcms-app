@@ -8,8 +8,10 @@ import { openWorkspace, readWorkspace, type Workspace, type WorkspaceStep } from
 
 /**
  * Preview shows the site as a reader will see it. It is served through the
- * app's own address, so somebody who may not see the project cannot see its
- * unpublished work either.
+ * app's own address, or through an origin of its own when the installation
+ * has one, and either way only to somebody who may see the project. A site
+ * whose runtime makes a PDF shows that; one that makes something else is
+ * offered to open.
  */
 export function Preview({
   organisation,
@@ -31,9 +33,11 @@ export function Preview({
   const [device, setDevice] = useState<"desktop" | "phone">("desktop");
   const [reloads, setReloads] = useState(0);
 
-  const at = `/preview/${organisation}/${project}/${pathOf(page)}`;
   const { workspace, refused } = useWorkspace(organisation, project);
   const ready = workspace?.state === "warm" || (workspace?.state === "sleeping" && !workspace.reason);
+  const kind = workspace?.type ?? "web";
+  const base = baseOf(workspace?.address, `/preview/${organisation}/${project}/`);
+  const at = kind === "web" ? base + pathOf(page) : base + (workspace?.open ?? "/").replace(/^\//, "");
 
   return (
     <div className="flex h-full flex-col gap-2">
@@ -62,7 +66,14 @@ export function Preview({
       </div>
 
       <div className="flex flex-1 justify-center overflow-hidden rounded-lg border border-border bg-card">
-        {ready ? (
+        {ready && kind === "other" ? (
+          <div className="flex w-full max-w-[520px] flex-col items-center justify-center gap-4 p-6 text-center">
+            <p className="text-[15px] text-muted-foreground">{say("preview.cannot-show-here")}</p>
+            <a href={at} target="_blank" rel="noreferrer" className="flex min-h-11 items-center font-medium text-primary">
+              {say("preview.open-the-result")}
+            </a>
+          </div>
+        ) : ready ? (
           <iframe
             key={`${reloads}-${showAgain}`}
             title={say("preview.your-site")}
@@ -86,6 +97,17 @@ export function Preview({
       </p>
     </div>
   );
+}
+
+function baseOf(address: string | undefined, own: string) {
+  if (!address) return own;
+  try {
+    const parsed = new URL(address, window.location.href);
+    if (parsed.origin === window.location.origin) return own;
+    return parsed.href.endsWith("/") ? parsed.href : parsed.href + "/";
+  } catch {
+    return own;
+  }
 }
 
 /**

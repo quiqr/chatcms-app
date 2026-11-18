@@ -69,6 +69,13 @@ in
       description = "Public base URL, used in invitation links and previews.";
     };
 
+    previewUrl = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "https://preview.chatcms.eu";
+      description = "An origin of its own for previews, on another host than baseUrl, so a site's scripts never run beside the app. Point its DNS and proxy at the same server.";
+    };
+
     stateDir = lib.mkOption {
       type = lib.types.path;
       default = "/var/lib/chatcms";
@@ -407,6 +414,9 @@ in
       environment = {
         CHATCMS_LISTEN = "${cfg.listenAddress}:${toString cfg.port}";
         CHATCMS_BASE_URL = cfg.baseUrl;
+      } // lib.optionalAttrs (cfg.previewUrl != null) {
+        CHATCMS_PREVIEW_URL = cfg.previewUrl;
+      } // {
         CHATCMS_STATE_DIR = cfg.stateDir;
         CHATCMS_GIT_BIN = lib.getExe cfg.gitPackage;
         CHATCMS_HUGO_BIN = lib.getExe cfg.hugoPackage;

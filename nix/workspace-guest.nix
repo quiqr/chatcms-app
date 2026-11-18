@@ -1,13 +1,11 @@
 { lib, pkgs, opencode, ... }:
 let
   preview = pkgs.writeShellScript "chatcms-preview" ''
-    export PATH=${lib.makeBinPath [ pkgs.iproute2 pkgs.coreutils pkgs.gnugrep pkgs.gnused pkgs.util-linux ]}
+    export PATH=${lib.makeBinPath [ pkgs.iproute2 pkgs.coreutils pkgs.gnugrep pkgs.gnused pkgs.util-linux pkgs.jq ]}
     param() { tr ' ' '\n' < /proc/cmdline | grep "^chatcms.$1=" | head -n1 | sed "s/^chatcms.$1=//"; }
     address=$(param ip)
     gateway=$(param gateway)
-    hugo=$(param hugo)
-    under=$(param under)
-    reload=$(param reload)
+    run=$(param run)
     ai=$(param ai)
     token=$(param token)
 
@@ -26,12 +24,14 @@ let
     mkdir -p $home/cache $home/resources
     chown -R 65534:65534 $home
 
-    set -- server --source /site --bind 0.0.0.0 --port 1313 --baseURL "$under" \
-      --appendPort=false --renderToMemory --buildDrafts --noBuildLock --poll 500ms \
-      --cacheDir $home/cache
-    if [ -n "$reload" ]; then set -- "$@" --liveReloadPort "$reload"; fi
+    padded=$(printf '%s' "$run" | tr '_-' '/+')
+    while [ $(( ''${#padded} % 4 )) -ne 0 ]; do padded="$padded="; done
+    printf '%s' "$padded" | base64 -d > $home/run.json
+    path=$(jq -r '.path | join(":")' $home/run.json)
+    mapfile -d "" command < <(jq -j '.cmd[] | ., "\u0000"' $home/run.json)
+    cd /site
     exec setpriv --reuid=65534 --regid=65534 --clear-groups \
-      env HOME=$home HUGO_RESOURCEDIR=$home/resources TZ=UTC "$hugo" "$@"
+      env HOME=$home HUGO_RESOURCEDIR=$home/resources TZ=UTC PATH="$path:/run/current-system/sw/bin" "''${command[@]}"
   '';
   agent = pkgs.writeShellScript "chatcms-agent" ''
     export PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.curl pkgs.util-linux ]}

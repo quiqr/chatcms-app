@@ -24,8 +24,9 @@ function freePort() {
 }
 
 export class Harness {
-  constructor({ assistant = false } = {}) {
+  constructor({ assistant = false, previewApart = false } = {}) {
     this.assistant = assistant;
+    this.previewApart = previewApart;
     this.asked = [];
     this.root = mkdtempSync(join(tmpdir(), "chatcms-e2e-"));
     this.pgdata = join(this.root, "pgdata");
@@ -46,6 +47,10 @@ export class Harness {
 
   get url() {
     return `http://127.0.0.1:${this.port}`;
+  }
+
+  get previewUrl() {
+    return `http://localhost:${this.port}`;
   }
 
   // remoteOf is the address of a project's own remote on disk, which is what
@@ -105,6 +110,7 @@ export class Harness {
         // could be sent at all.
         CHATCMS_MAIL_STARTTLS: "no",
         CHATCMS_TEMPLATE_FEED: `${this.templatesUrl}/templates.json`,
+        ...(this.previewApart ? { CHATCMS_PREVIEW_URL: this.previewUrl } : {}),
         ...assistant,
       },
       stdio: ["ignore", "pipe", "pipe"],

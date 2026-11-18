@@ -29,7 +29,8 @@ projection: a cached, rebuildable view in Postgres of something git owns.
 | `internal/secrets`     | Encryption at rest, and generating deploy keys. The thing a hardware key store would replace |
 | `internal/onboarding`  | Bringing a customer's site in, its key, and where it publishes                |
 | `internal/redact`      | Removing credential-shaped text before it is logged, stored or shown          |
-| `internal/preview`     | A person's preview, reached through the app, proxied to their workspace       |
+| `internal/preview`     | A person's preview, reached through the app or a preview origin, proxied to their workspace |
+| `internal/runtime`     | Reading `quiqr/runtime.yaml`, and turning it into programs and a path          |
 | `internal/workspace`   | A workspace per person per project: lifecycle, limits, and the backend seam   |
 | `internal/workspace/microvm` | A workspace in a Cloud Hypervisor micro VM of its own                  |
 | `internal/nixpin`      | A package at a given version, found through Nixhub and built with Nix         |
@@ -99,9 +100,10 @@ backend's do not, so they stop when the app stops.
 guest (`nix/workspace-guest.nix`, built with microvm.nix into
 `chatcms-workspace-guest.json`) boots on Cloud Hypervisor with two read-only
 virtio-fs shares: the host `/nix/store` and the person's copy of the site.
-The address, Hugo and preview address travel on the kernel command line; the
-guest's preview unit starts as soon as the file systems are mounted and runs
-Hugo with a polling watcher, because a write on the host sends no inotify
+The address and the resolved preview command (`chatcms.run`, base64url JSON
+of the words and the path) travel on the kernel command line; the guest's
+preview unit starts as soon as the file systems are mounted and runs that
+command, which for Hugo uses a polling watcher, because a write on the host sends no inotify
 event into the guest. Each VM gets a TAP device and a /30 from a pool the
 NixOS module makes (`chv<i>`, `10.231.<i>.1` on the host, `.2` in the guest),
 and an nftables table lets the VMs reach nothing but replies from the host.
@@ -215,6 +217,21 @@ to it, live reload included. The workspace binds this machine only and is
 reached through the app's own address, because the app is what asks who
 somebody is: a preview listening on its own would be a customer's unpublished
 work with no sign-in in front of it.
+
+With `CHATCMS_PREVIEW_URL` set, previews move to an origin of their own, so a
+site's scripts never run beside the app and its cookies. The workspace is then
+reached at `<preview origin>/v/<view key>/`: the key is random, made when the
+workspace starts and gone when it sleeps, and the origin checks on every
+request that the person may still see the project. The origin answers nothing
+else, and the app's own `/preview/` stops serving.
+
+**`internal/runtime`** reads what a site declares in `quiqr/runtime.yaml`:
+packages with versions, a preview command with its type (`web`, `pdf`,
+`other`) and the page to open, and a build command with its output. Packages
+come from `internal/nixpin`; without a declaration a site runs Hugo exactly as
+before. Placeholders such as `{port}` and `{source}` are filled in by the
+backend that runs the command. A changed declaration takes effect when the
+person next opens the preview. See `docs/RUNTIME.md`.
 
 Nothing tells a preview to rebuild. Hugo watches the person's copy that saving
 writes to, so a change appears by itself; the test waits for it rather than

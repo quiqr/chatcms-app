@@ -3,7 +3,11 @@ package app
 import (
 	"context"
 	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"testing"
+	"testing/fstest"
 
 	"github.com/google/uuid"
 
@@ -58,5 +62,52 @@ func TestAProjectThatCannotBeReadIsAnError(t *testing.T) {
 	h := hugos{versionOf: func(context.Context, uuid.UUID) (string, error) { return "", broken }}
 	if _, err := h.For(t.Context(), uuid.New()); !errors.Is(err, broken) {
 		t.Errorf("For() error = %v", err)
+	}
+}
+
+func TestASiteWithoutARuntimeDefinitionGetsTheProjectsHugo(t *testing.T) {
+	store := t.TempDir()
+	hugo := filepath.Join(store, "x-hugo", "bin", "hugo")
+	os.MkdirAll(filepath.Dir(hugo), 0o755)
+	os.WriteFile(hugo, []byte("#!/bin/sh\n"), 0o755)
+
+	h := hugos{installed: "/usr/bin/hugo", versionOf: versionIs("0.139.0"), pins: fakePins{path: filepath.Dir(filepath.Dir(hugo))}}
+	resolved, err := h.Runtime(t.Context(), uuid.New(), fstest.MapFS{})
+	if err != nil || resolved.Preview.Program != hugo || resolved.Declared {
+		t.Errorf("Runtime() = %+v, %v", resolved, err)
+	}
+}
+
+func TestADeclaredRuntimeIsResolvedFromTheSite(t *testing.T) {
+	store := t.TempDir()
+	quarto := filepath.Join(store, "q-quarto", "bin", "quarto")
+	os.MkdirAll(filepath.Dir(quarto), 0o755)
+	os.WriteFile(quarto, []byte("#!/bin/sh\n"), 0o755)
+	site := fstest.MapFS{"quiqr/runtime.yaml": {Data: []byte("packages: {quarto: \"1.6.40\"}\npreview: {type: pdf, open: /book.pdf, command: [quarto, preview]}\n")}}
+
+	h := hugos{installed: "/usr/bin/hugo", versionOf: versionIs(""), pins: fakePins{path: filepath.Dir(filepath.Dir(quarto))}}
+	resolved, err := h.Runtime(t.Context(), uuid.New(), site)
+	if err != nil || resolved.Preview.Program != quarto || resolved.Type != "pdf" || resolved.Open != "/book.pdf" || !resolved.Declared {
+		t.Errorf("Runtime() = %+v, %v", resolved, err)
+	}
+}
+
+func TestAWrongRuntimeIsRefusedSayingWhy(t *testing.T) {
+	broken := fstest.MapFS{"quiqr/runtime.yaml": {Data: []byte("packages: {quarto: \"1\"}\npreview: {type: video, command: [quarto]}\n")}}
+	quarto := fstest.MapFS{"quiqr/runtime.yaml": {Data: []byte("packages: {quarto: \"1\"}\npreview: {command: [quarto]}\n")}}
+	for name, case_ := range map[string]struct {
+		site fs.FS
+		h    hugos
+		key  string
+	}{
+		"an unknown type":    {broken, hugos{installed: "/usr/bin/hugo", versionOf: versionIs("")}, "refused.runtime-definition"},
+		"no Nix for quarto":  {quarto, hugos{installed: "/usr/bin/hugo", versionOf: versionIs("")}, "refused.runtime-definition"},
+		"an unknown version": {quarto, hugos{installed: "/usr/bin/hugo", versionOf: versionIs(""), pins: fakePins{err: nixpin.ErrNotFound}}, "refused.package-not-found"},
+	} {
+		_, err := case_.h.Runtime(t.Context(), uuid.New(), case_.site)
+		var refused *httpapi.RefusedError
+		if !errors.As(err, &refused) || refused.Key != case_.key {
+			t.Errorf("%s: Runtime() error = %v, want %s", name, err, case_.key)
+		}
 	}
 }

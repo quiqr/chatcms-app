@@ -598,6 +598,9 @@ export type Workspace = {
   reason?: string;
   steps?: WorkspaceStep[];
   log?: string[];
+  address?: string;
+  type?: "web" | "pdf" | "other";
+  open?: string;
 };
 
 export function openWorkspace(organisation: string, name: string) {

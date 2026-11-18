@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/quiqr/chatcms-app/internal/assistant"
+	"github.com/quiqr/chatcms-app/internal/runtime"
 	"github.com/quiqr/chatcms-app/internal/workspace"
 )
 
@@ -59,39 +60,45 @@ func (b *Backend) Name() string { return "local" }
 
 func (b *Backend) Apart() bool { return false }
 
+func (b *Backend) resolved(spec workspace.Spec) (runtime.Resolved, error) {
+	if spec.Run.Preview.Program != "" {
+		return spec.Run, nil
+	}
+	return runtime.Resolver{InstalledHugo: b.settings.HugoBin, Exists: func(string) bool { return true }}.Resolve(context.Background(), runtime.Default(""), false)
+}
+
 func (b *Backend) Start(ctx context.Context, spec workspace.Spec, log io.Writer) (workspace.Handle, workspace.Endpoint, error) {
+	run, err := b.resolved(spec)
+	if err != nil {
+		return "", workspace.Endpoint{}, err
+	}
 	port, err := freePort()
 	if err != nil {
 		return "", workspace.Endpoint{}, err
 	}
 
-	arguments := []string{
-		"server",
-		"--source", spec.Dir,
-		"--bind", "127.0.0.1",
-		"--port", strconv.Itoa(port),
-		"--baseURL", spec.Under,
-		"--appendPort=false",
-		"--renderToMemory",
-		"--buildDrafts",
-		"--noBuildLock",
-	}
-	if browser := browserPort(spec.Under); browser > 0 {
-		arguments = append(arguments, "--liveReloadPort", strconv.Itoa(browser))
-	}
-
 	home := filepath.Join(filepath.Dir(spec.Dir), ".hugohome")
-	if err := os.MkdirAll(home, 0o700); err != nil {
+	cache := filepath.Join(home, "cache")
+	if err := os.MkdirAll(cache, 0o700); err != nil {
 		return "", workspace.Endpoint{}, fmt.Errorf("local: %w", err)
 	}
 
-	hugo := b.settings.HugoBin
-	if spec.Hugo != "" {
-		hugo = spec.Hugo
+	values := map[string]string{
+		"{host}":   "127.0.0.1",
+		"{port}":   strconv.Itoa(port),
+		"{url}":    spec.Under,
+		"{source}": spec.Dir,
+		"{cache}":  cache,
 	}
-	command := exec.Command(hugo, arguments...)
+	if browser := browserPort(spec.Under); browser > 0 {
+		values["{reload}"] = strconv.Itoa(browser)
+	}
+
+	hugo := run.Preview.Program
+	command := exec.Command(hugo, runtime.Fill(run.Preview.Args, values)...)
+	command.Dir = spec.Dir
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	command.Env = []string{"HOME=" + home, "PATH=/usr/bin:/bin", "TZ=UTC"}
+	command.Env = []string{"HOME=" + home, "PATH=" + strings.Join(append(append([]string{}, run.Path...), "/usr/bin", "/bin"), ":"), "TZ=UTC"}
 	command.Stdout = log
 	command.Stderr = log
 

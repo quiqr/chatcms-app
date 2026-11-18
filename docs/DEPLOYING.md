@@ -188,6 +188,14 @@ front, and forward to `listenAddress:port`.
 The preview is served under the app's own address, so nothing extra has to be
 proxied for it to work.
 
+A site's preview runs the site's own scripts. To keep them away from the app,
+give previews a host of their own with `services.chatcms.previewUrl`, for
+example `https://preview.chatcms.eu`. Point that name at the same server and
+proxy it to the same `listenAddress:port`, with its own certificate. The host
+must differ from `baseUrl`'s, and the URL may not have a path. Previews are
+then reached only through it, at an unguessable address per workspace, and
+no cookie is ever set for the preview host.
+
 ## Workspaces in micro VMs
 
 `services.chatcms.workspaceBackend = "microvm"` runs every preview in a Cloud

@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a month, and sees this month's use.
 - A chat assistant in the editor: ask for a change in words, see the reply as
   it is written, and Show or Undo each page it changed.
+- A site can declare its packages, preview and build in `quiqr/runtime.yaml`
+  (`docs/RUNTIME.md`); a preview can be a web page, a PDF or a file.
+- Previews can come from an origin of their own (`services.chatcms.previewUrl`,
+  `CHATCMS_PREVIEW_URL`), away from the app's cookies.
+- The preview pane shows a PDF preview, and offers to open any other result.
 
 ### Changed
 

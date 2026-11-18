@@ -228,6 +228,7 @@ type Copies struct {
 	Waiting map[workspace.Key]int
 	Removed []workspace.Key
 	Fail    error
+	Root    string
 }
 
 func NewCopies() *Copies {
@@ -238,7 +239,7 @@ func (c *Copies) Dir(ctx context.Context, key workspace.Key) (string, error) {
 	if c.Fail != nil {
 		return "", c.Fail
 	}
-	return "/sites/" + key.Project.String() + "/people/" + key.Person.String(), nil
+	return c.Root + "/sites/" + key.Project.String() + "/people/" + key.Person.String(), nil
 }
 
 func (c *Copies) Unshared(ctx context.Context, key workspace.Key) (int, error) {

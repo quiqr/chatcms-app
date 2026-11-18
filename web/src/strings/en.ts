@@ -7,6 +7,9 @@
  * them reads them in the order they appear.
  */
 export const en = {
+  "refused.runtime-definition": "This site's runtime definition cannot be used: {reason}",
+  "refused.package-not-found": "{package} {version} could not be found. Check the version in quiqr/runtime.yaml.",
+  "refused.package-unavailable": "{package} {version} could not be made ready. Try again in a few minutes.",
   "assistant.assistant": "Assistant",
   "assistant.open": "Open the assistant",
   "assistant.close": "Close the assistant",
@@ -656,6 +659,8 @@ export const en = {
   "preview.preview": "Preview ·",
   "preview.refresh": "Refresh",
   "preview.this-is-your-site-as-a": "This is your site as a visitor will see it. Changes show within a few seconds.",
+  "preview.cannot-show-here": "This preview cannot be shown here.",
+  "preview.open-the-result": "Open the result",
   "preview.your-site": "Your site",
 
   // project-settings

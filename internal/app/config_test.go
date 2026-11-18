@@ -595,3 +595,17 @@ func TestTheAIGatewayIsOffUntilItHasAProviderAKeyAndAModel(t *testing.T) {
 		}
 	}
 }
+
+func TestThePreviewOriginMustBeAnotherAddress(t *testing.T) {
+	cfg, err := workspaceConfig(t, map[string]string{"CHATCMS_PREVIEW_URL": "https://preview.chatcms.example"})
+	if err != nil || cfg.PreviewURL != "https://preview.chatcms.example" {
+		t.Errorf("got %q, %v", cfg.PreviewURL, err)
+	}
+	for _, bad := range []string{"preview.example", "ftp://preview.example", "https://preview.example/sub", "http://localhost:8080"} {
+		_, err := workspaceConfig(t, map[string]string{"CHATCMS_PREVIEW_URL": bad})
+		var configErr *ConfigError
+		if !errors.As(err, &configErr) || configErr.Variable != "CHATCMS_PREVIEW_URL" {
+			t.Errorf("%s error = %v", bad, err)
+		}
+	}
+}

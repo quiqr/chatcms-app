@@ -10,6 +10,9 @@
 import type { Strings } from "../lib/say";
 
 export const nl: Strings = {
+  "refused.runtime-definition": "De runtime-definitie van deze site is niet bruikbaar: {reason}",
+  "refused.package-not-found": "{package} {version} is niet gevonden. Controleer de versie in quiqr/runtime.yaml.",
+  "refused.package-unavailable": "{package} {version} kon niet klaargezet worden. Probeer het over een paar minuten nog eens.",
   "assistant.assistant": "Assistent",
   "assistant.open": "Open de assistent",
   "assistant.close": "Sluit de assistent",
@@ -659,6 +662,8 @@ export const nl: Strings = {
   "preview.preview": "Voorbeeld ·",
   "preview.refresh": "Verversen",
   "preview.this-is-your-site-as-a": "Dit is je site zoals een bezoeker hem ziet. Wijzigingen zijn binnen een paar seconden zichtbaar.",
+  "preview.cannot-show-here": "Deze voorvertoning kan hier niet getoond worden.",
+  "preview.open-the-result": "Open het resultaat",
   "preview.your-site": "Je site",
 
   // project-settings

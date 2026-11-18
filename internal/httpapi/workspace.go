@@ -16,10 +16,13 @@ type WorkspaceStepView struct {
 }
 
 type WorkspaceView struct {
-	State  string              `json:"state"`
-	Reason string              `json:"reason,omitempty"`
-	Steps  []WorkspaceStepView `json:"steps,omitempty"`
-	Log    []string            `json:"log,omitempty"`
+	State   string              `json:"state"`
+	Address string              `json:"address,omitempty"`
+	Type    string              `json:"type,omitempty"`
+	Open    string              `json:"open,omitempty"`
+	Reason  string              `json:"reason,omitempty"`
+	Steps   []WorkspaceStepView `json:"steps,omitempty"`
+	Log     []string            `json:"log,omitempty"`
 }
 
 func openWorkspaceHandler(service WorkspaceService) http.Handler {

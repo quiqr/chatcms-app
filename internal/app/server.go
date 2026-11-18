@@ -54,33 +54,34 @@ type Server struct {
 	http     *http.Server
 	known    int64
 
-	queue      *jobs.Queue
-	worker     *jobs.Worker
-	sites      *gitsync.Sites
-	keys       *onboarding.Keys
-	auth       *auth.Service
-	tenancy    *tenancy.Service
-	admin      *admin.Web
-	about      *about
-	onboarding *onboarding.Service
-	templates  *onboarding.Catalogue
-	builds     *builds.Service
-	workflows  *workflows.Engine
-	publish    *publish.Web
-	history    *history.Web
-	content    *content.Web
-	media      *media.Web
-	standing   *sitesync.Web
-	preview    *preview.Web
-	workspaces *workspace.Workspaces
-	hugo       *hugos
-	aiListener net.Listener
-	aiHTTP     *http.Server
-	aiTokens   *aigateway.Tokens
-	aiGateway  *aigateway.Gateway
-	aiMux      *http.ServeMux
-	chat       *assistant.Chat
-	chatWeb    *assistant.Web
+	queue         *jobs.Queue
+	worker        *jobs.Worker
+	sites         *gitsync.Sites
+	keys          *onboarding.Keys
+	auth          *auth.Service
+	tenancy       *tenancy.Service
+	admin         *admin.Web
+	about         *about
+	onboarding    *onboarding.Service
+	templates     *onboarding.Catalogue
+	builds        *builds.Service
+	workflows     *workflows.Engine
+	publish       *publish.Web
+	history       *history.Web
+	content       *content.Web
+	media         *media.Web
+	standing      *sitesync.Web
+	preview       *preview.Web
+	workspaces    *workspace.Workspaces
+	hugo          *hugos
+	aiListener    net.Listener
+	aiHTTP        *http.Server
+	aiTokens      *aigateway.Tokens
+	aiGateway     *aigateway.Gateway
+	aiMux         *http.ServeMux
+	chat          *assistant.Chat
+	chatWeb       *assistant.Web
+	previewOrigin *preview.Origin
 }
 
 func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, error) {
@@ -218,11 +219,13 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 		Menu:           server.content,
 		Media:          server.media,
 		Sync:           server.standing,
-		Preview:        server.preview,
+		Preview:        server.appPreview(),
 		Workspace:      server.preview,
 		Chat:           server.chatWeb,
 		Secure:         strings.HasPrefix(strings.ToLower(cfg.BaseURL), "https://"),
 	})
+
+	handler = server.byHost(handler)
 
 	listener, err := net.Listen("tcp", cfg.Listen)
 	if err != nil {
@@ -448,6 +451,11 @@ func (s *Server) startContent(ctx context.Context, tenancyStore *tenancy.Store) 
 	if err != nil {
 		return err
 	}
+	if s.cfg.PreviewURL != "" {
+		previewing.ServeFrom(s.cfg.PreviewURL)
+		allowed := mayStillUse(sources.publishSources, tenancyStore)
+		s.previewOrigin = preview.NewOrigin(s.workspaces, allowed)
+	}
 
 	s.chatWeb = assistant.NewWeb(s.chat, tenancyStore, func(organisation, project string) string {
 		return previewing.Under(httpapi.PreviewPrefix + organisation + "/" + project + "/")
@@ -488,7 +496,7 @@ func (s *Server) startBuilds(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	builder.UseHugoOf(s.projectHugo().For)
+	builder.UseRuntimeOf(s.projectHugo().Runtime)
 
 	s.builds, err = builds.NewService(records, builder, s.siteFor)
 	if err != nil {
@@ -592,4 +600,30 @@ func appointTheFirstAdministrator(ctx context.Context, store *admin.Store, email
 	case changed:
 		logger.InfoContext(ctx, "the configured person now administers this installation", "email", email)
 	}
+}
+
+func (s *Server) appPreview() httpapi.PreviewService {
+	if s.previewOrigin != nil || s.preview == nil {
+		return nil
+	}
+	return s.preview
+}
+
+func (s *Server) byHost(app http.Handler) http.Handler {
+	if s.previewOrigin == nil {
+		return app
+	}
+	parsed, err := url.Parse(s.cfg.PreviewURL)
+	if err != nil {
+		return app
+	}
+	previewHost := strings.ToLower(parsed.Host)
+	origin := s.previewOrigin
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.ToLower(r.Host) == previewHost {
+			origin.ServeHTTP(w, r)
+			return
+		}
+		app.ServeHTTP(w, r)
+	})
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/quiqr/chatcms-app/internal/runner"
+	"github.com/quiqr/chatcms-app/internal/runtime"
 	"github.com/quiqr/chatcms-app/internal/sitebuild"
 )
 
@@ -308,16 +309,16 @@ func TestABuildRunsTheProjectsHugo(t *testing.T) {
 		t.Fatal(err)
 	}
 	project := uuid.New()
-	builder.UseHugoOf(func(ctx context.Context, asked uuid.UUID) (string, error) {
+	builder.UseRuntimeOf(func(ctx context.Context, asked uuid.UUID, site fs.FS) (runtime.Resolved, error) {
 		if asked != project {
 			t.Errorf("asked about %v, want the project built", asked)
 		}
-		return "/nix/store/x-hugo-0.139.0/bin/hugo", nil
+		return runtime.Resolved{Path: []string{"/nix/store/x-hugo-0.139.0/bin"}, Preview: runtime.Command{Program: "/nix/store/x-hugo-0.139.0/bin/hugo"}}, nil
 	})
 
 	builder.Build(context.Background(), fstest.MapFS{"hugo.toml": {Data: []byte("")}}, sitebuild.Options{Project: project})
-	if stub.task.Command != "/nix/store/x-hugo-0.139.0/bin/hugo" || stub.task.Tools[0] != stub.task.Command {
-		t.Errorf("ran %q with tools %v, want the project's Hugo", stub.task.Command, stub.task.Tools)
+	if stub.task.Command != "/nix/store/x-hugo-0.139.0/bin/hugo" || stub.task.Outputs[0] != sitebuild.Output {
+		t.Errorf("ran %q with outputs %v, want the project's Hugo", stub.task.Command, stub.task.Outputs)
 	}
 
 	builder.Build(context.Background(), fstest.MapFS{"hugo.toml": {Data: []byte("")}}, sitebuild.Options{})
@@ -326,16 +327,57 @@ func TestABuildRunsTheProjectsHugo(t *testing.T) {
 	}
 }
 
-func TestABuildWhoseHugoCannotBeHadDoesNotRun(t *testing.T) {
+func TestABuildWhoseRuntimeCannotBeHadDoesNotRun(t *testing.T) {
 	stub := &stubRunner{}
 	builder, _ := sitebuild.New(stub, "/usr/bin/hugo", sitebuild.Limits{})
 	missing := errors.New("no such Hugo")
-	builder.UseHugoOf(func(context.Context, uuid.UUID) (string, error) { return "", missing })
+	builder.UseRuntimeOf(func(context.Context, uuid.UUID, fs.FS) (runtime.Resolved, error) { return runtime.Resolved{}, missing })
 
 	if _, err := builder.Build(context.Background(), fstest.MapFS{}, sitebuild.Options{Project: uuid.New()}); !errors.Is(err, missing) {
-		t.Errorf("Build() error = %v, want the Hugo's error", err)
+		t.Errorf("Build() error = %v, want the runtime's error", err)
 	}
 	if stub.task.Command != "" {
 		t.Errorf("the build ran anyway")
+	}
+}
+
+func TestADeclaredBuildRunsItsCommandAndPublishesItsOutput(t *testing.T) {
+	stub := &stubRunner{}
+	builder, _ := sitebuild.New(stub, "/usr/bin/hugo", sitebuild.Limits{})
+	builder.UseRuntimeOf(func(context.Context, uuid.UUID, fs.FS) (runtime.Resolved, error) {
+		return runtime.Resolved{
+			Path:     []string{"/nix/store/q-quarto/bin", "/nix/store/t-typst/bin"},
+			Preview:  runtime.Command{Program: "/nix/store/q-quarto/bin/quarto"},
+			Build:    &runtime.Command{Program: "/nix/store/q-quarto/bin/quarto", Args: []string{"render", "{source}", "--output-dir", "{output}", "--site-url", "{url}"}},
+			Output:   "_book",
+			Declared: true,
+		}, nil
+	})
+
+	result, err := builder.Build(context.Background(), fstest.MapFS{}, sitebuild.Options{Project: uuid.New(), BaseURL: "https://korenaar.example/"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stub.task.Command != "/nix/store/q-quarto/bin/quarto" || strings.Join(stub.task.Arguments, " ") != "render . --output-dir _book --site-url https://korenaar.example/" {
+		t.Errorf("ran %q %v", stub.task.Command, stub.task.Arguments)
+	}
+	if stub.task.Outputs[0] != "_book" || result.Root != "_book" || !strings.Contains(strings.Join(stub.task.Tools, ":"), "/nix/store/t-typst/bin") {
+		t.Errorf("outputs %v root %q tools %v", stub.task.Outputs, result.Root, stub.task.Tools)
+	}
+
+	result.Outputs = fstest.MapFS{"_book/index.html": {Data: []byte("book")}}
+	if data, err := fs.ReadFile(sitebuild.Pages(result), "index.html"); err != nil || string(data) != "book" {
+		t.Errorf("Pages() read %q, %v, want the declared output's pages", data, err)
+	}
+}
+
+func TestADeclaredRuntimeWithNeitherBuildNorHugoCannotBuild(t *testing.T) {
+	stub := &stubRunner{}
+	builder, _ := sitebuild.New(stub, "/usr/bin/hugo", sitebuild.Limits{})
+	builder.UseRuntimeOf(func(context.Context, uuid.UUID, fs.FS) (runtime.Resolved, error) {
+		return runtime.Resolved{Path: []string{"/nix/store/none/bin"}, Preview: runtime.Command{Program: "/nix/store/none/bin/quarto"}, Declared: true}, nil
+	})
+	if _, err := builder.Build(context.Background(), fstest.MapFS{}, sitebuild.Options{Project: uuid.New()}); !errors.Is(err, sitebuild.ErrNoBuild) {
+		t.Errorf("Build() error = %v, want ErrNoBuild", err)
 	}
 }
