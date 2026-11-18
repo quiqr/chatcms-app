@@ -1,11 +1,12 @@
 ---
 # chatcms-gkdd
 title: Workspace per user per project, local backend
-status: in-progress
+status: completed
 type: epic
 priority: normal
 created_at: 2026-11-18T12:51:48Z
-updated_at: 2026-11-18T13:09:24Z
+updated_at: 2026-11-18T14:44:24Z
+openspec-link: openspec/changes/archive/2026-11-18-add-workspace-per-person
 parent: chatcms-z0p7
 ---
 
@@ -47,3 +48,28 @@ backend runs local processes, as the preview does today.
 
 `docs/BRIEFING-M07.md` step 1 and the addendum on backends, lifecycle and
 startup UX. Builds on chatcms-ihey (live preview).
+
+## Summary of Changes
+
+Shipped as `openspec/changes/archive/2026-11-18-add-workspace-per-person`.
+
+- `internal/workspace`: a workspace per (person, project), state in
+  Postgres, cap taken in one transaction, idle sweep, hourly cleanup,
+  reconcile on start-up, startup steps and log. The `local` backend runs
+  Hugo; its workspaces stop with the app, a backend that runs apart keeps
+  them across a restart.
+- A copy of the site per person, cloned from the shared copy, which is its
+  remote. Saves reach the shared version through a `site-share` job using
+  the existing exchange and settling; a person waiting on a question keeps
+  seeing their own work. Only the shared copy reaches the remote.
+- The preview proxies to the person's workspace; opening a project starts
+  it; the preview says it is being prepared, and implementers can unfold the
+  steps and the log.
+- `CHATCMS_WORKSPACES_AT_ONCE` and `CHATCMS_WORKSPACE_IDLE`, old names still
+  read; NixOS options `workspaceIdle` and `workspacesAtOnce`.
+- Moved here from chatcms-9iuz: sharing after each save, conflicts on the
+  same field, publish sharing the publisher's saves first.
+- Fixed on the way: a person without a display name could not save.
+- Acceptance: `test/e2e/33-a-preview-of-ones-own.spec.mjs`, two people, two
+  different changes, each sees their own, at both widths.
+- Disk use per copy was not measured; objects are hardlinked.
