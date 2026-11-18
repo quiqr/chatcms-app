@@ -1,11 +1,11 @@
 ---
 # chatcms-ffzf
 title: Eager start and a preparing-preview indicator
-status: todo
+status: completed
 type: feature
 priority: normal
 created_at: 2026-11-18T12:51:48Z
-updated_at: 2026-11-18T12:51:48Z
+updated_at: 2026-11-18T14:44:32Z
 parent: chatcms-gkdd
 blocked_by:
     - chatcms-cggu
