@@ -1,11 +1,12 @@
 ---
 # chatcms-mizc
 title: AI gateway on the host
-status: in-progress
+status: completed
 type: epic
 priority: normal
 created_at: 2026-11-18T12:51:49Z
-updated_at: 2026-11-18T19:50:47Z
+updated_at: 2026-11-18T20:29:59Z
+openspec-link: openspec/changes/archive/2026-11-18-add-ai-gateway
 parent: chatcms-z0p7
 blocked_by:
     - chatcms-7p90
@@ -40,3 +41,27 @@ endpoint that holds the key, and each workspace gets a token of its own.
 ## References
 
 `docs/BRIEFING-M07.md` step 3.
+
+## Summary of Changes
+
+Shipped as `openspec/changes/archive/2026-11-18-add-ai-gateway`.
+
+- `internal/aigateway`: an OpenAI-compatible gateway on a listener of its own
+  (port 8091), answering only `POST /v1/chat/completions` and
+  `GET /v1/models`, only from this machine and `10.231.0.0/16`. It puts the
+  provider's key and the configured model in place of what came in, streams
+  answers through, and records every call in `ai_usage`.
+- A token per workspace, issued when it starts and revoked when it sleeps,
+  fails or is reconciled away; stored hashed. A micro VM gets it and the
+  gateway's host address on its kernel command line and keeps them in
+  `/run/chatcms/ai.env`.
+- Limits per organisation: requests a minute (in memory) and tokens a month
+  (from usage), refused with plain reasons, OpenAI-shaped so a client shows
+  them as they are. Set and seen by the platform admin in an "AI use" section
+  of the organisation page.
+- NixOS module `ai.providerUrl`, `ai.model`, `ai.keyFile` (a credential),
+  `ai.port`; port 8091 open on the TAP devices in nftables and the NixOS
+  firewall, and nowhere else. The VM test checks the 401, both rules and that
+  the key is not in the store.
+- Decided: own Go gateway rather than LiteLLM; provider and model are
+  configuration; budgets in tokens, not money.

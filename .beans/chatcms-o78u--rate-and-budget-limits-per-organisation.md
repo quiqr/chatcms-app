@@ -1,11 +1,11 @@
 ---
 # chatcms-o78u
 title: Rate and budget limits per organisation
-status: todo
+status: completed
 type: feature
 priority: normal
 created_at: 2026-11-18T12:51:49Z
-updated_at: 2026-11-18T12:51:49Z
+updated_at: 2026-11-18T20:29:59Z
 parent: chatcms-mizc
 blocked_by:
     - chatcms-tpni
