@@ -1,11 +1,11 @@
 ---
 # chatcms-hgj4
 title: Selection in PDF previews
-status: todo
+status: completed
 type: feature
 priority: normal
 created_at: 2026-11-18T12:51:49Z
-updated_at: 2026-11-18T12:51:49Z
+updated_at: 2026-11-18T23:23:39Z
 parent: chatcms-5odk
 blocked_by:
     - chatcms-90o9

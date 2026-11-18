@@ -1,11 +1,12 @@
 ---
 # chatcms-5odk
 title: Select-to-edit in the preview
-status: in-progress
+status: completed
 type: epic
 priority: normal
 created_at: 2026-11-18T12:51:49Z
-updated_at: 2026-11-18T22:31:52Z
+updated_at: 2026-11-18T23:23:39Z
+openspec-link: openspec/changes/archive/2026-11-19-add-select-to-edit
 parent: chatcms-z0p7
 blocked_by:
     - chatcms-64h1
@@ -37,3 +38,25 @@ branch.
 ## References
 
 `docs/BRIEFING-M07.md`, addendum "Select-to-edit".
+
+## Summary of Changes
+
+Shipped as `openspec/changes/archive/2026-11-19-add-select-to-edit`.
+
+- Every HTML page a preview passes on gets `<preview>/__chatcms/select.js`,
+  built from `web/src/preview/` and embedded. On a selection it shows a
+  button; pressing it posts the text, its context and the address to the
+  app's origin only. The pane takes it only from its own frame.
+- The selection opens the assistant with the text quoted (desktop and
+  phone); the message carries it. For a Hugo site, `hugo list all` in the
+  build sandbox maps the address to a content file and `model.KeyOf` to
+  the page key; the assistant is told the page, or to look for the text.
+- After the change the reloaded preview highlights the new text for four
+  seconds. Show and Undo stay on the change.
+- PDF previews are shown by a PDF.js viewer under the preview's own address:
+  selectable text, the page kept on refresh, selections sent the same way.
+- Found on the way: the chat panel could send before its event stream was
+  open and miss the reply; it now holds the message until the stream is
+  ready.
+- e2e `37-select-to-edit` and the PDF part of `36-a-preview-apart`, at
+  both widths. No highlight in PDFs; left to the Quarto epic.
