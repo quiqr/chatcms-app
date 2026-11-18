@@ -587,3 +587,19 @@ func TestReconcileRevokesTheTokensOfWhatIsGone(t *testing.T) {
 		t.Errorf("revoked %d times, want the gone workspace's token revoked", revoked)
 	}
 }
+
+func TestTheAgentIsFoundWithItsSecret(t *testing.T) {
+	h := newHarness(t, 8)
+	made, _ := withTokens(t, h)
+	key := aKey()
+
+	endpoint, secret, err := made.Agent(t.Context(), key, "u")
+	if err != nil || secret != "token-"+key.Person.String() || endpoint.Host == "" {
+		t.Errorf("Agent() = %+v, %q, %v", endpoint, secret, err)
+	}
+
+	h.backend.Fail = workspace.ErrNotReady
+	if _, _, err := made.Agent(t.Context(), aKey(), "u"); !errors.Is(err, workspace.ErrNotReady) {
+		t.Errorf("Agent() of a workspace that does not start = %v", err)
+	}
+}

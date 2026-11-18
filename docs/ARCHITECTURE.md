@@ -34,6 +34,7 @@ projection: a cached, rebuildable view in Postgres of something git owns.
 | `internal/workspace/microvm` | A workspace in a Cloud Hypervisor micro VM of its own                  |
 | `internal/nixpin`      | A package at a given version, found through Nixhub and built with Nix         |
 | `internal/aigateway`   | The host's OpenAI-compatible gateway: workspace tokens, limits, usage         |
+| `internal/assistant`   | The chat assistant: OpenCode's configuration, the Quiqr MCP tools, chat sessions |
 | `internal/runner`      | Sandboxed build execution behind an interface                                 |
 | `internal/sitebuild`   | Running the pinned Hugo over a site, through a runner                         |
 | `internal/builds`      | What is remembered about every build, and the state it ended in               |
@@ -119,6 +120,22 @@ key and the configured model in place of what the request carried, streams
 answers through as they come, refuses past an organisation's requests a
 minute or tokens a month, and records every call in `ai_usage`. The platform
 admin sets the limits and sees the month's use on the organisation's page.
+
+**`internal/assistant`** is the chat assistant. Each workspace runs OpenCode
+(pinned at 1.15.10 through the flake input `nixpkgs-opencode`) as a headless
+server beside the preview: a process of the local backend, or the guest's
+`chatcms-agent` unit on port 4096, which fetches its environment from the
+gateway's `/agent/env` with its token. Its whole configuration is passed in
+`OPENCODE_CONFIG_CONTENT`; a site's own configuration is ignored; its only
+model is the gateway; its API needs the workspace's token as password; it
+runs with no internet. The agent writes nothing itself: editing, commands and
+web access are denied, and it changes pages only through the Quiqr MCP server
+on the gateway's `/mcp` (`list_pages`, `read_page`, `update_page`), which acts
+as the workspace's person through `content.Service`, so validation, saving
+and sharing are the forms'. `Chat` keeps one OpenCode session per person and
+project, posts messages to it, and relays OpenCode's event stream to the
+browser as `text`, `tool`, `change`, `done` and `error`; a change the tools
+made carries the versions before and after, for Show and Undo.
 
 **`internal/nixpin`** turns a package name and version into a store path: it
 asks Nixhub which nixpkgs revision has it, builds that with `nix build`

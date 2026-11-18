@@ -65,6 +65,7 @@ type Options struct {
 	// Preview serves a site as a reader will see it.
 	Preview   PreviewService
 	Workspace WorkspaceService
+	Chat      ChatService
 }
 
 func New(opts Options) http.Handler {
@@ -277,6 +278,10 @@ func New(opts Options) http.Handler {
 
 	if opts.Preview != nil {
 		mux.Handle(PreviewPrefix, RequireActor(previewHandler(opts.Preview)))
+	}
+
+	if opts.Chat != nil {
+		chatHandlers(mux, opts.Chat)
 	}
 
 	if opts.Workspace != nil {

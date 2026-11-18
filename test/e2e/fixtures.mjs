@@ -6,8 +6,10 @@ import { Harness, administrator, owner } from "./harness.mjs";
 // its own seeded site. Nothing a test does can reach another, so the order
 // they run in cannot matter and a failure is never somebody else's leftovers.
 export const test = base.extend({
-  chatcms: async ({}, use) => {
-    const harness = new Harness();
+  assistant: [false, { option: true }],
+
+  chatcms: async ({ assistant }, use) => {
+    const harness = new Harness({ assistant });
     // Starting can fail with a PostgreSQL already running, so the teardown
     // covers the start as well. Otherwise one bad start leaves a database
     // behind for the rest of the afternoon.

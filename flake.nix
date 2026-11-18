@@ -4,8 +4,9 @@
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   inputs.microvm.url = "github:astro/microvm.nix";
   inputs.microvm.inputs.nixpkgs.follows = "nixpkgs";
+  inputs.nixpkgs-opencode.url = "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b";
 
-  outputs = { self, nixpkgs, microvm }:
+  outputs = { self, nixpkgs, microvm, nixpkgs-opencode }:
     let
       version = nixpkgs.lib.fileContents ./VERSION;
 
@@ -295,10 +296,13 @@
           echo "  bash scripts/ship-change.sh <change>  ship one OpenSpec change"
         '';
       };
+      opencodeFor = system: nixpkgs-opencode.legacyPackages.${system}.opencode;
+
       mkWorkspaceGuest = { pkgs, system, ... }:
         let
           guest = nixpkgs.lib.nixosSystem {
             inherit system;
+            specialArgs = { opencode = opencodeFor system; };
             modules = [ microvm.nixosModules.microvm ./nix/workspace-guest.nix ];
           };
           cfg = guest.config.microvm;
@@ -319,6 +323,7 @@
         default = chatcmsd;
       } // nixpkgs.lib.optionalAttrs (args.system == "x86_64-linux" || args.system == "aarch64-linux") {
         workspace-guest = mkWorkspaceGuest args;
+        opencode = opencodeFor args.system;
       });
 
       devShells = forAllSystems (args: {

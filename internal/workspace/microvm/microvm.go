@@ -23,6 +23,7 @@ import (
 const (
 	DefaultReady  = 60 * time.Second
 	DefaultPort   = 1313
+	AgentPort     = 4096
 	DefaultPrefix = "chv"
 	DefaultSubnet = "10.231"
 )
@@ -287,6 +288,9 @@ func (b *Backend) Start(ctx context.Context, spec workspace.Spec, log io.Writer)
 	endpoint := b.endpoint(slot)
 	if err := waitFor(ctx, machine, endpoint, b.settings.Ready); err != nil {
 		return fail(err)
+	}
+	if spec.Token != "" && b.settings.GatewayPort > 0 {
+		endpoint.AgentPort = AgentPort
 	}
 	return b.handleOf(machine), endpoint, nil
 }

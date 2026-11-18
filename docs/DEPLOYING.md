@@ -220,3 +220,8 @@ devices; otherwise it listens on 127.0.0.1. Per organisation, the platform
 admin can cap requests a minute and tokens a month on the organisation's page;
 there is no cap until one is set.
 
+With the gateway configured, every workspace also runs the chat assistant
+(OpenCode, pinned by the flake). It reaches nothing but the gateway, writes
+pages only through ChatCMS's own tools, and is opened from the editor's
+Assistant button.
+

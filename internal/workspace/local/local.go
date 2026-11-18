@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/quiqr/chatcms-app/internal/assistant"
 	"github.com/quiqr/chatcms-app/internal/workspace"
 )
 
@@ -24,8 +25,16 @@ var ErrNoHugo = errors.New("local: no Hugo was named")
 const DefaultReady = 30 * time.Second
 
 type Settings struct {
-	HugoBin string
-	Ready   time.Duration
+	HugoBin     string
+	Ready       time.Duration
+	OpenCodeBin string
+	Gateway     string
+}
+
+type agent struct {
+	pid    int
+	port   int
+	exited chan struct{}
 }
 
 type Backend struct {
@@ -33,6 +42,7 @@ type Backend struct {
 
 	mu       sync.Mutex
 	children map[int]chan struct{}
+	agents   map[int]agent
 }
 
 func New(settings Settings) (*Backend, error) {
@@ -42,7 +52,7 @@ func New(settings Settings) (*Backend, error) {
 	if settings.Ready <= 0 {
 		settings.Ready = DefaultReady
 	}
-	return &Backend{settings: settings, children: map[int]chan struct{}{}}, nil
+	return &Backend{settings: settings, children: map[int]chan struct{}{}, agents: map[int]agent{}}, nil
 }
 
 func (b *Backend) Name() string { return "local" }
@@ -106,7 +116,48 @@ func (b *Backend) Start(ctx context.Context, spec workspace.Spec, log io.Writer)
 		b.Stop(context.Background(), handle)
 		return "", workspace.Endpoint{}, err
 	}
+
+	if started, ok := b.startAgent(spec, log); ok {
+		b.mu.Lock()
+		b.agents[pid] = started
+		b.mu.Unlock()
+		endpoint.AgentPort = started.port
+	}
 	return handle, endpoint, nil
+}
+
+func (b *Backend) startAgent(spec workspace.Spec, log io.Writer) (agent, bool) {
+	if b.settings.OpenCodeBin == "" || b.settings.Gateway == "" || spec.Token == "" {
+		return agent{}, false
+	}
+	port, err := freePort()
+	if err != nil {
+		fmt.Fprintf(log, "the assistant could not start: %v\n", err)
+		return agent{}, false
+	}
+	home := filepath.Join(filepath.Dir(spec.Dir), ".agenthome")
+	if err := os.MkdirAll(home, 0o700); err != nil {
+		fmt.Fprintf(log, "the assistant could not start: %v\n", err)
+		return agent{}, false
+	}
+
+	command := exec.Command(b.settings.OpenCodeBin, "serve", "--hostname", "127.0.0.1", "--port", strconv.Itoa(port))
+	command.Dir = spec.Dir
+	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	command.Env = append(assistant.OpenCodeEnvironment(home, b.settings.Gateway, spec.Token), "PATH=/usr/bin:/bin")
+	command.Stdout = log
+	command.Stderr = log
+	if err := command.Start(); err != nil {
+		fmt.Fprintf(log, "the assistant could not start: %v\n", err)
+		return agent{}, false
+	}
+	exited := make(chan struct{})
+	go func() {
+		command.Wait()
+		close(exited)
+	}()
+	fmt.Fprintf(log, "assistant on port %d\n", port)
+	return agent{pid: command.Process.Pid, port: port, exited: exited}, true
 }
 
 func handleOf(pid, port int, hugo string) workspace.Handle {
@@ -161,7 +212,17 @@ func (b *Backend) Stop(ctx context.Context, handle workspace.Handle) error {
 	b.mu.Lock()
 	exited, ours := b.children[pid]
 	delete(b.children, pid)
+	helper, helped := b.agents[pid]
+	delete(b.agents, pid)
 	b.mu.Unlock()
+
+	if helped {
+		syscall.Kill(-helper.pid, syscall.SIGTERM)
+		if !gone(helper.pid, helper.exited, 5*time.Second) {
+			syscall.Kill(-helper.pid, syscall.SIGKILL)
+			gone(helper.pid, helper.exited, 5*time.Second)
+		}
+	}
 
 	if !ours && !runs(pid, hugo) {
 		return nil

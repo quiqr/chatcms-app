@@ -59,6 +59,7 @@ type Config struct {
 	AIProviderURL    string
 	AIModel          string
 	AIKey            string
+	OpenCodeBin      string
 	TemplateFeed     string
 	Deprecated       []string
 }
@@ -129,6 +130,7 @@ func LoadConfig(lookup Lookup) (Config, error) {
 		{"CHATCMS_AI_PROVIDER_URL", &cfg.AIProviderURL, "", false},
 		{"CHATCMS_AI_MODEL", &cfg.AIModel, "", false},
 		{"CHATCMS_AI_KEY", &cfg.AIKey, "", false},
+		{"CHATCMS_OPENCODE_BIN", &cfg.OpenCodeBin, "", false},
 	}
 
 	for _, field := range fields {

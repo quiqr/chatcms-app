@@ -1,5 +1,5 @@
 import { ArrowLeft } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { NavLink } from "react-router";
 
 import { ContentPanel } from "../routes/content/ContentPanel";
@@ -29,6 +29,7 @@ export type EditorShellProps = {
   onLayoutChange: (layout: EditorLayout) => void;
   form: ReactNode;
   preview: ReactNode;
+  assistant?: (close: () => void) => ReactNode;
 };
 
 export function EditorShell({
@@ -43,8 +44,11 @@ export function EditorShell({
   onLayoutChange,
   form,
   preview,
+  assistant,
 }: EditorShellProps) {
   const { organisation } = useHere();
+  const [talking, setTalking] = useState(false);
+  const [opened, setOpened] = useState(false);
   return (
     <div data-testid="editor-shell" className="flex min-h-dvh flex-wrap">
       <SitePanel project={project} role={project.yourRole} />
@@ -80,7 +84,17 @@ export function EditorShell({
             ]}
             className="hidden md:inline-flex"
           />
-          <AssistantSlot />
+          <AssistantSlot
+            open={talking}
+            onToggle={
+              assistant
+                ? () => {
+                    setOpened(true);
+                    setTalking((now) => !now);
+                  }
+                : undefined
+            }
+          />
           <Button asChild count={project.unpublished}>
             <NavLink to={`/o/${organisation}/p/${project.slug}/publish`}>{say("common.publish")}</NavLink>
           </Button>
@@ -110,9 +124,11 @@ export function EditorShell({
           <aside
             data-testid="editor-slot-assistant"
             aria-label={say("editor-shell.assistant")}
-            hidden
+            hidden={!talking}
             className="w-[340px] shrink-0 border-l border-border bg-card"
-          />
+          >
+            {opened && assistant?.(() => setTalking(false))}
+          </aside>
         </main>
       </div>
     </div>

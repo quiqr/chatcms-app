@@ -18,6 +18,7 @@ import (
 
 	"github.com/quiqr/chatcms-app/internal/admin"
 	"github.com/quiqr/chatcms-app/internal/aigateway"
+	"github.com/quiqr/chatcms-app/internal/assistant"
 	"github.com/quiqr/chatcms-app/internal/auth"
 	"github.com/quiqr/chatcms-app/internal/builds"
 	"github.com/quiqr/chatcms-app/internal/content"
@@ -76,6 +77,10 @@ type Server struct {
 	aiListener net.Listener
 	aiHTTP     *http.Server
 	aiTokens   *aigateway.Tokens
+	aiGateway  *aigateway.Gateway
+	aiMux      *http.ServeMux
+	chat       *assistant.Chat
+	chatWeb    *assistant.Web
 }
 
 func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, error) {
@@ -215,6 +220,7 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 		Sync:           server.standing,
 		Preview:        server.preview,
 		Workspace:      server.preview,
+		Chat:           server.chatWeb,
 		Secure:         strings.HasPrefix(strings.ToLower(cfg.BaseURL), "https://"),
 	})
 
@@ -436,11 +442,16 @@ func (s *Server) startContent(ctx context.Context, tenancyStore *tenancy.Store) 
 	if err != nil {
 		return err
 	}
+	s.startAssistant(service, tenancyStore)
 
 	previewing, err := preview.NewService(sources.publishSources, s.workspaces, s.cfg.BaseURL)
 	if err != nil {
 		return err
 	}
+
+	s.chatWeb = assistant.NewWeb(s.chat, tenancyStore, func(organisation, project string) string {
+		return previewing.Under(httpapi.PreviewPrefix + organisation + "/" + project + "/")
+	})
 
 	s.preview, err = preview.NewWeb(previewing, tenancyStore)
 	return err

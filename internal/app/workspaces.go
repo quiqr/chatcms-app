@@ -66,7 +66,11 @@ func mayStillUse(sources publishSources, people *tenancy.Store) workspace.Allowe
 
 func (s *Server) workspaceBackend() (workspace.Backend, error) {
 	if s.cfg.WorkspaceBackend != "microvm" {
-		return local.New(local.Settings{HugoBin: s.cfg.HugoBin})
+		gateway := ""
+		if s.aiListener != nil {
+			gateway = "http://" + s.aiListener.Addr().String()
+		}
+		return local.New(local.Settings{HugoBin: s.cfg.HugoBin, OpenCodeBin: s.cfg.OpenCodeBin, Gateway: gateway})
 	}
 	guest, err := microvm.LoadGuest(s.cfg.WorkspaceGuest)
 	if err != nil {

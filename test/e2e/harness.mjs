@@ -24,7 +24,9 @@ function freePort() {
 }
 
 export class Harness {
-  constructor() {
+  constructor({ assistant = false } = {}) {
+    this.assistant = assistant;
+    this.asked = [];
     this.root = mkdtempSync(join(tmpdir(), "chatcms-e2e-"));
     this.pgdata = join(this.root, "pgdata");
     this.pgsock = join(this.root, "sock");
@@ -83,6 +85,7 @@ export class Harness {
     this.inboxPort = await freePort();
     await this.startTheInbox();
     await this.startTheTemplates();
+    const assistant = this.assistant ? await this.startTheModel() : {};
 
     this.server = spawn(process.env.CHATCMS_BIN ?? "chatcmsd", [], {
       env: {
@@ -102,6 +105,7 @@ export class Harness {
         // could be sent at all.
         CHATCMS_MAIL_STARTTLS: "no",
         CHATCMS_TEMPLATE_FEED: `${this.templatesUrl}/templates.json`,
+        ...assistant,
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -367,6 +371,59 @@ export class Harness {
     sh(git, ["-C", working, "push", "origin", "HEAD:refs/heads/main"]);
   }
 
+  async startTheModel() {
+    const port = await freePort();
+    this.model = createServer((request, response) => {
+      let body = "";
+      request.on("data", (chunk) => (body += chunk));
+      request.on("end", () => {
+        const asked = body ? JSON.parse(body) : {};
+        this.asked.push(asked);
+        if (request.url.endsWith("/models")) {
+          response.setHeader("Content-Type", "application/json");
+          response.end(JSON.stringify({ object: "list", data: [{ id: "e2e", object: "model" }] }));
+          return;
+        }
+        const update = (asked.tools ?? []).find((tool) => /update_page$/.test(tool.function?.name ?? ""));
+        const messages = asked.messages ?? [];
+        const answered = messages.some((message) => message.role === "tool");
+        const said = [...messages].reverse().find((message) => message.role === "user");
+        const text = typeof said?.content === "string" ? said.content : (said?.content ?? []).map((part) => part.text ?? "").join("");
+        const title = (text.match(/title\b.* to (.+?)\.?$/i) ?? [])[1];
+
+        let chunks;
+        if (update && title && !answered) {
+          chunks = [
+            { delta: { role: "assistant", tool_calls: [{ index: 0, id: "call_e2e", type: "function", function: { name: update.function.name, arguments: "" } }] } },
+            { delta: { tool_calls: [{ index: 0, function: { arguments: JSON.stringify({ key: "home", fields: { title } }) } }] } },
+            { delta: {}, finish_reason: "tool_calls" },
+          ];
+        } else {
+          const reply = update && answered ? "Done. The home page has its new title." : "Chat";
+          chunks = [
+            { delta: { role: "assistant", content: reply.slice(0, 5) } },
+            { delta: { content: reply.slice(5) } },
+            { delta: {}, finish_reason: "stop" },
+          ];
+        }
+        response.setHeader("Content-Type", "text/event-stream");
+        for (const chunk of chunks) {
+          const choice = { index: 0, delta: chunk.delta, finish_reason: chunk.finish_reason ?? null };
+          response.write(`data: ${JSON.stringify({ id: "e2e", object: "chat.completion.chunk", created: 1, model: "e2e", choices: [choice] })}\n\n`);
+        }
+        response.write(`data: ${JSON.stringify({ id: "e2e", object: "chat.completion.chunk", created: 1, model: "e2e", choices: [], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } })}\n\n`);
+        response.end("data: [DONE]\n\n");
+      });
+    });
+    await new Promise((listening) => this.model.listen(port, "127.0.0.1", listening));
+    return {
+      CHATCMS_AI_PROVIDER_URL: `http://127.0.0.1:${port}/v1`,
+      CHATCMS_AI_KEY: "e2e-key",
+      CHATCMS_AI_MODEL: "e2e",
+      CHATCMS_AI_LISTEN: `127.0.0.1:${await freePort()}`,
+    };
+  }
+
   async stop() {
     if (this.server && this.server.exitCode === null) {
       this.server.kill("SIGTERM");
@@ -378,6 +435,10 @@ export class Harness {
     }
     if (this.templates) {
       await new Promise((closed) => this.templates.close(closed));
+    }
+    if (this.model) {
+      this.model.closeAllConnections();
+      await new Promise((closed) => this.model.close(closed));
     }
     try {
       sh("pg_ctl", ["-D", this.pgdata, "stop", "-m", "immediate"]);

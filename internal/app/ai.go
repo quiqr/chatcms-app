@@ -32,7 +32,11 @@ func (s *Server) startAI() error {
 		return fmt.Errorf("the AI gateway could not listen on %s: %w", s.cfg.AIListen, err)
 	}
 	s.aiListener = listener
-	s.aiHTTP = &http.Server{Handler: gateway, ReadHeaderTimeout: 10 * time.Second}
+	s.aiGateway = gateway
+	s.aiMux = http.NewServeMux()
+	s.aiMux.Handle("/v1/", gateway)
+	s.aiMux.Handle("/", gateway)
+	s.aiHTTP = &http.Server{Handler: s.aiMux, ReadHeaderTimeout: 10 * time.Second}
 	s.aiTokens = aigateway.NewTokens(books)
 	return nil
 }

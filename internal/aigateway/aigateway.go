@@ -396,3 +396,14 @@ func (b *Books) SetLimits(ctx context.Context, organisation uuid.UUID, limits Li
 	}
 	return b.store.SetLimits(ctx, organisation, limits)
 }
+
+func (t *Tokens) Caller(ctx context.Context, token string) (Caller, bool, error) {
+	if token == "" {
+		return Caller{}, false, nil
+	}
+	return t.store.LookUp(ctx, hash(token))
+}
+
+func (g *Gateway) FromAWorkspace(r *http.Request) bool {
+	return g.from(r)
+}

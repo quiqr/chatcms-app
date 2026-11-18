@@ -1,11 +1,11 @@
 ---
 # chatcms-6jxg
 title: Chat with OpenCode in the workspace
-status: todo
+status: in-progress
 type: epic
 priority: normal
 created_at: 2026-11-18T12:51:49Z
-updated_at: 2026-11-18T12:51:49Z
+updated_at: 2026-11-18T20:35:40Z
 parent: chatcms-z0p7
 blocked_by:
     - chatcms-mizc

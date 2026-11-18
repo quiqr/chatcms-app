@@ -10,6 +10,21 @@
 import type { Strings } from "../lib/say";
 
 export const nl: Strings = {
+  "assistant.assistant": "Assistent",
+  "assistant.open": "Open de assistent",
+  "assistant.close": "Sluit de assistent",
+  "assistant.not-available": "De assistent is op deze installatie niet beschikbaar.",
+  "assistant.ask-for-a-change": "Vraag om een wijziging, bijvoorbeeld: verander de titel van de homepagina in Open op zondag.",
+  "assistant.working": "Bezig…",
+  "assistant.did-not-answer": "De assistent kon niet antwoorden. Probeer het zo nog eens.",
+  "assistant.your-message": "Je bericht",
+  "assistant.send": "Versturen",
+  "assistant.changed": "{title} gewijzigd",
+  "assistant.change-undone": "{title} is weer zoals het was",
+  "assistant.show": "Toon",
+  "assistant.undo": "Ongedaan maken",
+  "refused.assistant-not-available": "De assistent is op deze installatie niet beschikbaar.",
+  "refused.assistant-did-not-answer": "De assistent antwoordde niet. Probeer het zo nog eens.",
   // about
   "about.changelog": "Wijzigingen per versie",
   "about.credits": "Met dank aan",

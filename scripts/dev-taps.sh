@@ -49,6 +49,9 @@ up() {
     else
         echo "dev-taps: nft is not installed, so the VMs are not fenced off from the network" >&2
     fi
+    if sudo iptables -S nixos-fw >/dev/null 2>&1 && ! sudo iptables -C nixos-fw -i chv+ -p tcp --dport 8091 -j nixos-fw-accept 2>/dev/null; then
+        sudo iptables -I nixos-fw -i chv+ -p tcp --dport 8091 -j nixos-fw-accept
+    fi
     echo "dev-taps: chv0..chv$((count - 1)) are up; set CHATCMS_WORKSPACE_TAPS=$count"
 }
 
@@ -57,6 +60,7 @@ down() {
     if command -v nft >/dev/null 2>&1; then
         sudo nft delete table inet chatcms_workspaces 2>/dev/null || true
     fi
+    sudo iptables -D nixos-fw -i chv+ -p tcp --dport 8091 -j nixos-fw-accept 2>/dev/null || true
     for ((i = 0; i < count; i++)); do
         sudo ip link del "chv$i" 2>/dev/null || true
     done

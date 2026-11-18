@@ -7,6 +7,21 @@
  * them reads them in the order they appear.
  */
 export const en = {
+  "assistant.assistant": "Assistant",
+  "assistant.open": "Open the assistant",
+  "assistant.close": "Close the assistant",
+  "assistant.not-available": "The assistant is not available on this installation.",
+  "assistant.ask-for-a-change": "Ask for a change, for example: change the title of the home page to Open on Sundays.",
+  "assistant.working": "Working on it…",
+  "assistant.did-not-answer": "The assistant could not answer. Try again in a moment.",
+  "assistant.your-message": "Your message",
+  "assistant.send": "Send",
+  "assistant.changed": "Changed {title}",
+  "assistant.change-undone": "{title} is back as it was",
+  "assistant.show": "Show",
+  "assistant.undo": "Undo",
+  "refused.assistant-not-available": "The assistant is not available on this installation.",
+  "refused.assistant-did-not-answer": "The assistant did not answer. Try again in a moment.",
   // about
   "about.changelog": "Changelog",
   "about.credits": "Credits",

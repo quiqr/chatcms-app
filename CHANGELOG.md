@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   own, never the provider's key (`services.chatcms.ai`).
 - Per organisation, the platform admin can cap AI requests a minute and tokens
   a month, and sees this month's use.
+- A chat assistant in the editor: ask for a change in words, see the reply as
+  it is written, and Show or Undo each page it changed.
 
 ### Changed
 
@@ -34,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The preview's live reload passes through the app again, and event streams
+  are flushed as they are written.
 - A person without a display name can save; their address is used as the
   author.
 - A question about what two people changed can be answered later, and

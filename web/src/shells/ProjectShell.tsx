@@ -54,9 +54,22 @@ export function ProjectShell({
   );
 }
 
-export function AssistantSlot() {
+export function AssistantSlot({ open, onToggle }: { open?: boolean; onToggle?: () => void }) {
+  if (!onToggle) {
+    return (
+      <Button variant="ghost" size="icon" aria-label={say("project-shell.assistant-coming-later")} disabled>
+        <MessageSquare aria-hidden="true" className="size-5" />
+      </Button>
+    );
+  }
   return (
-    <Button variant="ghost" size="icon" aria-label={say("project-shell.assistant-coming-later")} disabled>
+    <Button
+      variant={open ? "outline" : "ghost"}
+      size="icon"
+      aria-label={say("assistant.open")}
+      aria-pressed={open}
+      onClick={onToggle}
+    >
       <MessageSquare aria-hidden="true" className="size-5" />
     </Button>
   );

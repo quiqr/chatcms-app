@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ lib, pkgs, opencode, ... }:
 let
   preview = pkgs.writeShellScript "chatcms-preview" ''
     export PATH=${lib.makeBinPath [ pkgs.iproute2 pkgs.coreutils pkgs.gnugrep pkgs.gnused pkgs.util-linux ]}
@@ -32,6 +32,22 @@ let
     if [ -n "$reload" ]; then set -- "$@" --liveReloadPort "$reload"; fi
     exec setpriv --reuid=65534 --regid=65534 --clear-groups \
       env HOME=$home HUGO_RESOURCEDIR=$home/resources TZ=UTC "$hugo" "$@"
+  '';
+  agent = pkgs.writeShellScript "chatcms-agent" ''
+    export PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.curl pkgs.util-linux ]}
+    while [ ! -f /run/chatcms/ai.env ]; do sleep 0.2; done
+    . /run/chatcms/ai.env
+    base=''${CHATCMS_AI_URL%/v1}
+
+    home=/run/agent
+    mkdir -p $home
+    until curl -sf -H "Authorization: Bearer $CHATCMS_AI_TOKEN" "$base/agent/env" -o $home/env; do sleep 1; done
+    chown -R 65534:65534 $home
+    chmod 0600 $home/env
+
+    cd /site
+    exec setpriv --reuid=65534 --regid=65534 --clear-groups \
+      env -i ${pkgs.bash}/bin/bash -c "set -a; . $home/env; set +a; rm -f $home/env; exec ${opencode}/bin/opencode serve --hostname 0.0.0.0 --port 4096"
   '';
 in
 {
@@ -67,7 +83,26 @@ in
     };
   };
 
+  systemd.services.chatcms-agent = {
+    description = "The assistant of this workspace";
+    wantedBy = [ "sysinit.target" ];
+    after = [ "local-fs.target" "chatcms-preview.service" ];
+    requires = [ "local-fs.target" ];
+    unitConfig.DefaultDependencies = false;
+    unitConfig.ConditionKernelCommandLine = "chatcms.token";
+    serviceConfig = {
+      Type = "simple";
+      Restart = "on-failure";
+      RestartSec = 1;
+      ExecStart = agent;
+    };
+  };
+
   boot.kernelParams = [ "quiet" ];
+  services.journald.settings.Journal = {
+    ForwardToConsole = true;
+    TTYPath = "/dev/hvc0";
+  };
   documentation.enable = false;
   nix.enable = false;
   security.sudo.enable = false;

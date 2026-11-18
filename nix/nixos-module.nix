@@ -441,6 +441,7 @@ in
         CHATCMS_AI_MODEL = cfg.ai.model;
         CHATCMS_AI_KEY_FILE = "%d/ai-key";
         CHATCMS_AI_LISTEN = "${if microvm then "0.0.0.0" else "127.0.0.1"}:${toString cfg.ai.port}";
+        CHATCMS_OPENCODE_BIN = "${self.packages.${system}.opencode}/bin/opencode";
       } // lib.optionalAttrs (cfg.firstAdministrator != null) {
         CHATCMS_FIRST_ADMINISTRATOR = cfg.firstAdministrator;
       } // lib.optionalAttrs (cfg.mail.host != null) {

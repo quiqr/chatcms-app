@@ -14,6 +14,7 @@ import { useIsPhone } from "../shells/useIsPhone";
 import { useStartWorkspace } from "../lib/workspace";
 import { PageEditor } from "./PageEditor";
 import { Preview } from "./Preview";
+import { ChatPanel } from "./ChatPanel";
 import { say } from "../lib/say";
 import { Stepper, usePlace } from "./content/usePlace";
 
@@ -23,6 +24,9 @@ export function EditorPage() {
   const [loaded] = useAsync(() => readProject(organisation, slug ?? ""), [organisation, slug]);
   const [layout, setLayout] = useState<EditorLayout>("split");
   const [saves, setSaves] = useState(0);
+  const [changes, setChanges] = useState(0);
+  const [talking, setTalking] = useState(false);
+  const [chatted, setChatted] = useState(false);
   const [showing, setShowing] = useState<"edit" | "preview">("edit");
   const [opened, setOpened] = useState<{ title: string; section: string } | null>(null);
   const onAPhone = useIsPhone();
@@ -50,13 +54,22 @@ export function EditorPage() {
           onLayoutChange={setLayout}
           form={
             <PageEditor
+              key={changes}
               organisation={organisation}
               headed={false}
               onOpened={setOpened}
               onSaved={() => setSaves((count) => count + 1)}
             />
           }
-          preview={<Preview organisation={organisation} project={slug ?? ""} page={page} showAgain={saves} />}
+          preview={<Preview organisation={organisation} project={slug ?? ""} page={page} showAgain={saves + changes} />}
+          assistant={(close) => (
+            <ChatPanel
+              organisation={organisation}
+              project={slug ?? ""}
+              onChanged={() => setChanges((count) => count + 1)}
+              onClose={close}
+            />
+          )}
         />
       </div>
     );
@@ -68,7 +81,13 @@ export function EditorPage() {
       viewer={{ name: who.person.displayName || who.person.email, role: project.yourRole }}
       bottomBar={
         <>
-          <AssistantSlot />
+          <AssistantSlot
+            open={talking}
+            onToggle={() => {
+              setChatted(true);
+              setTalking((now) => !now);
+            }}
+          />
           <Button className="flex-1" count={project.unpublished}>
             {say("common.publish")}
           </Button>
@@ -100,8 +119,19 @@ export function EditorPage() {
           ]}
           onValueChange={(next) => setShowing(next as "edit" | "preview")}
         />
-        {showing === "edit" ? (
+        {chatted && (
+          <div className="h-[70vh]" hidden={!talking}>
+            <ChatPanel
+              organisation={organisation}
+              project={slug ?? ""}
+              onChanged={() => setChanges((count) => count + 1)}
+              onClose={() => setTalking(false)}
+            />
+          </div>
+        )}
+        {talking ? null : showing === "edit" ? (
           <PageEditor
+            key={changes}
             organisation={organisation}
             headed={false}
             onOpened={setOpened}
@@ -113,7 +143,7 @@ export function EditorPage() {
               organisation={organisation}
               project={slug ?? ""}
               page={page}
-              showAgain={saves}
+              showAgain={saves + changes}
             />
           </div>
         )}

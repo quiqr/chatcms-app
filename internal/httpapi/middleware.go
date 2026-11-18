@@ -78,6 +78,17 @@ func (s *statusRecorder) Write(b []byte) (int, error) {
 	return s.ResponseWriter.Write(b)
 }
 
+func (s *statusRecorder) Unwrap() http.ResponseWriter {
+	return s.ResponseWriter
+}
+
+func (s *statusRecorder) Flush() {
+	if !s.written {
+		s.WriteHeader(http.StatusOK)
+	}
+	http.NewResponseController(s.ResponseWriter).Flush()
+}
+
 func Logging(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

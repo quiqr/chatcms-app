@@ -176,3 +176,28 @@ func TestActorFromAnEmptyContextIsAnonymous(t *testing.T) {
 		t.Error("ActorFrom(empty) is not anonymous")
 	}
 }
+
+func TestTheLoggingWrapperLetsAConnectionBeTakenOverAndFlushed(t *testing.T) {
+	upgraded := make(chan bool, 1)
+	handler := Logging(slog.New(slog.NewJSONHandler(io.Discard, nil)))(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := w.(http.Flusher); !ok {
+			t.Errorf("the wrapped writer cannot flush")
+		}
+		w.(http.Flusher).Flush()
+		conn, _, err := http.NewResponseController(w).Hijack()
+		upgraded <- err == nil
+		if err == nil {
+			conn.Close()
+		}
+	}))
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	answer, err := http.Get(server.URL)
+	if err == nil {
+		answer.Body.Close()
+	}
+	if !<-upgraded {
+		t.Errorf("the connection could not be taken over through the wrapper")
+	}
+}

@@ -607,3 +607,30 @@ export function openWorkspace(organisation: string, name: string) {
 export function readWorkspace(organisation: string, name: string) {
   return get<Workspace>(`${project(organisation, name)}/workspace`);
 }
+
+export type AssistantChange = {
+  page: string;
+  title: string;
+  before: string;
+  after: string;
+};
+
+export type AssistantEvent =
+  | { type: "ready" }
+  | { type: "text"; text: string }
+  | { type: "tool"; tool: string; message?: string }
+  | { type: "change"; change: AssistantChange }
+  | { type: "done" }
+  | { type: "error"; message?: string };
+
+export function readAssistant(organisation: string, name: string) {
+  return get<{ available: boolean }>(`${project(organisation, name)}/chat`);
+}
+
+export function askAssistant(organisation: string, name: string, text: string) {
+  return post<void>(`${project(organisation, name)}/chat`, { text });
+}
+
+export function assistantEvents(organisation: string, name: string) {
+  return `${project(organisation, name)}/chat/events`;
+}

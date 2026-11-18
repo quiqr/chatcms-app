@@ -65,6 +65,7 @@ pkgs.runCommand "chatcms-acceptance-tests"
   export CHATCMS_SEED=${seed}/bin/seed
   export CHATCMS_GIT_BIN=${pkgs.git}/bin/git
   export CHATCMS_HUGO_BIN=${pkgs.hugo}/bin/hugo
+  export CHATCMS_OPENCODE_BIN=${self.packages.${system}.opencode}/bin/opencode
   export CHATCMS_MAILPIT_BIN=${pkgs.mailpit}/bin/mailpit
   export CI=1
 

@@ -40,12 +40,17 @@ type Spec struct {
 }
 
 type Endpoint struct {
-	Host string
-	Port int
+	Host      string
+	Port      int
+	AgentPort int
 }
 
 func (e Endpoint) Address() string {
 	return net.JoinHostPort(e.Host, strconv.Itoa(e.Port))
+}
+
+func (e Endpoint) Preview() Endpoint {
+	return Endpoint{Host: e.Host, Port: e.Port}
 }
 
 type Handle string

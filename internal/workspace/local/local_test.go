@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -228,5 +229,55 @@ func TestALocalWorkspaceRunsTheProjectsHugo(t *testing.T) {
 	defer made.Stop(context.Background(), handle)
 	if _, _, hugo, _ := parseHandle(handle); hugo != hugoBin(t) {
 		t.Errorf("handle names %q, want the Hugo it runs", hugo)
+	}
+}
+
+func TestALocalWorkspaceStartsItsAgentWhenItHasOne(t *testing.T) {
+	stubDir := t.TempDir()
+	told := filepath.Join(stubDir, "told")
+	stub := filepath.Join(stubDir, "opencode")
+	os.WriteFile(stub, []byte("#!/bin/sh\n{ echo \"$PWD $*\"; export -p; } > "+told+"\n"), 0o755)
+
+	made, err := New(Settings{HugoBin: hugoBin(t), Ready: 60 * time.Second, OpenCodeBin: stub, Gateway: "http://127.0.0.1:8091"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := aSite(t, "Korenaar", false)
+	handle, endpoint, err := made.Start(t.Context(), workspace.Spec{Dir: dir, Under: "http://127.0.0.1/", Token: "tok"}, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if endpoint.AgentPort == 0 || endpoint.AgentPort == endpoint.Port {
+		t.Errorf("AgentPort = %d", endpoint.AgentPort)
+	}
+
+	deadline := time.Now().Add(5 * time.Second)
+	var said []byte
+	for time.Now().Before(deadline) {
+		if said, _ = os.ReadFile(told); strings.Contains(string(said), "TZ") {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	for _, want := range []string{dir + " serve --hostname 127.0.0.1 --port", "OPENCODE_SERVER_PASSWORD=", "tok", "OPENCODE_DISABLE_PROJECT_CONFIG=", "http://127.0.0.1:8091/v1"} {
+		if !strings.Contains(string(said), want) {
+			t.Errorf("the agent was not told %q", want)
+		}
+	}
+
+	made.Stop(t.Context(), handle)
+	if conn, err := net.DialTimeout("tcp", endpoint.Address(), 200*time.Millisecond); err == nil {
+		conn.Close()
+		t.Errorf("the preview still answers after Stop()")
+	}
+
+	without, _ := New(Settings{HugoBin: hugoBin(t), Ready: 60 * time.Second, OpenCodeBin: stub, Gateway: "http://127.0.0.1:8091"})
+	other, plain, err := without.Start(t.Context(), workspace.Spec{Dir: aSite(t, "Plain", false), Under: "http://127.0.0.1/"}, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer without.Stop(context.Background(), other)
+	if plain.AgentPort != 0 {
+		t.Errorf("a workspace without a token was given an agent")
 	}
 }

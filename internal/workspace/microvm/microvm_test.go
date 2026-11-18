@@ -470,6 +470,9 @@ func TestAVMIsGivenItsTokenAndTheGatewayOnItsHostAddress(t *testing.T) {
 	spec.Token = "a-token"
 	_, endpoint := r.start(t, spec)
 
+	if endpoint.AgentPort != AgentPort {
+		t.Errorf("AgentPort = %d, want the guest's agent port", endpoint.AgentPort)
+	}
 	body := get(t, endpoint)
 	if !strings.Contains(body, "chatcms.ai=http://127.231.1.1:8091/v1") || !strings.Contains(body, "chatcms.token=a-token") {
 		t.Errorf("the VM was not given its gateway and token: %s", body)
@@ -486,6 +489,9 @@ func TestAVMIsGivenItsTokenAndTheGatewayOnItsHostAddress(t *testing.T) {
 func TestAVMWithoutATokenIsToldNoGateway(t *testing.T) {
 	r := newRig(t, 1)
 	_, endpoint := r.start(t, r.spec(t))
+	if endpoint.AgentPort != 0 {
+		t.Errorf("a VM without a token reports an agent on %d", endpoint.AgentPort)
+	}
 	if body := get(t, endpoint); strings.Contains(body, "chatcms.ai=") || strings.Contains(body, "chatcms.token=") {
 		t.Errorf("a VM without a token was told about the gateway: %s", body)
 	}

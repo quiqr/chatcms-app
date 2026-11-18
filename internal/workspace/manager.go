@@ -536,3 +536,17 @@ func (w *Workspaces) revoke(ctx context.Context, key Key) {
 		w.settings.Logger.Warn("revoking a workspace's token failed", "error", err)
 	}
 }
+
+func (w *Workspaces) Agent(ctx context.Context, key Key, under string) (Endpoint, string, error) {
+	endpoint, err := w.Endpoint(ctx, key, under)
+	if err != nil {
+		return Endpoint{}, "", err
+	}
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	held, found := w.live[key]
+	if !found {
+		return Endpoint{}, "", ErrNotFound
+	}
+	return endpoint, held.spec.Token, nil
+}
