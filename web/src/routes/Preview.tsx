@@ -54,15 +54,17 @@ export function Preview({
           {say("preview.preview")} {at}
         </span>
         <div className="flex items-center gap-2">
-          <Segmented
-            label={say("preview.how-wide-to-show-the-site")}
-            value={device}
-            options={[
-              { value: "desktop", label: "Desktop" },
-              { value: "phone", label: "Phone" },
-            ]}
-            onValueChange={(next) => setDevice(next as "desktop" | "phone")}
-          />
+          {kind === "web" && (
+            <Segmented
+              label={say("preview.how-wide-to-show-the-site")}
+              value={device}
+              options={[
+                { value: "desktop", label: "Desktop" },
+                { value: "phone", label: "Phone" },
+              ]}
+              onValueChange={(next) => setDevice(next as "desktop" | "phone")}
+            />
+          )}
           <button
             type="button"
             onClick={() => setReloads(reloads + 1)}
@@ -88,7 +90,7 @@ export function Preview({
             title={say("preview.your-site")}
             src={at}
             className={
-              "h-full border-0 bg-card " + (device === "phone" ? "w-[390px]" : "w-full")
+              "h-full border-0 bg-card " + (device === "phone" && kind === "web" ? "w-[390px]" : "w-full")
             }
           />
         ) : (

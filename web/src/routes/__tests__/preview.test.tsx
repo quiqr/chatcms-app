@@ -229,3 +229,13 @@ describe("a preview on the app's own address", () => {
     expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "/preview/technative/korenaar/p/site/");
   });
 });
+
+describe("a PDF preview", () => {
+  it("has no width to choose, since a PDF's size is its own", async () => {
+    vi.stubGlobal("fetch", server([{ body: { state: "warm", address: "/preview/technative/korenaar/", type: "pdf", open: "/book.pdf" } }]));
+    render(<Preview organisation="technative" project="korenaar" />);
+    const frame = await screen.findByTitle("Your site");
+    expect(screen.queryByRole("radiogroup", { name: "How wide to show the site" })).toBeNull();
+    expect(frame.className).toContain("w-full");
+  });
+});

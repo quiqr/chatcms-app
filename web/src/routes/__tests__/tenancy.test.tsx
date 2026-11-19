@@ -57,6 +57,17 @@ describe("the projects screen", () => {
     expect(screen.getByText("Published")).toBeInTheDocument();
   });
 
+  it("says what each project runs on, and nothing for one without a site", async () => {
+    setUp([
+      { slug: "korenaar", name: "Korenaar Bakery", domain: "korenaar.example", yourRole: "implementer", youMay: [], unpublished: 0, runtime: "hugo" },
+      { slug: "recipes", name: "Korenaar Recipes", domain: "recipes.korenaar.example", yourRole: "implementer", youMay: [], unpublished: 0, runtime: "quarto" },
+      { slug: "studio-noord", name: "Studio Noord", domain: "studionoord.example", yourRole: "implementer", youMay: [], unpublished: 0 },
+    ]);
+    expect(await screen.findByText("korenaar.example · Hugo")).toBeInTheDocument();
+    expect(screen.getByText("recipes.korenaar.example · Quarto")).toBeInTheDocument();
+    expect(screen.getByText("studionoord.example")).toBeInTheDocument();
+  });
+
   it("offers a way to start a new one", async () => {
     setUp([]);
 

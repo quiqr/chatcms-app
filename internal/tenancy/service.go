@@ -32,6 +32,7 @@ type Service struct {
 	// behaves, which rides along in the one answer a screen asks for.
 	preferences Preferences
 	kept        Kept
+	runtimes    Runtimes
 	forget      func(ctx context.Context, projectID uuid.UUID) error
 }
 
@@ -63,6 +64,19 @@ type Kept interface {
 }
 
 func (s *Service) KnowsWhatIsKept(kept Kept) { s.kept = kept }
+
+type Runtimes interface {
+	RuntimeOf(projectID uuid.UUID) string
+}
+
+func (s *Service) KnowsRuntimes(runtimes Runtimes) { s.runtimes = runtimes }
+
+func (s *Service) runtimeOf(project Project) string {
+	if s.runtimes == nil {
+		return ""
+	}
+	return s.runtimes.RuntimeOf(project.ID)
+}
 
 func (s *Service) hasArtifacts(ctx context.Context, project Project) bool {
 	if s.kept == nil {
@@ -178,6 +192,7 @@ func (s *Service) ListProjects(ctx context.Context, who httpapi.Actor, organisat
 		}
 		view := projectView(project, actor, resource)
 		view.Unpublished = s.unpublishedIn(ctx, project)
+		view.Runtime = s.runtimeOf(project)
 		views = append(views, view)
 	}
 	return views, nil
@@ -229,6 +244,7 @@ func (s *Service) GetProject(ctx context.Context, who httpapi.Actor, organisatio
 
 	view := projectView(project, actor, resource)
 	view.Unpublished = s.unpublishedIn(ctx, project)
+	view.Runtime = s.runtimeOf(project)
 	view.HasArtifacts = s.hasArtifacts(ctx, project)
 	return view, nil
 }
@@ -959,6 +975,7 @@ func (s *Service) ManageableOrganisation(ctx context.Context, who httpapi.Actor,
 	for _, project := range projects {
 		view := projectView(project, actor, policy.Project(organisation.ID.String(), project.ID.String()))
 		view.Unpublished = s.unpublishedIn(ctx, project)
+		view.Runtime = s.runtimeOf(project)
 		area.Projects = append(area.Projects, view)
 	}
 

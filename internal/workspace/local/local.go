@@ -25,7 +25,7 @@ import (
 
 var ErrNoHugo = errors.New("local: no Hugo was named")
 
-const DefaultReady = 30 * time.Second
+const DefaultReady = 2 * time.Minute
 
 type Settings struct {
 	HugoBin     string

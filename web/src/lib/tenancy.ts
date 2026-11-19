@@ -15,6 +15,7 @@ export type Project = {
   unpublished: number;
   archived?: boolean;
   hasArtifacts?: boolean;
+  runtime?: string;
 };
 
 export type Member = {

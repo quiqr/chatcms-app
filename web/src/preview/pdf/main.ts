@@ -12,6 +12,8 @@ function sessionStore(): Storage | null {
   }
 }
 
+const actualSize = 96 / 72;
+
 async function show() {
   const file = fileOf(window.location);
   const holder = document.getElementById("pages")!;
@@ -27,12 +29,11 @@ async function show() {
 
   GlobalWorkerOptions.workerSrc = worker;
   const pdf = await getDocument({ url: file.href }).promise;
-  const width = Math.min(holder.clientWidth - 24, 1000);
   const pages: HTMLElement[] = [];
 
   for (let number = 1; number <= pdf.numPages; number++) {
     const page = await pdf.getPage(number);
-    const scale = width / page.getViewport({ scale: 1 }).width;
+    const scale = actualSize;
     const viewport = page.getViewport({ scale });
     const ratio = window.devicePixelRatio || 1;
 

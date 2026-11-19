@@ -37,7 +37,8 @@ function ProjectCard({ organisation, project }: { organisation: string; project:
           <span className="truncate text-[15px] font-semibold">{project.name}</span>
           <span className="truncate text-[13px] text-subtle-foreground">
             {/* chatcms-not-a-string: an address, and the name of what builds the site */}
-            {project.domain || organisation} · Hugo
+            {project.domain || organisation}
+            {project.runtime ? ` · ${runtimeName(project.runtime)}` : ""}
           </span>
         </span>
       </span>
@@ -250,4 +251,10 @@ export function ProjectsPage() {
       )}
     </OrganisationShell>
   );
+}
+
+const runtimeNames: Record<string, string> = { hugo: "Hugo", quarto: "Quarto" };
+
+export function runtimeName(runtime: string) {
+  return runtimeNames[runtime] ?? runtime;
 }

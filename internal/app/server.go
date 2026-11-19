@@ -556,6 +556,7 @@ func (s *Server) startPublishing(ctx context.Context, tenancyStore *tenancy.Stor
 	// One source for how much is waiting, so that the number on a button and
 	// the number on the publish screen cannot disagree. They did.
 	s.tenancy.KnowsWhatIsWaiting(waitingInSites{sources: sources})
+	s.tenancy.KnowsRuntimes(siteRuntimes{sites: s.sites})
 	service, err := publish.NewService(sources, s.workflows, records)
 	if err != nil {
 		return err
