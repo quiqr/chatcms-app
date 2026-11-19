@@ -171,6 +171,15 @@ cat <<NOTICE
 
 NOTICE
 
+echo "==> building the preview's script and PDF viewer"
+if [ -d web/node_modules ]; then
+    (cd web && npx vite build --config vite.preview.config.ts --logLevel warn)
+    rm -rf internal/webui/dist/__chatcms
+    cp -r web/dist/__chatcms internal/webui/dist/__chatcms
+else
+    echo "    web/node_modules is missing, so select-to-edit and PDF previews are off; run npm install in web/"
+fi
+
 echo "==> building"
 go build -o "$state/chatcmsd" ./cmd/chatcmsd
 
