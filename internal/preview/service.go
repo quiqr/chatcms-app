@@ -157,7 +157,7 @@ func (s *Service) keyFor(ctx context.Context, actor policy.Actor, projectID uuid
 
 func (s *Service) standing(key workspace.Key, technical bool) Standing {
 	report, _ := s.workspaces.Report(key)
-	standing := Standing{State: report.State, Address: report.Address, Type: report.Type, Open: report.Open, OwnPages: report.OwnPages}
+	standing := Standing{State: report.State, Address: s.addressOf(report.Address), Type: report.Type, Open: report.Open, OwnPages: report.OwnPages}
 	if report.Reason != "" {
 		standing.Reason = refusedNotReady.Key
 		var refused *httpapi.RefusedError
@@ -216,4 +216,15 @@ func (o *Origin) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	o.service.decorate(where, "/v/"+view+"/", endpoint.Rooted).ServeHTTP(w, r)
+}
+
+func (s *Service) addressOf(address string) string {
+	if s.Apart() || address == "" {
+		return address
+	}
+	parsed, err := url.Parse(address)
+	if err != nil {
+		return ""
+	}
+	return parsed.EscapedPath()
 }

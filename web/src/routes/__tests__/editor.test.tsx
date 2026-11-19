@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 
@@ -279,8 +279,12 @@ describe("undo", () => {
     const sent: unknown[] = [];
     vi.stubGlobal("fetch", living(sent));
     renderEditor();
-    await fill(await screen.findByLabelText("Page title"), "!");
-    await fill(screen.getByLabelText("Introduction"), "!");
+    const title = (await screen.findByLabelText("Page title")) as HTMLInputElement;
+    const intro = screen.getByLabelText("Introduction") as HTMLInputElement;
+    act(() => {
+      fireEvent.change(title, { target: { value: title.value + "!" } });
+      fireEvent.change(intro, { target: { value: intro.value + "!" } });
+    });
     await saved(sent, 1);
     expect(await screen.findByRole("button", { name: "Undo Page title, Introduction" })).toBeEnabled();
   });

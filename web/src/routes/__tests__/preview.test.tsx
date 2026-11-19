@@ -221,3 +221,11 @@ describe("a preview with pages of its own", () => {
     expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "/preview/technative/korenaar/");
   });
 });
+
+describe("a preview on the app's own address", () => {
+  it("is framed by its path, so the app's session goes with it", async () => {
+    vi.stubGlobal("fetch", server([{ body: { state: "warm", address: "/preview/technative/korenaar/p/site/", type: "web", open: "/", ownPages: true } }]));
+    render(<Preview organisation="technative" project="korenaar" />);
+    expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "/preview/technative/korenaar/p/site/");
+  });
+});

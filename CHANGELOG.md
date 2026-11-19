@@ -58,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The preview's live reload passes through the app again, and event streams
   are flushed as they are written.
 - Publishing the built site no longer fails when its settings name no author.
+- The preview shows when the app is reached by another name than its base URL.
 - A Quarto preview reloads by itself when its sources change.
 - After an answer replays waiting work, every person's copy shows the answered
   version, instead of keeping the old one for good.

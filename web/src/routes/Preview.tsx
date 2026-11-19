@@ -154,7 +154,7 @@ function baseOf(address: string | undefined, own: string) {
   if (!address) return own;
   try {
     const parsed = new URL(address, window.location.href);
-    if (parsed.origin === window.location.origin) return own;
+    if (parsed.origin === window.location.origin) return parsed.pathname.endsWith("/") ? parsed.pathname : parsed.pathname + "/";
     return parsed.href.endsWith("/") ? parsed.href : parsed.href + "/";
   } catch {
     return own;

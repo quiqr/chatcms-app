@@ -168,4 +168,4 @@ export function install(win: Window, app: string, where: () => string = () => wi
 const tag = typeof document !== "undefined"
   ? document.querySelector<HTMLScriptElement>('script[data-app][src$="__chatcms/select.js"]')
   : null;
-if (tag?.dataset.app && window.parent !== window) install(window, tag.dataset.app);
+if (tag && window.parent !== window) install(window, tag.dataset.app || window.location.origin);

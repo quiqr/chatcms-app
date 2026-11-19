@@ -33,6 +33,11 @@ func decorated(t *testing.T, site http.HandlerFunc) (http.Handler, *[]http.Heade
 
 func decoratedAs(t *testing.T, rooted bool, site http.HandlerFunc) (http.Handler, *[]http.Header) {
 	t.Helper()
+	return decoratedWith(t, rooted, true, site)
+}
+
+func decoratedWith(t *testing.T, rooted, apart bool, site http.HandlerFunc) (http.Handler, *[]http.Header) {
+	t.Helper()
 	var asked []http.Header
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		asked = append(asked, r.Header.Clone())
@@ -45,6 +50,9 @@ func decoratedAs(t *testing.T, rooted bool, site http.HandlerFunc) (http.Handler
 	service, err := preview.NewService(sources{organisation: "o"}, idle{}, "https://app.example/")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if apart {
+		service.ServeFrom("https://preview.example")
 	}
 	service.ServeAssets(fstest.MapFS{
 		"select.js":          {Data: []byte("console.log('select')")},
@@ -152,5 +160,18 @@ func TestAPreviewToldItsAddressKeepsThePrefix(t *testing.T) {
 	ask(origin, "/v/k/posts/one/")
 	if asked != "/v/k/posts/one/" {
 		t.Errorf("the preview was asked %q", asked)
+	}
+}
+
+func TestOnTheAppsOwnAddressTheScriptAnswersItsOwnPage(t *testing.T) {
+	origin, _ := decoratedWith(t, false, false, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		io.WriteString(w, "<body>x</body>")
+	})
+	if body := ask(origin, "/v/k/").Body.String(); !strings.Contains(body, `data-app=""`) {
+		t.Errorf("page = %s", body)
+	}
+	if body := ask(origin, "/v/k/__chatcms/pdf/").Body.String(); !strings.Contains(body, `<meta name="chatcms-app" content="">`) {
+		t.Errorf("viewer = %s", body)
 	}
 }

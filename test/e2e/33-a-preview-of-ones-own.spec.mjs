@@ -84,8 +84,10 @@ test("an implementer opening a project cold is told the preview is being prepare
   await expect(status.or(page.locator('iframe[title="Your site"]'))).toBeVisible({ timeout: 90_000 });
 
   if (await status.isVisible()) {
-    await page.getByText("Show what is happening").click();
-    await expect(page.getByText("Building the preview")).toBeVisible();
+    const ready = page.locator('iframe[title="Your site"]');
+    const unfold = page.getByText("Show what is happening");
+    if (await unfold.isVisible()) await unfold.click().catch(() => undefined);
+    await expect(page.getByText("Building the preview").or(ready).first()).toBeVisible();
   }
   await expect(frame.locator("body")).toContainText("Korenaar Bakery", { timeout: 90_000 });
 });

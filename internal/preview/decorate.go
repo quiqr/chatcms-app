@@ -23,6 +23,9 @@ func (s *Service) ServeAssets(assets fs.FS) {
 }
 
 func (s *Service) appOrigin() string {
+	if !s.Apart() {
+		return ""
+	}
 	parsed, err := url.Parse(s.baseURL)
 	if err != nil || parsed.Host == "" {
 		return ""
