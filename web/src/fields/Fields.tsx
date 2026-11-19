@@ -218,7 +218,7 @@ function ListOfValues({ control, onChange }: { control: Control; onChange: Chang
           </li>
         ))}
       </ul>
-      <Button variant="ghost" onClick={() => write([...items, ""])} className="w-fit">
+      <Button type="button" variant="ghost" onClick={() => write([...items, ""])} className="w-fit">
         <Plus aria-hidden="true" className="size-4" />
         {say("fields.add")} {control.title.toLowerCase()}
       </Button>
@@ -287,7 +287,7 @@ function ListOfItems({ control, onChange }: { control: Control; onChange: Change
           </li>
         ))}
       </ul>
-      <Button variant="ghost" onClick={() => write([...items, {}])} className="w-fit">
+      <Button type="button" variant="ghost" onClick={() => write([...items, {}])} className="w-fit">
         <Plus aria-hidden="true" className="size-4" />
         {say("fields.add")} {control.title.toLowerCase()}
       </Button>
@@ -324,9 +324,9 @@ function Group({ control, onChange }: { control: Control; onChange: Change }) {
   );
 }
 
-function Picture({ control, onChange }: { control: Control; onChange: Change }) {
+function Picture({ control, onChange, picking: given }: { control: Control; onChange: Change; picking?: Picking }) {
   const held = asText(control.value);
-  const picking = fieldContext.picking;
+  const picking = given ?? fieldContext.picking;
 
   return (
     <Label control={control}>
@@ -348,12 +348,12 @@ function Picture({ control, onChange }: { control: Control; onChange: Change }) 
           className="h-11 min-w-0 flex-1 rounded-md border border-input bg-card px-3 text-base sm:text-[15px]"
         />
         {picking && (
-          <Button variant="ghost" onClick={() => picking((path) => onChange(control.path, path))}>
+          <Button type="button" variant="ghost" onClick={() => picking((path) => onChange(control.path, path))}>
             {held === "" ? say("common.choose-a-picture") : say("fields.replace")}
           </Button>
         )}
         {held !== "" && (
-          <Button variant="ghost" onClick={() => onChange(control.path, null)}>
+          <Button type="button" variant="ghost" onClick={() => onChange(control.path, null)}>
             {say("fields.remove")}
           </Button>
         )}
@@ -392,7 +392,7 @@ function Unknown({ control, onChange }: { control: Control; onChange: Change }) 
   );
 }
 
-export function Draw({ control, onChange }: { control: Control; onChange: Change }) {
+export function Draw({ control, onChange, picking }: { control: Control; onChange: Change; picking?: Picking }) {
   if (control.unknown) {
     return <Unknown control={control} onChange={onChange} />;
   }
@@ -421,7 +421,7 @@ export function Draw({ control, onChange }: { control: Control; onChange: Change
       return <Colour control={control} onChange={onChange} />;
     case "image-select":
     case "bundle-image-thumbnail":
-      return <Picture control={control} onChange={onChange} />;
+      return <Picture control={control} onChange={onChange} picking={picking} />;
     case "readonly":
     case "uniq":
       return <ReadOnly control={control} />;

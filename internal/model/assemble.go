@@ -20,7 +20,7 @@ const (
 	filePrefix    = "file://"
 )
 
-var listKeys = []string{"collections", "singles", "dynamics", "menu"}
+var listKeys = []string{"collections", "singles", "dynamics", "menu", "shortcodes"}
 
 // Assembly is the generic tree of a site's model together with where it came
 // from and anything worth telling the implementer.
@@ -167,6 +167,7 @@ func (a *Assembly) appendSubIncludes(fsys fs.FS) error {
 		{includesDir + "/singles", "singles"},
 		{includesDir + "/collections", "collections"},
 		{includesDir + "/menus", "menu"},
+		{includesDir + "/shortcodes", "shortcodes"},
 	}
 
 	for _, sub := range subs {
@@ -187,7 +188,7 @@ func (a *Assembly) appendSubIncludes(fsys fs.FS) error {
 }
 
 func (a *Assembly) mergePartials(fsys fs.FS) error {
-	for _, key := range []string{"collections", "singles", "dynamics"} {
+	for _, key := range []string{"collections", "singles", "dynamics", "shortcodes"} {
 		list, ok := a.Tree[key].([]any)
 		if !ok {
 			continue

@@ -1,0 +1,6 @@
+key: icon
+title: Icon
+fields:
+  - key: name
+    type: string
+    position: 0

@@ -175,6 +175,12 @@ export const en = {
   // body-editor
   "body-editor.add": "Add",
   "body-editor.bold": "Bold",
+  "body-editor.cancel": "Cancel",
+  "body-editor.done": "Done",
+  "body-editor.edit-shortcode": "Edit {title}",
+  "body-editor.insert": "Insert",
+  "body-editor.back-to-the-form": "Back to the form",
+  "body-editor.between": "Text inside",
   "body-editor.formatted": "Formatted",
   "body-editor.heading": "Heading",
   "body-editor.image": "Picture",

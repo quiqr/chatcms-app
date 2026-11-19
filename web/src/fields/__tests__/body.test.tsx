@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
+import type { ShortcodeDeclaration } from "../../lib/tenancy";
 import { BodyEditor } from "../BodyEditor";
 
 vi.mock("../markdown/keep", async (original) => {
@@ -29,5 +31,63 @@ describe("the page text", () => {
     expect(screen.getByRole("textbox", { name: "Page text" })).toHaveValue("Please refuse me.\n");
     expect(screen.queryByRole("radio", { name: "Formatted" })).toBeNull();
     expect(screen.queryByRole("toolbar", { name: "Text formatting" })).toBeNull();
+  });
+});
+
+const figure: ShortcodeDeclaration = {
+  key: "figure",
+  title: "Picture",
+  fields: [
+    { path: "src", type: "string", title: "Address" },
+    { path: "caption", type: "string", title: "Caption" },
+  ],
+};
+
+describe("a declared shortcode", () => {
+  beforeAll(async () => {
+    await import("../markdown/MarkdownEditor");
+  }, 30_000);
+
+  const source = 'Before.\n\n{{< figure src="/a.jpg" class="wide" caption="Our loaf" >}}\n';
+
+  it("opens its form, and Done writes back only what changed", async () => {
+    const changed = vi.fn();
+    const user = userEvent.setup();
+    render(<BodyEditor value={source} onChange={changed} dialect="hugo" shortcodes={[figure]} />);
+    await user.click(await screen.findByRole("button", { name: "Edit Picture" }));
+    const caption = screen.getByRole("textbox", { name: "Caption" });
+    expect(caption).toHaveValue("Our loaf");
+    await user.clear(caption);
+    await user.type(caption, "Fresh loaf");
+    await user.click(screen.getByRole("button", { name: "Done" }));
+    expect(changed).toHaveBeenLastCalledWith('Before.\n\n{{< figure src="/a.jpg" class="wide" caption="Fresh loaf" >}}\n');
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("changes nothing on Cancel", async () => {
+    const changed = vi.fn();
+    const user = userEvent.setup();
+    render(<BodyEditor value={source} onChange={changed} dialect="hugo" shortcodes={[figure]} />);
+    await user.click(await screen.findByRole("button", { name: "Edit Picture" }));
+    await user.type(screen.getByRole("textbox", { name: "Caption" }), "!");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(changed).not.toHaveBeenCalled();
+  });
+
+  it("is inserted from the toolbar, and the menu is there only with declarations", async () => {
+    const changed = vi.fn();
+    const user = userEvent.setup();
+    const { unmount } = render(<BodyEditor value={"First.\n"} onChange={changed} dialect="hugo" shortcodes={[figure]} />);
+    await screen.findByRole("textbox", { name: "Page text" });
+    await user.click(screen.getByRole("button", { name: "Insert" }));
+    await user.click(screen.getByRole("menuitem", { name: "Picture" }));
+    await user.type(screen.getByRole("textbox", { name: "Address" }), "/b.jpg");
+    await user.click(screen.getByRole("button", { name: "Done" }));
+    expect(changed).toHaveBeenLastCalledWith('First.\n\n{{< figure src="/b.jpg" >}}\n');
+    unmount();
+
+    render(<BodyEditor value={"First.\n"} onChange={() => {}} dialect="hugo" shortcodes={[]} />);
+    await screen.findByRole("textbox", { name: "Page text" });
+    expect(screen.queryByRole("button", { name: "Insert" })).toBeNull();
   });
 });

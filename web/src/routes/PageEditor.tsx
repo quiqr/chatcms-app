@@ -4,7 +4,7 @@ import { useParams } from "react-router";
 import { Button } from "../components/ui/button";
 import { BodyEditor } from "../fields/BodyEditor";
 import { Draw, withPicking } from "../fields/Fields";
-import { MediaPage } from "./MediaPage";
+import { MediaPage, pictureAddress } from "./MediaPage";
 import { readPage, savePage, type Control, type Page } from "../lib/tenancy";
 import { say } from "../lib/say";
 import { whatWentWrong } from "../lib/api";
@@ -323,7 +323,7 @@ export function PageEditor({
         <MediaPage
           picking
           onUse={(image) => {
-            choosing("/" + image.path.replace(/^static\//, ""));
+            choosing(pictureAddress(image));
             setChoosing(null);
           }}
         />
@@ -378,7 +378,7 @@ export function PageEditor({
         ))}
 
       {loaded.hasBody ? (
-        <BodyEditor value={loaded.body} onChange={changeBody} />
+        <BodyEditor value={loaded.body} onChange={changeBody} dialect={loaded.dialect} shortcodes={loaded.shortcodes} />
       ) : (
         loaded.body.trim() !== "" && (
           <div className="flex flex-col gap-1.5">

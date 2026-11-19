@@ -102,6 +102,10 @@ function Details({
   );
 }
 
+export function pictureAddress(image: { path: string }) {
+  return "/" + image.path.replace(/^static\//, "");
+}
+
 export function MediaPage({
   picking = false,
   onUse,

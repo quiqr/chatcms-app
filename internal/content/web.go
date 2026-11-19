@@ -90,13 +90,32 @@ func noModelIsRefusal(err error) error {
 
 func pageView(editable Editable) httpapi.PageView {
 	return httpapi.PageView{
-		Key:     editable.Key,
-		Title:   editable.Title,
-		Section: editable.Section,
-		Fields:  controlViews(editable.Controls),
-		Body:    editable.Body,
-		HasBody: editable.HasBody,
+		Key:        editable.Key,
+		Title:      editable.Title,
+		Section:    editable.Section,
+		Fields:     controlViews(editable.Controls),
+		Body:       editable.Body,
+		HasBody:    editable.HasBody,
+		Dialect:    editable.Dialect,
+		Shortcodes: shortcodeViews(editable.Shortcodes),
 	}
+}
+
+func shortcodeViews(shapes []ShortcodeShape) []httpapi.ShortcodeView {
+	if len(shapes) == 0 {
+		return nil
+	}
+	views := make([]httpapi.ShortcodeView, 0, len(shapes))
+	for _, shape := range shapes {
+		views = append(views, httpapi.ShortcodeView{
+			Key:       shape.Key,
+			Title:     shape.Title,
+			Inner:     shape.Inner,
+			Fields:    controlViews(shape.Controls),
+			Positions: shape.Positions,
+		})
+	}
+	return views
 }
 
 func controlViews(controls []Control) []httpapi.ControlView {

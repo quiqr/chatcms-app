@@ -2,18 +2,33 @@ package model
 
 // Model is a site's assembled Quiqr model.
 type Model struct {
-	SSGType     string         `json:"ssgType"`
-	SSGVersion  string         `json:"ssgVersion,omitempty"`
-	Singles     []Single       `json:"singles,omitempty"`
-	Collections []Collection   `json:"collections,omitempty"`
-	Dynamics    []any          `json:"dynamics,omitempty"`
-	Menu        []MenuSection  `json:"menu,omitempty"`
-	Build       []NamedConfig  `json:"build,omitempty"`
-	Serve       []NamedConfig  `json:"serve,omitempty"`
-	Extra       map[string]any `json:"extra,omitempty"`
+	SSGType          string         `json:"ssgType"`
+	SSGVersion       string         `json:"ssgVersion,omitempty"`
+	Singles          []Single       `json:"singles,omitempty"`
+	Collections      []Collection   `json:"collections,omitempty"`
+	Dynamics         []any          `json:"dynamics,omitempty"`
+	Menu             []MenuSection  `json:"menu,omitempty"`
+	Shortcodes       []Shortcode    `json:"shortcodes,omitempty"`
+	ShortcodeDialect string         `json:"shortcodeDialect,omitempty"`
+	Build            []NamedConfig  `json:"build,omitempty"`
+	Serve            []NamedConfig  `json:"serve,omitempty"`
+	Extra            map[string]any `json:"extra,omitempty"`
 
 	BaseFile string    `json:"baseFile"`
 	Warnings []Warning `json:"warnings,omitempty"`
+}
+
+type Shortcode struct {
+	Key    string           `json:"key"`
+	Title  string           `json:"title,omitempty"`
+	Inner  string           `json:"inner,omitempty"`
+	Fields []ShortcodeField `json:"fields,omitempty"`
+	Extra  map[string]any   `json:"extra,omitempty"`
+}
+
+type ShortcodeField struct {
+	Field
+	Position *int `json:"position,omitempty"`
 }
 
 type NamedConfig struct {

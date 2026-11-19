@@ -1,0 +1,11 @@
+key: notice
+title: Notice
+inner: markdown
+fields:
+  - key: type
+    type: select
+    position: 0
+    options:
+      - info
+      - warning
+      - tip

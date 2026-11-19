@@ -178,6 +178,12 @@ export const nl: Strings = {
   // body-editor
   "body-editor.add": "Toevoegen",
   "body-editor.bold": "Vet",
+  "body-editor.cancel": "Annuleren",
+  "body-editor.done": "Klaar",
+  "body-editor.edit-shortcode": "{title} bewerken",
+  "body-editor.insert": "Invoegen",
+  "body-editor.back-to-the-form": "Terug naar het formulier",
+  "body-editor.between": "Tekst erin",
   "body-editor.formatted": "Opgemaakt",
   "body-editor.heading": "Kop",
   "body-editor.image": "Afbeelding",

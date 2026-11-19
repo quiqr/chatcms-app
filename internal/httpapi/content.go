@@ -22,7 +22,19 @@ type PageView struct {
 	// HasBody says the page's own text can be edited. Where it cannot, the
 	// text is still shown, because leaving it out would make a page look
 	// emptier than it is.
-	HasBody bool `json:"hasBody"`
+	HasBody    bool            `json:"hasBody"`
+	Dialect    string          `json:"dialect,omitempty"`
+	Shortcodes []ShortcodeView `json:"shortcodes,omitempty"`
+}
+
+// ShortcodeView is a shortcode the model declares: the form it opens, and
+// which of its fields are positional parameters.
+type ShortcodeView struct {
+	Key       string         `json:"key"`
+	Title     string         `json:"title"`
+	Inner     string         `json:"inner,omitempty"`
+	Fields    []ControlView  `json:"fields"`
+	Positions map[string]int `json:"positions,omitempty"`
 }
 
 // ControlView is one thing a person can change.

@@ -6,7 +6,8 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { TextSelection } from "@milkdown/kit/prose/state";
 
-import { format, openMarkdown } from "../MarkdownEditor";
+import { format, insertShortcode, openMarkdown } from "../MarkdownEditor";
+import type { ShortcodeDeclaration, ShortcodeEdit, ShortcodeOptions } from "../shortcodes";
 
 const fixtures = process.env.CHATCMS_MARKDOWN_FIXTURES ?? join(__dirname, "../../../../../test/fixtures");
 
@@ -29,11 +30,11 @@ afterEach(async () => {
   while (open.length > 0) await open.pop()!.destroy();
 });
 
-async function opened(source: string) {
+async function opened(source: string, options: ShortcodeOptions = { dialect: "hugo", declarations: () => [] }) {
   const edits: string[] = [];
   const root = document.createElement("div");
   document.body.append(root);
-  const made = await openMarkdown(root, source, "Page text", (next) => edits.push(next));
+  const made = await openMarkdown(root, source, "Page text", (next) => edits.push(next), options);
   if (!made) throw new Error("the text did not line up");
   open.push(made.editor);
   const act = (change: (view: ReturnType<typeof viewOf>) => void) => made.editor.action((ctx) => change(ctx.get(editorViewCtx)));
@@ -176,5 +177,100 @@ describe("the toolbar", () => {
     const { made, edits } = await opened("Title\n\nBody text.\n");
     format(made.editor, { kind: "heading" });
     expect(edits.at(-1)).toBe("## Title\n\nBody text.\n");
+  });
+});
+
+describe("the dialect", () => {
+  it("locks Quarto's shortcodes, with a link inside, and writes them back as they were", async () => {
+    const source = 'Watch {{< video https://example.com/a.mp4 >}} now.\n\n{{% not a quarto shortcode %}}\n';
+    const { doc, act, edits } = await opened(source, { dialect: "quarto", declarations: () => [] });
+    const names: string[] = [];
+    doc().descendants((node) => {
+      if (node.type.name.startsWith("shortcode")) names.push(node.attrs.name as string);
+    });
+    expect(names).toEqual(["video"]);
+    act((view) => view.dispatch(view.state.tr.insertText("Do ", 1)));
+    expect(edits.at(-1)).toBe('Do Watch {{< video https://example.com/a.mp4 >}} now.\n\n{{% not a quarto shortcode %}}\n');
+  });
+
+  it("knows no shortcodes where the site has no dialect", async () => {
+    const { doc } = await opened("Watch {{< video a.mp4 >}} now.\n", { declarations: () => [] });
+    let found = false;
+    doc().descendants((node) => {
+      if (node.type.name.startsWith("shortcode")) found = true;
+    });
+    expect(found).toBe(false);
+  });
+
+  it("keeps a Hugo shortcode with a link inside whole", async () => {
+    const source = 'See {{< ref "https://example.com/x" >}} and {{< icon bread >}}.\n';
+    const { act, edits } = await opened(source);
+    act((view) => view.dispatch(view.state.tr.insertText("Do ", 1)));
+    expect(edits.at(-1)).toBe('Do See {{< ref "https://example.com/x" >}} and {{< icon bread >}}.\n');
+  });
+});
+
+const figure: ShortcodeDeclaration = {
+  key: "figure",
+  title: "Picture",
+  fields: [
+    { path: "src", type: "image-select", title: "Picture" },
+    { path: "caption", type: "string", title: "Caption" },
+  ],
+};
+const notice: ShortcodeDeclaration = {
+  key: "notice",
+  title: "Notice",
+  inner: "markdown",
+  fields: [{ path: "type", type: "select", title: "Type", options: [{ value: "info", label: "Information" }, { value: "warning", label: "Warning" }] }],
+  positions: { type: 0 },
+};
+
+describe("declared shortcodes", () => {
+  function declaring(asked: ShortcodeEdit[]): ShortcodeOptions {
+    return { dialect: "hugo", declarations: () => [figure, notice], edit: (request) => asked.push(request) };
+  }
+
+  it("show their title and first text, and open their form", async () => {
+    const asked: ShortcodeEdit[] = [];
+    const { root } = await opened('{{< figure src="/a.jpg" class="wide" caption="Our loaf" >}}\n', declaring(asked));
+    const button = root.querySelector<HTMLButtonElement>("[data-shortcode='figure'] button")!;
+    expect(button.getAttribute("aria-label")).toBe("Edit Picture");
+    expect(button.textContent).toBe("PictureOur loaf");
+    expect(button.querySelector("img")?.getAttribute("src")).toBe("/a.jpg");
+    button.click();
+    expect(asked[0]).toMatchObject({ values: { src: "/a.jpg", caption: "Our loaf" }, inner: "" });
+  });
+
+  it("write back only the value that changed, as one edit", async () => {
+    const asked: ShortcodeEdit[] = [];
+    const source = 'Before.\n\n{{< figure src="/a.jpg" class="wide" caption="Our loaf" >}}\n\nAfter.\n';
+    const { root, edits } = await opened(source, declaring(asked));
+    root.querySelector<HTMLButtonElement>("[data-shortcode='figure'] button")!.click();
+    asked[0]!.done({ src: "/a.jpg", caption: "Fresh loaf" }, "");
+    expect(edits).toEqual(['Before.\n\n{{< figure src="/a.jpg" class="wide" caption="Fresh loaf" >}}\n\nAfter.\n']);
+    expect(root.querySelector("[data-shortcode='figure'] button")?.textContent).toBe("PictureFresh loaf");
+  });
+
+  it("change a positional value and the text between", async () => {
+    const asked: ShortcodeEdit[] = [];
+    const { root, edits } = await opened("{{% notice info %}}\nOld.\n{{% /notice %}}\n", declaring(asked));
+    root.querySelector<HTMLButtonElement>("[data-shortcode='notice'] button")!.click();
+    expect(asked[0]).toMatchObject({ values: { type: "info" }, inner: "Old." });
+    expect(root.querySelector("[data-shortcode='notice'] button")?.textContent).toBe("NoticeInformation");
+    asked[0]!.done({ type: "warning" }, "New **text**.");
+    expect(edits.at(-1)).toBe("{{% notice warning %}}\nNew **text**.\n{{% /notice %}}\n");
+  });
+
+  it("stay locked when the model does not declare them", async () => {
+    const { root } = await opened("{{< gallery dir=/a >}}\n", declaring([]));
+    expect(root.querySelector("[data-shortcode='gallery'] button")).toBeNull();
+    expect(root.querySelector("[data-shortcode='gallery']")?.textContent).toBe("gallery");
+  });
+
+  it("are inserted after the block the cursor is in", async () => {
+    const { made, edits } = await opened("First.\n\nSecond.\n", declaring([]));
+    insertShortcode(made.editor, figure, { src: "/b.jpg", caption: "New" }, "");
+    expect(edits.at(-1)).toBe('First.\n\n{{< figure src="/b.jpg" caption="New" >}}\n\nSecond.\n');
   });
 });

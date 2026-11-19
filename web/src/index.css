@@ -368,6 +368,63 @@
     padding: 0 0.35em;
   }
 
+  .markdown-text .shortcode-block[data-declared] {
+    padding: 0;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--foreground);
+    border-style: solid;
+    background: var(--card);
+  }
+
+  .markdown-text .shortcode-edit {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.4em 0.75em;
+    text-align: left;
+    cursor: pointer;
+    border-radius: inherit;
+  }
+
+  .markdown-text .shortcode-edit:hover {
+    background: var(--muted);
+  }
+
+  .markdown-text .shortcode-edit:focus-visible {
+    outline: 3px solid var(--primary-soft);
+  }
+
+  .markdown-text .shortcode-edit img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .markdown-text .shortcode-edit strong {
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .markdown-text .shortcode-edit span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted-foreground);
+  }
+
+  .markdown-text .shortcode-inline .shortcode-edit {
+    display: inline-flex;
+    width: auto;
+    min-height: 0;
+    padding: 0 0.35em;
+  }
+
   .markdown-text .ProseMirror-selectednode {
     outline: 2px solid var(--primary);
   }

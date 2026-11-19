@@ -56,6 +56,18 @@ func Decode(assembly *Assembly) (*Model, error) {
 		m.Menu = append(m.Menu, section)
 	}
 
+	for _, entry := range root.mapList("shortcodes") {
+		shortcode, err := decodeShortcode(assembly.BaseFile, len(m.Shortcodes), entry)
+		if err != nil {
+			return nil, err
+		}
+		m.Shortcodes = append(m.Shortcodes, shortcode)
+	}
+	m.ShortcodeDialect = root.str("shortcodeDialect")
+	if m.ShortcodeDialect != "" && !IsShortcodeDialect(m.ShortcodeDialect) {
+		return nil, atf(assembly.BaseFile, "shortcodeDialect", "%q is not a shortcode dialect this version knows", m.ShortcodeDialect)
+	}
+
 	for index, entry := range root.mapList("build") {
 		m.Build = append(m.Build, decodeNamedConfig(assembly.BaseFile, "build", index, entry))
 	}
@@ -81,6 +93,14 @@ func rejectDuplicateKeys(file string, m *Model) error {
 			return atf(file, "singles", "two singles share the key %q", single.Key)
 		}
 		seen[single.Key] = true
+	}
+
+	seen = map[string]bool{}
+	for _, shortcode := range m.Shortcodes {
+		if seen[shortcode.Key] {
+			return atf(file, "shortcodes", "two shortcodes share the key %q", shortcode.Key)
+		}
+		seen[shortcode.Key] = true
 	}
 
 	seen = map[string]bool{}

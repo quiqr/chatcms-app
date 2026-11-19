@@ -20,10 +20,12 @@ import {
 import { gfm } from "@milkdown/kit/preset/gfm";
 import type { Node } from "@milkdown/kit/prose/model";
 import { Plugin, PluginKey } from "@milkdown/kit/prose/state";
+import type { NodeViewConstructor } from "@milkdown/kit/prose/view";
 import { $prose } from "@milkdown/kit/utils";
 import { useEffect, useImperativeHandle, useRef, type Ref } from "react";
 
-import { hugo } from "./hugo";
+import { hugo, quarto } from "./hugo";
+import { newShortcode, shortcodeView, type ShortcodeDeclaration, type ShortcodeOptions } from "./shortcodes";
 import { blocksOf, keepSource, linesUp, type Range } from "./keep";
 
 export type Formatting =
@@ -34,7 +36,10 @@ export type Formatting =
   | { kind: "link"; href: string }
   | { kind: "image"; src: string; alt: string };
 
-export type MarkdownHandle = { format: (what: Formatting) => void };
+export type MarkdownHandle = {
+  format: (what: Formatting) => void;
+  insert: (declaration: ShortcodeDeclaration, values: Record<string, string>, inner: string) => void;
+};
 
 type Opened = { editor: Editor; source: string; blocks: Range[]; first: Node };
 
@@ -44,6 +49,8 @@ export type MarkdownEditorProps = {
   onChange: (value: string) => void;
   onCannot: () => void;
   handle?: Ref<MarkdownHandle>;
+  dialect?: string;
+  shortcodes?: ShortcodeOptions;
 };
 
 export async function openMarkdown(
@@ -51,9 +58,11 @@ export async function openMarkdown(
   source: string,
   label: string,
   edited: (next: string) => void,
+  shortcodes: ShortcodeOptions = { declarations: () => [] },
 ): Promise<Opened | null> {
   let opened: Opened | null = null;
-  const editor = await Editor.make()
+  const speaksHugo = shortcodes.dialect === "hugo";
+  const made = Editor.make()
     .config((ctx) => {
       ctx.set(rootCtx, root);
       ctx.set(defaultValueCtx, source);
@@ -65,11 +74,16 @@ export async function openMarkdown(
           "aria-label": label,
           class: "markdown-text",
         },
+        nodeViews: (speaksHugo
+          ? { shortcode_block: shortcodeView("div", shortcodes), shortcode_inline: shortcodeView("span", shortcodes) }
+          : {}) as Record<string, NodeViewConstructor>,
       }));
     })
     .use(commonmark)
-    .use(gfm)
-    .use(hugo)
+    .use(gfm);
+  if (speaksHugo) made.use(hugo);
+  if (shortcodes.dialect === "quarto") made.use(quarto);
+  const editor = await made
     .use(
       $prose(
         (ctx) =>
@@ -131,23 +145,42 @@ export function format(editor: Editor, what: Formatting) {
   });
 }
 
-export default function MarkdownEditor({ value, label, onChange, onCannot, handle }: MarkdownEditorProps) {
+export function insertShortcode(editor: Editor, declaration: ShortcodeDeclaration, values: Record<string, string>, inner: string) {
+  editor.action((ctx) => {
+    const view = ctx.get(editorViewCtx);
+    const type = view.state.schema.nodes.shortcode_block;
+    if (!type) return;
+    const node = type.create({ raw: newShortcode(declaration, values, inner), name: declaration.key });
+    const { $from } = view.state.selection;
+    const at = $from.depth > 0 ? $from.after(1) : $from.pos;
+    view.dispatch(view.state.tr.insert(at, node));
+    view.focus();
+  });
+}
+
+export default function MarkdownEditor({ value, label, onChange, onCannot, handle, dialect, shortcodes }: MarkdownEditorProps) {
   const root = useRef<HTMLDivElement>(null);
   const current = useRef<Opened | null>(null);
   const sent = useRef<string | null>(null);
   const changed = useRef(onChange);
   const cannot = useRef(onCannot);
+  const options = useRef(shortcodes);
+  const spoken = useRef<string | undefined>(undefined);
   changed.current = onChange;
   cannot.current = onCannot;
+  options.current = shortcodes;
 
   useImperativeHandle(handle, () => ({
     format: (what) => {
       if (current.current) format(current.current.editor, what);
     },
+    insert: (declaration, values, inner) => {
+      if (current.current) insertShortcode(current.current.editor, declaration, values, inner);
+    },
   }));
 
   useEffect(() => {
-    if (value === sent.current) return;
+    if (value === sent.current && dialect === spoken.current) return;
     const holder = root.current;
     if (!holder) return;
     let gone = false;
@@ -157,11 +190,21 @@ export default function MarkdownEditor({ value, label, onChange, onCannot, handl
       await previous?.editor.destroy();
       if (gone) return;
       holder.replaceChildren();
-      const opened = await openMarkdown(holder, value, label, (next) => {
-        if (next === sent.current) return;
-        sent.current = next;
-        changed.current(next);
-      });
+      const opened = await openMarkdown(
+        holder,
+        value,
+        label,
+        (next) => {
+          if (next === sent.current) return;
+          sent.current = next;
+          changed.current(next);
+        },
+        {
+          dialect,
+          declarations: () => options.current?.declarations() ?? [],
+          edit: (request) => options.current?.edit?.(request),
+        },
+      );
       if (gone) {
         await opened?.editor.destroy();
         return;
@@ -171,12 +214,13 @@ export default function MarkdownEditor({ value, label, onChange, onCannot, handl
         return;
       }
       sent.current = value;
+      spoken.current = dialect;
       current.current = opened;
     })();
     return () => {
       gone = true;
     };
-  }, [value, label]);
+  }, [value, label, dialect]);
 
   useEffect(
     () => () => {

@@ -1,0 +1,22 @@
+hugover: 0.140.0
+shortcodeDialect: hugo
+singles:
+  - key: home
+    title: Home
+    file: content/_index.md
+    fields:
+      - key: title
+        type: string
+      - key: body
+        type: markdown
+shortcodes:
+  - key: figure
+    title: Picture
+    fields:
+      - key: src
+        type: image-select
+        path: static/images
+      - key: caption
+        type: string
+      - key: alt
+        type: string

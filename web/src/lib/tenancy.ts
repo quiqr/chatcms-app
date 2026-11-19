@@ -304,6 +304,16 @@ export type Page = {
   fields: Control[];
   body: string;
   hasBody: boolean;
+  dialect?: string;
+  shortcodes?: ShortcodeDeclaration[];
+};
+
+export type ShortcodeDeclaration = {
+  key: string;
+  title: string;
+  inner?: string;
+  fields: Control[];
+  positions?: Record<string, number>;
 };
 
 export type Edit = {

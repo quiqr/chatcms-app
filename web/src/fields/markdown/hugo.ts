@@ -9,8 +9,17 @@ type MdNode = {
   position?: { start: Point; end: Point };
 };
 
-const opening = /^\{\{([<%])\s*([\w./-]+)(?:(?!\{\{)[^])*?(?:>|%)\}\}/;
-const anywhere = /\{\{[<%]\s*\/?\s*[\w./-]+(?:(?!\{\{)[^])*?[>%]\}\}/g;
+type Syntax = { opening: RegExp; anywhere: RegExp };
+
+const hugoSyntax: Syntax = {
+  opening: /^\{\{([<%])\s*([\w./-]+)(?:(?!\{\{)[^])*?(?:>|%)\}\}/,
+  anywhere: /\{\{[<%]\s*\/?\s*[\w./-]+(?:(?!\{\{)[^])*?[>%]\}\}/g,
+};
+
+const quartoSyntax: Syntax = {
+  opening: /^\{\{(<)\s*([\w./-]+)(?:(?!\{\{)[^])*?>\}\}/,
+  anywhere: /\{\{<\s*[\w./-]+(?:(?!\{\{)[^])*?>\}\}/g,
+};
 
 function closingFor(name: string, delimiter: string) {
   const d = delimiter === "<" ? "<" : "%";
@@ -28,12 +37,12 @@ export function shortcodeName(raw: string): string {
   return raw.match(/^\{\{[<%]\s*\/?\s*([\w./-]+)/)?.[1] ?? "";
 }
 
-function foldBlocks(children: MdNode[], text: string): MdNode[] {
+function foldBlocks(children: MdNode[], text: string, syntax: Syntax): MdNode[] {
   const out: MdNode[] = [];
   for (let i = 0; i < children.length; i++) {
     const node = children[i]!;
     const own = sourceOf(node, text).trim();
-    const head = own.match(opening);
+    const head = own.match(syntax.opening);
     if ((node.type !== "paragraph" && node.type !== "html") || !head) {
       out.push(node);
       continue;
@@ -80,44 +89,97 @@ function shortcode(first: MdNode, last: MdNode, text: string, name: string): MdN
   };
 }
 
-function splitInline(node: MdNode) {
-  if (!node.children) return;
-  const next: MdNode[] = [];
-  for (const child of node.children) {
-    if (child.type !== "text" || !child.value || !child.value.includes("{{")) {
-      splitInline(child);
-      next.push(child);
-      continue;
-    }
-    let last = 0;
-    for (const found of child.value.matchAll(anywhere)) {
-      const at = found.index ?? 0;
-      if (at > last) next.push({ type: "text", value: child.value.slice(last, at) });
-      next.push({ type: "shortcodeInline", value: found[0], name: shortcodeName(found[0]) });
-      last = at + found[0].length;
-    }
-    if (last < child.value.length) next.push({ type: "text", value: child.value.slice(last) });
-  }
-  node.children = next;
+const inlineTypes = new Set([
+  "text", "emphasis", "strong", "delete", "link", "linkReference", "inlineCode",
+  "html", "break", "image", "imageReference", "footnoteReference",
+]);
+
+function phrasing(node: MdNode) {
+  return node.children !== undefined && node.children.length > 0 && node.children.every((child) => inlineTypes.has(child.type));
 }
 
-function foldEverywhere(node: MdNode, text: string) {
+function startOf(node: MdNode) {
+  return node.position?.start.offset;
+}
+
+function endOf(node: MdNode) {
+  return node.position?.end.offset;
+}
+
+function textPiece(value: string): MdNode {
+  return { type: "text", value };
+}
+
+function splitInline(node: MdNode, text: string, syntax: Syntax) {
   if (!node.children) return;
-  node.children = foldBlocks(node.children, text);
+  if (!phrasing(node)) {
+    for (const child of node.children) if (child.type !== "shortcodeBlock") splitInline(child, text, syntax);
+    return;
+  }
+  const from = startOf(node.children[0]!);
+  const to = endOf(node.children[node.children.length - 1]!);
+  if (from === undefined || to === undefined) return;
+  const source = text.slice(from, to);
+  if (!source.includes("{{")) return;
+
+  let children = node.children;
+  const found = [...source.matchAll(syntax.anywhere)].reverse();
+  for (const match of found) {
+    const start = from + (match.index ?? 0);
+    const end = start + match[0].length;
+    const first = children.findIndex((child) => (endOf(child) ?? 0) > start);
+    let last = -1;
+    for (let k = children.length - 1; k >= 0; k--) {
+      if ((startOf(children[k]!) ?? Infinity) < end) {
+        last = k;
+        break;
+      }
+    }
+    if (first === -1 || last < first) continue;
+    const head = children[first]!;
+    const tail = children[last]!;
+    const headFrom = startOf(head);
+    const tailTo = endOf(tail);
+    if (headFrom === undefined || tailTo === undefined) continue;
+    const before = text.slice(headFrom, start);
+    const after = text.slice(end, tailTo);
+    if (before !== "" && (head.type !== "text" || !head.value?.startsWith(before))) continue;
+    if (after !== "" && (tail.type !== "text" || !tail.value?.endsWith(after))) continue;
+    const pieces: MdNode[] = [];
+    if (before !== "") pieces.push({ ...textPiece(before), position: { start: { offset: headFrom }, end: { offset: start } } });
+    pieces.push({
+      type: "shortcodeInline",
+      value: match[0],
+      name: shortcodeName(match[0]),
+      position: { start: { offset: start }, end: { offset: end } },
+    });
+    if (after !== "") pieces.push({ ...textPiece(after), position: { start: { offset: end }, end: { offset: tailTo } } });
+    children = [...children.slice(0, first), ...pieces, ...children.slice(last + 1)];
+  }
+  node.children = children;
+}
+
+function foldEverywhere(node: MdNode, text: string, syntax: Syntax) {
+  if (!node.children) return;
+  node.children = foldBlocks(node.children, text, syntax);
   for (const child of node.children) {
-    if (child.type !== "shortcodeBlock") foldEverywhere(child, text);
+    if (child.type !== "shortcodeBlock") foldEverywhere(child, text, syntax);
   }
 }
 
-export function hugoShortcodes() {
-  return (tree: MdNode, file: { value?: unknown }) => {
+function shortcodesIn(syntax: Syntax) {
+  return () => (tree: MdNode, file: { value?: unknown }) => {
     const text = String(file.value ?? "");
-    foldEverywhere(tree, text);
-    splitInline(tree);
+    foldEverywhere(tree, text, syntax);
+    splitInline(tree, text, syntax);
   };
 }
 
+export const hugoShortcodes = shortcodesIn(hugoSyntax);
+export const quartoShortcodes = shortcodesIn(quartoSyntax);
+
 export const hugoRemark = $remark("hugoShortcodes", () => hugoShortcodes as never);
+export const quartoRemark = $remark("quartoShortcodes", () => quartoShortcodes as never);
 
 export const shortcodeBlock = $nodeSchema("shortcode_block", () => ({
   group: "block",
@@ -182,3 +244,4 @@ export const shortcodeInline = $nodeSchema("shortcode_inline", () => ({
 }));
 
 export const hugo = [hugoRemark, shortcodeBlock, shortcodeInline].flat();
+export const quarto = [quartoRemark, shortcodeBlock, shortcodeInline].flat();

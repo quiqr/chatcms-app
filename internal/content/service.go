@@ -69,6 +69,10 @@ type Editable struct {
 	// it does not, the text is left exactly as it is: what a site may edit is
 	// the model's decision, not this package's.
 	HasBody bool
+	// Dialect is the shortcode syntax the page's text is read in, empty where
+	// this version has none for the site.
+	Dialect    string
+	Shortcodes []ShortcodeShape
 }
 
 // Read gives a page as a form.
@@ -88,11 +92,11 @@ func (s *Service) Read(ctx context.Context, actor policy.Actor, projectID uuid.U
 		return Editable{}, err
 	}
 
-	return editable(page, form), nil
+	return editable(site, page, form), nil
 }
 
-func editable(page Page, form *forms.Form) Editable {
-	return Editable{
+func editable(site Site, page Page, form *forms.Form) Editable {
+	view := Editable{
 		Key:      page.Key,
 		Title:    page.Title,
 		Section:  page.Section,
@@ -100,6 +104,13 @@ func editable(page Page, form *forms.Form) Editable {
 		Body:     form.Body(),
 		HasBody:  hasBody(form),
 	}
+	if m, err := site.Model(); err == nil {
+		view.Dialect = ShortcodeDialect(m, site.FS())
+		if view.Dialect == "hugo" {
+			view.Shortcodes = ShortcodeShapes(m.Shortcodes)
+		}
+	}
+	return view
 }
 
 // hasBody says the model declares a field for the page's own text. The
@@ -230,7 +241,7 @@ func (s *Service) after(ctx context.Context, site Site, key string) (Editable, e
 	if err != nil {
 		return Editable{}, err
 	}
-	return editable(page, form), nil
+	return editable(site, page, form), nil
 }
 
 // set writes one value, clearing the field when nothing was given rather than

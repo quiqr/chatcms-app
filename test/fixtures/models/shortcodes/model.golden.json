@@ -1,0 +1,105 @@
+{
+  "model": {
+    "ssgType": "hugo",
+    "ssgVersion": "0.140.0",
+    "singles": [
+      {
+        "key": "home",
+        "title": "Home",
+        "file": "content/_index.md",
+        "fields": [
+          {
+            "key": "title",
+            "type": "string",
+            "config": {}
+          },
+          {
+            "key": "body",
+            "type": "markdown"
+          }
+        ]
+      }
+    ],
+    "shortcodes": [
+      {
+        "key": "figure",
+        "title": "Picture",
+        "fields": [
+          {
+            "key": "src",
+            "type": "image-select",
+            "config": {
+              "path": "static/images"
+            }
+          },
+          {
+            "key": "caption",
+            "type": "string",
+            "config": {}
+          },
+          {
+            "key": "alt",
+            "type": "string",
+            "config": {}
+          }
+        ]
+      },
+      {
+        "key": "icon",
+        "title": "Icon",
+        "fields": [
+          {
+            "key": "name",
+            "type": "string",
+            "config": {},
+            "position": 0
+          }
+        ]
+      },
+      {
+        "key": "notice",
+        "title": "Notice",
+        "inner": "markdown",
+        "fields": [
+          {
+            "key": "type",
+            "type": "select",
+            "config": {
+              "options": [
+                {
+                  "value": "info"
+                },
+                {
+                  "value": "warning"
+                },
+                {
+                  "value": "tip"
+                }
+              ]
+            },
+            "position": 0
+          }
+        ]
+      }
+    ],
+    "shortcodeDialect": "hugo",
+    "extra": {
+      "hugover": "0.140.0"
+    },
+    "baseFile": "quiqr/model/base.yaml"
+  },
+  "navigation": {
+    "sections": [
+      {
+        "title": "Pages",
+        "entries": [
+          {
+            "key": "home",
+            "title": "Home",
+            "kind": "page"
+          }
+        ]
+      }
+    ]
+  }
+}
