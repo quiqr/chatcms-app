@@ -1,5 +1,5 @@
 import { ArrowLeft } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { NavLink } from "react-router";
 
 import { ContentPanel } from "../routes/content/ContentPanel";
@@ -8,7 +8,6 @@ import { SitePanel } from "./SitePanel";
 
 import { Button } from "../components/ui/button";
 import { Segmented } from "../components/ui/segmented";
-import { AssistantSlot } from "./ProjectShell";
 import { TopBar } from "./TopBar";
 import { arrange, useEditorRoom } from "./useEditorRoom";
 import { useHere } from "../lib/whoami";
@@ -16,7 +15,7 @@ import { SyncIndicator } from "./SyncIndicator";
 import type { Project } from "../lib/tenancy";
 import { say } from "../lib/say";
 
-export type EditorLayout = "form" | "split" | "preview";
+export type EditorLayout = "form" | "split" | "chat" | "preview";
 
 export type EditorShellProps = {
   project: Project;
@@ -31,8 +30,9 @@ export type EditorShellProps = {
   onLayoutChange: (layout: EditorLayout) => void;
   form: ReactNode;
   preview: ReactNode;
-  assistant?: (close: () => void) => ReactNode;
-  openAssistant?: number;
+  chat?: ReactNode;
+  chatCount?: number;
+  openChat?: number;
 };
 
 export function EditorShell({
@@ -48,20 +48,18 @@ export function EditorShell({
   onLayoutChange,
   form,
   preview,
-  assistant,
-  openAssistant = 0,
+  chat,
+  chatCount = 0,
+  openChat = 0,
 }: EditorShellProps) {
   const { organisation } = useHere();
-  const [talking, setTalking] = useState(false);
   const measured = useEditorRoom();
-  const [opened, setOpened] = useState(false);
+  const changeLayout = useRef(onLayoutChange);
+  changeLayout.current = onLayoutChange;
   useEffect(() => {
-    if (openAssistant > 0) {
-      setOpened(true);
-      setTalking(true);
-    }
-  }, [openAssistant]);
-  const room = { ...arrange(measured.width, layout, talking), ref: measured.ref };
+    if (openChat > 0) changeLayout.current("chat");
+  }, [openChat]);
+  const room = { ...arrange(measured.width, layout), ref: measured.ref };
   return (
     <div data-testid="editor-shell" className="flex h-dvh overflow-hidden">
       <SitePanel project={project} role={project.yourRole} />
@@ -93,19 +91,9 @@ export function EditorShell({
             options={[
               { value: "form", label: "Form" },
               ...(room.splitFits ? [{ value: "split", label: say("editor-shell.side-by-side") }] : []),
+              ...(chat ? [{ value: "chat", label: say("editor-shell.chat-and-preview"), count: room.shown === "chat" ? 0 : chatCount }] : []),
               { value: "preview", label: "Preview" },
             ]}
-          />
-          <AssistantSlot
-            open={talking}
-            onToggle={
-              assistant
-                ? () => {
-                    setOpened(true);
-                    setTalking((now) => !now);
-                  }
-                : undefined
-            }
           />
           <Button asChild count={project.unpublished}>
             <NavLink to={`/o/${organisation}/p/${project.slug}/publish`}>{say("common.publish")}</NavLink>
@@ -113,7 +101,22 @@ export function EditorShell({
         </TopBar>
 
         <main ref={room.ref} data-testid="editor-slots" className="flex min-h-0 min-w-0 flex-1">
-          {room.shown !== "preview" && room.assistant !== "alone" && (
+          {chat && (
+            <aside
+              data-testid="editor-slot-chat"
+              data-room={room.chat}
+              aria-label={say("editor-shell.assistant")}
+              hidden={room.chat === "closed"}
+              className={
+                "min-h-0 border-r border-border bg-card " +
+                (room.chat === "column" ? "w-[400px] shrink-0" : "min-w-0 flex-1 basis-0")
+              }
+            >
+              {chat}
+            </aside>
+          )}
+
+          {(room.shown === "form" || room.shown === "split") && (
             <section
               data-testid="editor-slot-form"
               data-scrolls="form"
@@ -124,28 +127,18 @@ export function EditorShell({
             </section>
           )}
 
-          {room.shown !== "form" && room.assistant !== "alone" && (
+          {room.shown !== "form" && room.chat !== "alone" && (
             <section
               data-testid="editor-slot-preview"
               aria-label={say("editor-shell.preview")}
-              className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col border-l border-border bg-background p-6"
+              className={
+                "flex min-h-0 min-w-0 flex-1 basis-0 flex-col bg-background p-6 " + (room.shown === "split" ? "border-l border-border" : "")
+              }
             >
               {preview}
             </section>
           )}
 
-          <aside
-            data-testid="editor-slot-assistant"
-            data-room={room.assistant}
-            aria-label={say("editor-shell.assistant")}
-            hidden={!talking}
-            className={
-              "min-h-0 border-l border-border bg-card " +
-              (room.assistant === "column" ? "w-[340px] shrink-0" : "min-w-0 flex-1 basis-0")
-            }
-          >
-            {opened && assistant?.(() => setTalking(false))}
-          </aside>
         </main>
       </div>
     </div>

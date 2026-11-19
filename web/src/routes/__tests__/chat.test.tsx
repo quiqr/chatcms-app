@@ -91,7 +91,7 @@ describe("the assistant panel", () => {
 
     FakeSource.last!.say({ type: "change", change: { page: "home", title: "Home page", before: "v1", after: "v2" } });
     expect(await screen.findByText("Changed Home page")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Show" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show changes" })).toBeInTheDocument();
     expect(changed).toHaveBeenCalledTimes(1);
 
     await userEvent.click(screen.getByRole("button", { name: "Undo" }));
@@ -148,6 +148,45 @@ describe("a quote from the preview", () => {
 
     FakeSource.last!.say({ type: "change", change: { page: "posts/one", title: "One", before: "a", after: "b" } });
     expect(onChanged).toHaveBeenCalledWith(quote);
+  });
+
+  it("shows as a card in its context, which marks the place in the preview, and is counted while it runs", async () => {
+    vi.stubGlobal("fetch", server(true));
+    const shown = vi.fn();
+    const running: number[] = [];
+    render(
+      <MemoryRouter>
+        <ChatPanel
+          organisation="technative"
+          project="korenaar"
+          onChanged={() => undefined}
+          quote={quote}
+          onQuoteDropped={() => undefined}
+          onShowPlace={shown}
+          onRunning={(count) => running.push(count)}
+          pageTitle="One"
+        />
+      </MemoryRouter>,
+    );
+    const message = await screen.findByRole("textbox", { name: "Your message" });
+    await waitFor(() => expect(FakeSource.last).not.toBeNull());
+    FakeSource.last!.say({ type: "ready" });
+    await userEvent.type(message, "Make it shorter{Enter}");
+
+    const card = await screen.findByRole("button", { name: "Show in the preview: Fresh bread every morning" });
+    expect(card).toHaveTextContent("Korenaar Fresh bread every morning, baked daily.");
+    expect(card.querySelector("mark")).toHaveTextContent("Fresh bread every morning");
+    expect(screen.getByText("From the preview · One")).toBeInTheDocument();
+    await waitFor(() => expect(running.at(-1)).toBe(1));
+
+    await userEvent.click(card);
+    expect(shown).toHaveBeenCalledWith(expect.objectContaining({ before: "Korenaar ", after: ", baked daily." }));
+
+    FakeSource.last!.say({ type: "change", change: { page: "posts/one", title: "One", before: "a", after: "b" } });
+    FakeSource.last!.say({ type: "done" });
+    await waitFor(() => expect(running.at(-1)).toBe(0));
+    await userEvent.click(screen.getByRole("button", { name: "Show changes" }));
+    expect(shown).toHaveBeenCalledTimes(2);
   });
 
   it("can be left out", async () => {

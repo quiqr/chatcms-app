@@ -25,6 +25,10 @@ export const nl: Strings = {
   "artifacts.none-yet": "Er is nog niets bewaard. Bestanden die een publicatie maakt, zoals een pdf, komen hier.",
   "artifacts.what-these-are": "Bestanden die je publicaties maakten, nieuwste eerst. Elke publicatie bewaart haar eigen.",
   "artifacts.could-not-be-read": "De bestanden konden niet worden opgehaald. Probeer het zo nog eens.",
+  "assistant.ask-or-select": "Vraag een wijziging, of selecteer tekst in de preview",
+  "assistant.from-the-preview": "Uit de preview · {page}",
+  "assistant.show-changes": "Toon wijzigingen",
+  "assistant.show-the-place": "Toon in de preview: {text}",
   "assistant.assistant": "Assistent",
   "assistant.open": "Open de assistent",
   "assistant.close": "Sluit de assistent",
@@ -336,7 +340,8 @@ export const nl: Strings = {
   "editor-shell.how-to-show-this-page": "Hoe deze pagina te tonen",
   "editor-shell.page-fields": "Velden van de pagina",
   "editor-shell.preview": "Voorbeeld",
-  "editor-shell.side-by-side": "Naast elkaar",
+  "editor-shell.chat-and-preview": "Chat + preview",
+  "editor-shell.side-by-side": "Formulier + preview",
 
   // fields
   "fields.add": "Toevoegen",

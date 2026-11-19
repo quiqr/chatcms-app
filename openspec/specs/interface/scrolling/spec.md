@@ -42,10 +42,13 @@ in view, however long the conversation is.
 
 ### Requirement: The editor shows what fits and lets the person choose the rest
 
-The editor SHALL show the form and the preview side by side only where both
-keep their minimum width. Where they do not, it SHALL show one of them, the
-form first, and the choice of form, both or preview SHALL be offered at
-every desktop width. They SHALL NOT be stacked one under the other.
+The editor SHALL offer four views at every desktop width: Form, Form +
+preview, Chat + preview and Preview, and SHALL remember the choice per
+person per project. Form + preview SHALL be offered only where form and
+preview both keep their minimum width; where they do not, the form SHALL be
+shown. Chat + preview SHALL show a chat column of 400 px beside the preview,
+and the chat alone where there is no room for both. Views SHALL NOT be
+stacked one under the other.
 
 #### Scenario: a medium window
 
@@ -58,17 +61,9 @@ every desktop width. They SHALL NOT be stacked one under the other.
 - **WHEN** the window fits both
 - **THEN** form and preview are shown side by side
 
-### Requirement: The assistant takes the form's place when there is no room
+#### Scenario: chat and preview
 
-Where there is no room for the assistant beside the form and the preview, the
-assistant SHALL take the form's place while it is open, so the preview stays
-beside it, and the form SHALL come back when it closes. Where there is not
-even room for the assistant beside the preview, the assistant SHALL show on
-its own.
-
-#### Scenario: opening the assistant on a medium window
-
-- **WHEN** the assistant is opened where it does not fit as a column of its
-  own
-- **THEN** it shows beside the preview, in the form's place, and closing it
-  shows the form again
+- **WHEN** somebody chooses Chat + preview
+- **THEN** the chat shows on the left at 400 px and the preview beside it,
+  without the form
+- **AND** the next page they open in that project opens in Chat + preview

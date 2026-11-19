@@ -1,4 +1,4 @@
-import { Quote, Send, Undo2, X } from "lucide-react";
+import { Check, Eye, Quote, Send, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -17,10 +17,12 @@ import {
 
 const listenWithin = 120_000;
 
+type Asked = PreviewSelection & { page?: string };
+
 type Said = {
   who: "person" | "assistant";
   text: string;
-  quoted?: string;
+  about?: Asked;
   changes: (AssistantChange & { undone?: boolean })[];
   working?: boolean;
   trouble?: string;
@@ -33,6 +35,9 @@ export function ChatPanel({
   onClose,
   quote = null,
   onQuoteDropped,
+  onRunning,
+  onShowPlace,
+  pageTitle,
 }: {
   organisation: string;
   project: string;
@@ -40,6 +45,9 @@ export function ChatPanel({
   onClose?: () => void;
   quote?: PreviewSelection | null;
   onQuoteDropped?: () => void;
+  onRunning?: (count: number) => void;
+  onShowPlace?: (about: PreviewSelection) => void;
+  pageTitle?: string;
 }) {
   const [available, setAvailable] = useState<boolean | null>(null);
   const [said, setSaid] = useState<Said[]>([]);
@@ -56,6 +64,13 @@ export function ChatPanel({
   useEffect(() => {
     if (quote) message.current?.focus();
   }, [quote]);
+
+  const running = said.filter((entry) => entry.who === "assistant" && entry.working).length;
+  const reportRunning = useRef(onRunning);
+  reportRunning.current = onRunning;
+  useEffect(() => {
+    reportRunning.current?.(running);
+  }, [running]);
 
   useEffect(() => {
     let live = true;
@@ -82,7 +97,7 @@ export function ChatPanel({
         const last = before[before.length - 1];
         const replying = last && last.who === "assistant" ? last : null;
         const rest = replying ? before.slice(0, -1) : before;
-        const current: Said = replying ?? { who: "assistant", text: "", changes: [], working: true };
+        const current: Said = replying ?? { who: "assistant", text: "", changes: [], working: true, about: asking.current ?? undefined };
         switch (event.type) {
           case "text":
             return [...rest, { ...current, text: current.text + event.text }];
@@ -111,20 +126,20 @@ export function ChatPanel({
   async function send() {
     const text = draft.trim();
     if (!text || busy) return;
-    const about = quote;
+    const about: Asked | null = quote ? { ...quote, page: pageTitle } : null;
     setDraft("");
     setTrouble("");
     setBusy(true);
-    asking.current = about;
+    asking.current = quote;
     onQuoteDropped?.();
     setSaid((before) => [
       ...before,
-      { who: "person", text, quoted: about?.text, changes: [] },
-      { who: "assistant", text: "", changes: [], working: true },
+      { who: "person", text, about: about ?? undefined, changes: [] },
+      { who: "assistant", text: "", changes: [], working: true, about: about ?? undefined },
     ]);
     try {
       await untilListening();
-      await askAssistant(organisation, project, text, about);
+      await askAssistant(organisation, project, text, quote);
     } catch (error: unknown) {
       setTrouble(whatWentWrong(error, "assistant.did-not-answer"));
       setBusy(false);
@@ -166,7 +181,7 @@ export function ChatPanel({
 
   return (
     <section aria-label={say("assistant.assistant")} className="flex h-full min-h-0 flex-col gap-3 p-4">
-      <div className="flex items-center justify-between gap-2">
+      <div className={onClose ? "flex items-center justify-between gap-2" : "sr-only"}>
         <h2 className="text-[15px] font-semibold">{say("assistant.assistant")}</h2>
         {onClose && (
           <Button variant="ghost" size="iconCompact" aria-label={say("assistant.close")} onClick={onClose}>
@@ -189,16 +204,20 @@ export function ChatPanel({
               <li
                 key={index}
                 className={
-                  "flex flex-col gap-2 rounded-lg px-3 py-2 text-[15px] " +
-                  (entry.who === "person" ? "self-end bg-primary-soft text-primary-soft-foreground" : "bg-muted")
+                  "flex flex-col gap-2 text-[15px] " +
+                  (entry.who === "person" ? "ml-8 self-end rounded-xl bg-muted px-3 py-2" : "")
                 }
               >
-                {entry.quoted && (
-                  <blockquote className="border-l-2 border-primary pl-2 text-[13px] text-muted-foreground line-clamp-3">
-                    {entry.quoted}
-                  </blockquote>
+                {entry.who === "person" && entry.about && (
+                  <RequestCard about={entry.about} onShow={() => entry.about && onShowPlace?.(entry.about)} />
                 )}
                 {entry.text && <p className="whitespace-pre-wrap">{entry.text}</p>}
+                {entry.who === "person" && entry.about && (
+                  <p className="flex items-center gap-1.5 text-[12px] text-subtle-foreground">
+                    <Eye aria-hidden="true" className="size-3.5" />
+                    {say("assistant.from-the-preview", { page: entry.about.page ?? "" })}
+                  </p>
+                )}
                 {entry.who === "assistant" && entry.working && !entry.text && (
                   <p className="text-subtle-foreground">{say("assistant.working")}</p>
                 )}
@@ -214,6 +233,7 @@ export function ChatPanel({
                     organisation={organisation}
                     project={project}
                     onUndo={() => undo(index, change)}
+                    onShow={() => entry.about && onShowPlace?.(entry.about)}
                   />
                 ))}
               </li>
@@ -259,7 +279,7 @@ export function ChatPanel({
                   }
                 }}
                 rows={2}
-                placeholder={quote ? say("assistant.what-should-change") : say("assistant.ask-for-a-change")}
+                placeholder={quote ? say("assistant.what-should-change") : say("assistant.ask-or-select")}
                 className="min-h-11 resize-none rounded-md border border-input bg-card px-3 py-2 text-base sm:text-[15px] focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary-soft"
               />
             </label>
@@ -273,32 +293,63 @@ export function ChatPanel({
   );
 }
 
+function RequestCard({ about, onShow }: { about: Asked; onShow: () => void }) {
+  const before = about.before.slice(-60);
+  const after = about.after.slice(0, 60);
+  return (
+    <button
+      type="button"
+      onClick={onShow}
+      aria-label={say("assistant.show-the-place", { text: about.text.slice(0, 80) })}
+      className="rounded-lg border border-border bg-card px-3 py-2 text-left font-serif text-[12px] leading-relaxed text-muted-foreground line-clamp-3 hover:border-primary"
+    >
+      {before.length < about.before.length && "…"}
+      {before}
+      <mark className="rounded-sm bg-primary-soft text-foreground">{about.text}</mark>
+      {after}
+      {after.length < about.after.length && "…"}
+    </button>
+  );
+}
+
 function Chip({
   change,
   organisation,
   project,
   onUndo,
+  onShow,
 }: {
   change: AssistantChange & { undone?: boolean };
   organisation: string;
   project: string;
   onUndo: () => void;
+  onShow: () => void;
 }) {
   const navigate = useNavigate();
+  const action = "min-h-11 rounded-md px-1 text-[13px] font-medium hover:underline sm:min-h-9";
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-card px-2 py-1">
-      <span className="flex-1 text-[13px]">
+    <div className="flex flex-col gap-1 rounded-lg border border-border bg-card px-3 py-2">
+      <p className="flex items-center gap-2 text-[13px] font-medium">
+        <Check aria-hidden="true" className="size-4 shrink-0 text-success-foreground" />
         {change.undone ? say("assistant.change-undone", { title: change.title }) : say("assistant.changed", { title: change.title })}
-      </span>
-      <Button variant="ghost" onClick={() => navigate(`/o/${organisation}/p/${project}/content/${change.page}`)}>
-        {say("assistant.show")}
-      </Button>
-      {!change.undone && change.before && (
-        <Button variant="ghost" onClick={onUndo}>
-          <Undo2 aria-hidden="true" className="size-4" />
-          {say("assistant.undo")}
-        </Button>
-      )}
+      </p>
+      <div className="flex flex-wrap items-center gap-3 pl-6">
+        <button
+          type="button"
+          className={action + " text-primary"}
+          onClick={() => {
+            navigate(`/o/${organisation}/p/${project}/content/${change.page}`);
+            onShow();
+          }}
+        >
+          {say("assistant.show-changes")}
+        </button>
+        {!change.undone && change.before && (
+          <button type="button" className={action + " text-muted-foreground"} onClick={onUndo}>
+            {say("assistant.undo")}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

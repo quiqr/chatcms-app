@@ -25,7 +25,8 @@ test("only the form scrolls; the header, the preview's end and the message box s
   await inView(page, page.getByRole("heading", { level: 1 }).first());
   await inView(page, page.locator('iframe[title="Your site"]').or(page.getByRole("status").filter({ hasText: /preview/i })).first());
 
-  await page.getByRole("button", { name: "Open the assistant" }).click();
+  if (onAPhone(testInfo)) await page.getByRole("button", { name: "Open the assistant" }).click();
+  else await page.getByRole("radio", { name: /^Chat \+ preview/ }).click();
   await inView(page, page.getByRole("textbox", { name: "Your message" }));
 });
 
@@ -37,8 +38,8 @@ test("a window too narrow for form and preview shows the form, with the preview 
   await expect(page.getByTestId("editor-slot-preview")).toHaveCount(0);
 
   const views = page.getByRole("radiogroup", { name: "How to show this page" });
-  await expect(views.getByRole("radio", { name: "Side by side" })).toHaveCount(0);
-  await views.getByRole("radio", { name: "Preview" }).click();
+  await expect(views.getByRole("radio", { name: "Form + preview" })).toHaveCount(0);
+  await views.getByRole("radio", { name: "Preview", exact: true }).click();
   await expect(page.getByTestId("editor-slot-preview")).toBeVisible();
   await expect(page.getByTestId("editor-slot-form")).toHaveCount(0);
 

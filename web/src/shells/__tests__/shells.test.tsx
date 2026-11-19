@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Project } from "../../lib/tenancy";
-import { EditorShell } from "../EditorShell";
+import { EditorShell, type EditorLayout } from "../EditorShell";
 import { OrganisationAdminShell } from "../OrganisationAdminShell";
 import { OrganisationShell } from "../OrganisationShell";
 import { PhoneShell } from "../PhoneShell";
@@ -259,15 +259,14 @@ describe("EditorShell", () => {
     );
   }
 
-  it("has a slot for the form, the preview, and the one that comes later", () => {
+  it("has a slot for the form and the preview, and no chat view without a chat", () => {
     editor();
 
     expect(screen.getByTestId("editor-slot-form")).toBeInTheDocument();
     expect(screen.getByTestId("editor-slot-preview")).toBeInTheDocument();
-
-    const assistant = screen.getByTestId("editor-slot-assistant");
-    expect(assistant).toBeInTheDocument();
-    expect(assistant).not.toBeVisible();
+    expect(screen.queryByTestId("editor-slot-chat")).toBeNull();
+    expect(screen.queryByRole("radio", { name: /^Chat \+ preview/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open the assistant" })).toBeNull();
   });
 
   it("shows the navigation as it was left on a project screen", async () => {
@@ -294,10 +293,6 @@ describe("EditorShell", () => {
     expect(screen.queryByTestId("editor-slot-form")).toBeNull();
   });
 
-  it("keeps the assistant reachable but says it is not ready", () => {
-    editor();
-    expect(screen.getByRole("button", { name: /Assistant/ })).toBeDisabled();
-  });
 });
 
 describe("roles", () => {
@@ -605,18 +600,19 @@ describe("the editor in the room it has", () => {
 
   afterEach(() => vi.unstubAllGlobals());
 
-  function editor(onLayoutChange = () => {}) {
+  function editor(layout: EditorLayout = "split", onLayoutChange: (next: EditorLayout) => void = () => {}, chatCount = 0) {
     return at(
       "/o/technative/p/korenaar/content/about",
       <EditorShell
         project={project}
         viewer={theViewer}
         title="Home page"
-        layout="split"
+        layout={layout}
         onLayoutChange={onLayoutChange}
         form={<p>Fields</p>}
         preview={<p>Preview</p>}
-        assistant={() => <p>Chat</p>}
+        chat={<p>Chat</p>}
+        chatCount={chatCount}
       />,
     );
   }
@@ -628,21 +624,41 @@ describe("the editor in the room it has", () => {
     expect(screen.queryByTestId("editor-slot-preview")).toBeNull();
     const views = screen.getByRole("radiogroup", { name: "How to show this page" });
     expect(within(views).getByRole("radio", { name: "Preview" })).toBeInTheDocument();
-    expect(within(views).queryByRole("radio", { name: "Side by side" })).toBeNull();
+    expect(within(views).queryByRole("radio", { name: "Form + preview" })).toBeNull();
   });
 
-  it("puts the assistant in the form's place beside the preview, and brings the form back when it closes", async () => {
-    measuredAt(1000);
+  it("offers four views, and shows the chat beside the preview without the form", async () => {
+    measuredAt(1200);
+    const chosen: EditorLayout[] = [];
     const user = userEvent.setup();
-    editor();
-    expect(await screen.findByTestId("editor-slot-form")).toBeInTheDocument();
+    const first = editor("split", (next) => chosen.push(next));
+    const views = screen.getByRole("radiogroup", { name: "How to show this page" });
+    expect(within(views).getAllByRole("radio").map((one) => one.textContent)).toEqual(["Form", "Form + preview", "Chat + preview", "Preview"]);
+    await user.click(within(views).getByRole("radio", { name: "Chat + preview" }));
+    expect(chosen).toEqual(["chat"]);
+    first.unmount();
 
-    await user.click(screen.getByRole("button", { name: "Open the assistant" }));
+    editor("chat");
+    expect(await screen.findByTestId("editor-slot-chat")).toHaveAttribute("data-room", "column");
+    expect(screen.getByTestId("editor-slot-chat")).toBeVisible();
     expect(screen.queryByTestId("editor-slot-form")).toBeNull();
-    expect(screen.getByTestId("editor-slot-assistant")).toHaveAttribute("data-room", "instead-of-form");
     expect(screen.getByTestId("editor-slot-preview")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Open the assistant" }));
-    expect(screen.getByTestId("editor-slot-form")).toBeInTheDocument();
   });
+
+  it("shows the chat alone where there is no room for the preview beside it", async () => {
+    measuredAt(700);
+    editor("chat");
+    expect(await screen.findByTestId("editor-slot-chat")).toHaveAttribute("data-room", "alone");
+    expect(screen.queryByTestId("editor-slot-preview")).toBeNull();
+  });
+
+  it("counts running requests on Chat + preview while another view is shown", async () => {
+    measuredAt(1200);
+    const shown = editor("form", () => {}, 2);
+    expect(await screen.findByRole("radio", { name: "Chat + preview2" })).toBeInTheDocument();
+    shown.unmount();
+    editor("chat", () => {}, 2);
+    expect(await screen.findByRole("radio", { name: "Chat + preview" })).toBeInTheDocument();
+  });
+
 });

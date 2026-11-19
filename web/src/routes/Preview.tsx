@@ -145,6 +145,13 @@ function useFrameMessages(
     window.addEventListener("message", heard);
     return () => window.removeEventListener("message", heard);
   }, [frame]);
+
+  useEffect(() => {
+    const here = frame.current;
+    if (!highlight || !here?.contentWindow || !here.src) return;
+    const origin = new URL(here.src, window.location.href).origin;
+    here.contentWindow.postMessage({ chatcms: "highlight", before: highlight.before, after: highlight.after }, origin);
+  }, [frame, highlight]);
 }
 
 const highlightWhile = 15_000;

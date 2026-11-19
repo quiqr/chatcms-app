@@ -10,6 +10,7 @@ import { useAsync } from "../lib/useAsync";
 import { EditorShell, type EditorLayout } from "../shells/EditorShell";
 import { PhoneShell } from "../shells/PhoneShell";
 import { AssistantSlot } from "../shells/ProjectShell";
+import { recall, remember } from "../lib/remember";
 import { useHere } from "../lib/whoami";
 import { useIsPhone } from "../shells/useIsPhone";
 import { useStartWorkspace } from "../lib/workspace";
@@ -23,7 +24,13 @@ export function EditorPage() {
   const { organisation, who } = useHere();
   const { project: slug, "*": page = "" } = useParams();
   const [loaded] = useAsync(() => readProject(organisation, slug ?? ""), [organisation, slug], `project:${organisation}/${slug}`);
-  const [layout, setLayout] = useState<EditorLayout>("split");
+  const viewKey = `chatcms.editor.view.${who.person.id}.${slug ?? ""}`;
+  const [layout, setLayoutNow] = useState<EditorLayout>(() => recall<EditorLayout>(viewKey, "split"));
+  const setLayout = (next: EditorLayout) => {
+    setLayoutNow(next);
+    remember(viewKey, next);
+  };
+  const [running, setRunning] = useState(0);
   const [saves, setSaves] = useState(0);
   const [changes, setChanges] = useState(0);
   const [talking, setTalking] = useState(false);
@@ -69,7 +76,8 @@ export function EditorPage() {
           stepper={<Stepper place={place} />}
           layout={layout}
           onLayoutChange={setLayout}
-          openAssistant={asked}
+          openChat={asked}
+          chatCount={running}
           form={
             <PageEditor
               key={changes}
@@ -80,16 +88,18 @@ export function EditorPage() {
             />
           }
           preview={<Preview organisation={organisation} project={slug ?? ""} page={page} showAgain={saves + changes} onSelect={select} highlight={highlight} />}
-          assistant={(close) => (
+          chat={
             <ChatPanel
               organisation={organisation}
               project={slug ?? ""}
               onChanged={changed}
               quote={quote}
               onQuoteDropped={() => setQuote(null)}
-              onClose={close}
+              onRunning={setRunning}
+              onShowPlace={(about) => setHighlight({ before: about.before, after: about.after, id: Date.now() })}
+              pageTitle={opened?.title ?? page}
             />
-          )}
+          }
         />
       </div>
     );

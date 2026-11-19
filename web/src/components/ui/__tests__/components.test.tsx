@@ -72,7 +72,7 @@ describe("Segmented", () => {
         onValueChange={onValueChange}
         options={[
           { value: "form", label: "Form" },
-          { value: "split", label: "Side by side" },
+          { value: "split", label: "Form + preview" },
         ]}
       />,
     );
@@ -80,7 +80,7 @@ describe("Segmented", () => {
     const group = screen.getByRole("radiogroup", { name: "How to show this page" });
     expect(within(group).getByRole("radio", { name: "Form" })).toBeChecked();
 
-    await user.click(within(group).getByRole("radio", { name: "Side by side" }));
+    await user.click(within(group).getByRole("radio", { name: "Form + preview" }));
     expect(onValueChange).toHaveBeenCalledWith("split");
   });
 });

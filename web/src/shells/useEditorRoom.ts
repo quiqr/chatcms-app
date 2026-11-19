@@ -3,24 +3,19 @@ import { useCallback, useEffect, useState } from "react";
 import type { EditorLayout } from "./EditorShell";
 
 export const slotWidth = 420;
-export const assistantWidth = 340;
+export const chatWidth = 400;
 
 export type Room = {
   shown: EditorLayout;
-  assistant: "column" | "instead-of-form" | "alone" | "closed";
+  chat: "column" | "alone" | "closed";
   splitFits: boolean;
 };
 
-export function arrange(width: number, chosen: EditorLayout, talking: boolean): Room {
+export function arrange(width: number, chosen: EditorLayout): Room {
   const splitFits = width >= 2 * slotWidth;
   const shown: EditorLayout = chosen === "split" && !splitFits ? "form" : chosen;
-  if (!talking) return { shown, assistant: "closed", splitFits };
-  const slots = shown === "split" ? 2 : 1;
-  if (width >= slots * slotWidth + assistantWidth) return { shown, assistant: "column", splitFits };
-  if (width >= slotWidth + assistantWidth) {
-    return { shown: "preview", assistant: "instead-of-form", splitFits };
-  }
-  return { shown, assistant: "alone", splitFits };
+  if (shown !== "chat") return { shown, chat: "closed", splitFits };
+  return { shown, chat: width >= chatWidth + slotWidth ? "column" : "alone", splitFits };
 }
 
 export function useEditorRoom() {

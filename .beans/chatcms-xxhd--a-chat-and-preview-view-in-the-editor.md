@@ -1,7 +1,7 @@
 ---
 # chatcms-xxhd
 title: A Chat and preview view in the editor
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-11-19T09:20:47Z

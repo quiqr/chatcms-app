@@ -22,6 +22,10 @@ export const en = {
   "artifacts.none-yet": "Nothing has been kept yet. Files a publish makes, like a PDF, appear here.",
   "artifacts.what-these-are": "Files your publishes made, newest first. Each publish keeps its own.",
   "artifacts.could-not-be-read": "The files could not be listed. Try again in a moment.",
+  "assistant.ask-or-select": "Ask to change something, or select text in the preview",
+  "assistant.from-the-preview": "From the preview · {page}",
+  "assistant.show-changes": "Show changes",
+  "assistant.show-the-place": "Show in the preview: {text}",
   "assistant.assistant": "Assistant",
   "assistant.open": "Open the assistant",
   "assistant.close": "Close the assistant",
@@ -333,7 +337,8 @@ export const en = {
   "editor-shell.how-to-show-this-page": "How to show this page",
   "editor-shell.page-fields": "Page fields",
   "editor-shell.preview": "Preview",
-  "editor-shell.side-by-side": "Side by side",
+  "editor-shell.chat-and-preview": "Chat + preview",
+  "editor-shell.side-by-side": "Form + preview",
 
   // fields
   "fields.add": "Add",

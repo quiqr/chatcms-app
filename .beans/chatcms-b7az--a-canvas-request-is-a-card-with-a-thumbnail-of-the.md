@@ -1,7 +1,7 @@
 ---
 # chatcms-b7az
 title: A canvas request is a card with a thumbnail of the selection
-status: todo
+status: in-progress
 type: feature
 priority: low
 created_at: 2026-11-19T09:20:47Z

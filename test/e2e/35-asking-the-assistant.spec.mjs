@@ -13,7 +13,11 @@ test("the assistant changes a page when asked, and Undo puts it back", async ({ 
   await page.goto(`${chatcms.url}/o/technative/p/korenaar/content/home`);
   await expect(page.getByRole("textbox", { name: "Page title" })).toHaveValue("Korenaar Bakery");
 
-  await page.getByRole("button", { name: "Open the assistant" }).click();
+  const openTheChat = async () => {
+    if (phone) await page.getByRole("button", { name: "Open the assistant" }).click();
+    else await page.getByRole("radio", { name: /^Chat \+ preview/ }).click();
+  };
+  await openTheChat();
   const panel = page.getByRole("region", { name: "Assistant" });
   const message = panel.getByRole("textbox", { name: "Your message" });
 
@@ -25,7 +29,8 @@ test("the assistant changes a page when asked, and Undo puts it back", async ({ 
   });
 
   const reopen = async () => {
-    await page.getByRole("button", { name: "Close the assistant" }).click();
+    if (phone) await page.getByRole("button", { name: "Close the assistant" }).click();
+    else await page.getByRole("radio", { name: "Form + preview" }).click();
   };
 
   await test.step("the page holds the new title, and the preview shows it", async () => {
@@ -41,7 +46,7 @@ test("the assistant changes a page when asked, and Undo puts it back", async ({ 
   });
 
   await test.step("Undo puts it back without publishing", async () => {
-    await page.getByRole("button", { name: "Open the assistant" }).click();
+    await openTheChat();
     await panel.getByRole("button", { name: "Undo" }).click();
     await expect(panel.getByText(/is back as it was/)).toBeVisible({ timeout: 20_000 });
     await reopen();
@@ -55,9 +60,10 @@ test("the assistant changes a page when asked, and Undo puts it back", async ({ 
 test.describe("without a gateway", () => {
   test.use({ assistant: false });
 
-  test("the panel says the assistant is not available", async ({ signedIn: page, chatcms }) => {
+  test("the panel says the assistant is not available", async ({ signedIn: page, chatcms }, testInfo) => {
     await page.goto(`${chatcms.url}/o/technative/p/korenaar/content/home`);
-    await page.getByRole("button", { name: "Open the assistant" }).click();
+    if (onAPhone(testInfo)) await page.getByRole("button", { name: "Open the assistant" }).click();
+    else await page.getByRole("radio", { name: /^Chat \+ preview/ }).click();
     await expect(page.getByText("The assistant is not available on this installation.")).toBeVisible();
   });
 });
