@@ -19,6 +19,11 @@ type stubChat struct {
 	stops  int
 }
 
+func (s *stubChat) Where(_ context.Context, _ Actor, _, _ string, about ChatSelection) (WhereView, error) {
+	s.about = append(s.about, &about)
+	return WhereView{Kind: "field", Page: "home", PageTitle: "Home page", Field: "title"}, s.err
+}
+
 func (s *stubChat) Stop(context.Context, Actor, string, string) error {
 	s.stops++
 	return s.err
@@ -136,5 +141,16 @@ func TestARunningAnswerCanBeStopped(t *testing.T) {
 	}
 	if got := signedInCall(t, withChat(service, false), http.MethodPost, chatPath+"/stop", nil); got.Code != http.StatusUnauthorized {
 		t.Fatalf("stop without a person = %d", got.Code)
+	}
+}
+
+func TestASelectionSaysWhereItIsFrom(t *testing.T) {
+	service := &stubChat{view: ChatView{Available: true}}
+	got := signedInCall(t, withChat(service, true), http.MethodPost, chatPath+"/where", map[string]any{"text": "Korenaar Bakery", "before": "", "after": "", "path": "/"})
+	if got.Code != http.StatusOK || !strings.Contains(got.Body.String(), `"kind":"field"`) || !strings.Contains(got.Body.String(), `"field":"title"`) {
+		t.Fatalf("where = %d %s", got.Code, got.Body.String())
+	}
+	if service.about[0].Text != "Korenaar Bakery" {
+		t.Fatalf("asked about %+v", service.about[0])
 	}
 }

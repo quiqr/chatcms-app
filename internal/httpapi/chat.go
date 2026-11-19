@@ -16,6 +16,7 @@ type ChatService interface {
 	Ask(ctx context.Context, actor Actor, organisation, project, text string, about *ChatSelection) error
 	Listen(ctx context.Context, actor Actor, organisation, project string, emit func(any) error) error
 	Stop(ctx context.Context, actor Actor, organisation, project string) error
+	Where(ctx context.Context, actor Actor, organisation, project string, about ChatSelection) (WhereView, error)
 }
 
 type ChatSelection struct {
@@ -64,6 +65,13 @@ func (s *ChatSelection) bounded() *ChatSelection {
 	}
 }
 
+type WhereView struct {
+	Kind      string `json:"kind"`
+	Page      string `json:"page,omitempty"`
+	PageTitle string `json:"pageTitle,omitempty"`
+	Field     string `json:"field,omitempty"`
+}
+
 func chatHandlers(mux *http.ServeMux, service ChatService) {
 	base := "/api/organisations/{organisation}/projects/{project}/chat"
 
@@ -98,6 +106,21 @@ func chatHandlers(mux *http.ServeMux, service ChatService) {
 		w.WriteHeader(http.StatusAccepted)
 	})))
 	mux.HandleFunc(base+"/stop", MethodNotAllowed)
+
+	mux.Handle("POST "+base+"/where", RequireActor(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body ChatSelection
+		if err := Decode(w, r, &body); err != nil {
+			WriteDecodeError(w, err)
+			return
+		}
+		view, err := service.Where(r.Context(), ActorFrom(r.Context()), r.PathValue("organisation"), r.PathValue("project"), *body.bounded())
+		if err != nil {
+			writeTenancyError(w, err)
+			return
+		}
+		WriteJSON(w, http.StatusOK, view)
+	})))
+	mux.HandleFunc(base+"/where", MethodNotAllowed)
 
 	mux.Handle("GET "+base+"/events", RequireActor(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		controller := http.NewResponseController(w)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/quiqr/chatcms-app/internal/anchor"
 	"github.com/quiqr/chatcms-app/internal/httpapi"
 	"github.com/quiqr/chatcms-app/internal/policy"
 	"github.com/quiqr/chatcms-app/internal/tenancy"
@@ -19,12 +20,24 @@ type Locator interface {
 	Locate(ctx context.Context, key workspace.Key, path string) (string, error)
 }
 
+type Placer interface {
+	Place(ctx context.Context, key workspace.Key, about httpapi.ChatSelection, page string) (anchor.Where, error)
+}
+
 type Web struct {
 	chat    *Chat
 	tenancy *tenancy.Store
 	under   func(organisation, project string) string
 	locator Locator
+	placer  Placer
 	logger  *slog.Logger
+}
+
+func (w *Web) Placing(placer Placer, logger *slog.Logger) {
+	w.placer = placer
+	if w.logger == nil {
+		w.logger = logger
+	}
 }
 
 func (w *Web) Locating(locator Locator, logger *slog.Logger) {
@@ -96,16 +109,45 @@ func (w *Web) Ask(ctx context.Context, who httpapi.Actor, organisation, project,
 		return err
 	}
 	if about != nil && strings.TrimSpace(text) != "" {
-		page := ""
-		if w.locator != nil {
-			var err error
-			if page, err = w.locator.Locate(ctx, key, about.Path); err != nil {
-				w.logger.WarnContext(ctx, "the page of a selection could not be found", "path", about.Path, "error", err)
-			}
-		}
-		text = AboutASelection(text, *about, page)
+		text = AboutASelection(text, *about, w.where(ctx, key, *about))
 	}
 	return refusal(w.chat.Send(ctx, key, w.under(organisation, project), text))
+}
+
+func (w *Web) where(ctx context.Context, key workspace.Key, about httpapi.ChatSelection) anchor.Where {
+	page := ""
+	if w.locator != nil {
+		var err error
+		if page, err = w.locator.Locate(ctx, key, about.Path); err != nil && w.logger != nil {
+			w.logger.WarnContext(ctx, "the page of a selection could not be found", "path", about.Path, "error", err)
+		}
+	}
+	if w.placer == nil {
+		if page != "" {
+			return anchor.Where{Kind: anchor.InAField, Page: page}
+		}
+		return anchor.Where{}
+	}
+	found, err := w.placer.Place(ctx, key, about, page)
+	if err != nil {
+		if w.logger != nil {
+			w.logger.WarnContext(ctx, "where a selection is from could not be worked out", "error", err)
+		}
+		if page != "" {
+			return anchor.Where{Kind: anchor.InAField, Page: page}
+		}
+		return anchor.Where{}
+	}
+	return found
+}
+
+func (w *Web) Where(ctx context.Context, who httpapi.Actor, organisation, project string, about httpapi.ChatSelection) (httpapi.WhereView, error) {
+	key, err := w.key(ctx, who, organisation, project)
+	if err != nil {
+		return httpapi.WhereView{}, err
+	}
+	found := w.where(ctx, key, about)
+	return httpapi.WhereView{Kind: string(found.Kind), Page: found.Page, PageTitle: found.PageTitle, Field: found.Field}, nil
 }
 
 func (w *Web) Stop(ctx context.Context, who httpapi.Actor, organisation, project string) error {
@@ -116,7 +158,7 @@ func (w *Web) Stop(ctx context.Context, who httpapi.Actor, organisation, project
 	return refusal(w.chat.Stop(ctx, key, w.under(organisation, project)))
 }
 
-func AboutASelection(text string, about httpapi.ChatSelection, page string) string {
+func AboutASelection(text string, about httpapi.ChatSelection, where anchor.Where) string {
 	var b strings.Builder
 	b.WriteString(strings.TrimSpace(text))
 	fmt.Fprintf(&b, "\n\nThe person selected this on the preview page %s:\n%q\n", about.Path, about.Text)
@@ -126,9 +168,16 @@ func AboutASelection(text string, about httpapi.ChatSelection, page string) stri
 	if about.After != "" {
 		fmt.Fprintf(&b, "Just after it: %q\n", about.After)
 	}
-	if page != "" {
-		fmt.Fprintf(&b, "It is on the page with key %q. Read it with read_page, change it with update_page as asked, and change nothing else.", page)
-	} else {
+	switch {
+	case where.Kind == anchor.InAField && where.Field != "":
+		fmt.Fprintf(&b, "It is in the field %q of the page with key %q. Read it with read_page, change that field with update_page as asked, and change nothing else.", where.Field, where.Page)
+	case where.Kind == anchor.InAField:
+		fmt.Fprintf(&b, "It is on the page with key %q. Read it with read_page, change it with update_page as asked, and change nothing else.", where.Page)
+	case where.Kind == anchor.SharedText:
+		fmt.Fprintf(&b, "It is shared text: the field %q of %q (key %q), which shows on more than one page. Tell the person that a change there shows on every page that uses it, then change it as asked if you can, and change nothing else.", where.Field, where.PageTitle, where.Page)
+	case where.Kind == anchor.TheDesign:
+		b.WriteString("This text is in no page's fields: it comes from the site's design, which you cannot change. Say so, and say that somebody who builds the site can change it.")
+	default:
 		b.WriteString("No page was found for this address. Find the page that holds this text with list_pages and read_page; if no page holds it, say it comes from the site's design, which you cannot change.")
 	}
 	return b.String()

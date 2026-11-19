@@ -1,7 +1,7 @@
 ---
 # chatcms-gf1r
 title: 'SSG-agnostic anchors: find a selection in the page source, Hugo as tier 1'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-11-19T20:04:29Z

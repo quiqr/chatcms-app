@@ -10,6 +10,8 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/quiqr/chatcms-app/internal/anchor"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
 	"github.com/quiqr/chatcms-app/internal/runner"
 	"github.com/quiqr/chatcms-app/internal/runtime"
 	"github.com/quiqr/chatcms-app/internal/workspace"
@@ -118,5 +120,29 @@ func TestLocateLeavesOtherRuntimesAlone(t *testing.T) {
 	}
 	if got, err := locator.Locate(t.Context(), workspace.Key{}, "/"); got != "" || err != nil || run.task.Command != "" {
 		t.Errorf("Locate() = %q, %v, ran %q", got, err, run.task.Command)
+	}
+}
+
+func TestThePlacerReadsThePersonsCopy(t *testing.T) {
+	dir := t.TempDir()
+	for name, data := range map[string]string{
+		"quiqr/model/base.yaml": "singles:\n  - key: home\n    title: Home page\n    file: content/_index.md\n    fields:\n      - key: title\n        type: string\n",
+		"content/_index.md":     "---\ntitle: Korenaar Bakery\n---\n",
+	} {
+		full := filepath.Join(dir, name)
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(data), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	placer := sitePlacer{dir: func(context.Context, workspace.Key) (string, error) { return dir, nil }}
+	got, err := placer.Place(t.Context(), workspace.Key{}, httpapi.ChatSelection{Text: "Korenaar Bakery"}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Kind != anchor.InAField || got.Page != "home" || got.Field != "title" {
+		t.Fatalf("Place() = %+v", got)
 	}
 }

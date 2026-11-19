@@ -470,6 +470,7 @@ func (s *Server) startContent(ctx context.Context, tenancyStore *tenancy.Store) 
 	s.chatWeb = assistant.NewWeb(s.chat, tenancyStore, func(organisation, project string) string {
 		return previewing.Under(httpapi.PreviewPrefix + organisation + "/" + project + "/")
 	})
+	s.chatWeb.Placing(sitePlacer{dir: workspaceCopies{sites: s.sites}.Dir}, s.logger)
 	if s.sandbox != nil {
 		s.chatWeb.Locating(pageLocator{
 			dir:       workspaceCopies{sites: s.sites}.Dir,

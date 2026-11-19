@@ -15,6 +15,8 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/quiqr/chatcms-app/internal/anchor"
+	"github.com/quiqr/chatcms-app/internal/httpapi"
 	"github.com/quiqr/chatcms-app/internal/model"
 	"github.com/quiqr/chatcms-app/internal/runner"
 	"github.com/quiqr/chatcms-app/internal/runtime"
@@ -64,6 +66,23 @@ func (l pageLocator) Locate(ctx context.Context, key workspace.Key, asked string
 		return "", err
 	}
 	return found.KeyOf(file), nil
+}
+
+type sitePlacer struct {
+	dir func(ctx context.Context, key workspace.Key) (string, error)
+}
+
+func (p sitePlacer) Place(ctx context.Context, key workspace.Key, about httpapi.ChatSelection, page string) (anchor.Where, error) {
+	dir, err := p.dir(ctx, key)
+	if err != nil {
+		return anchor.Where{}, err
+	}
+	site := os.DirFS(dir)
+	found, err := model.Load(site)
+	if err != nil {
+		return anchor.Where{}, err
+	}
+	return anchor.Find(site, found, anchor.Asked{Text: about.Text, Before: about.Before, After: about.After, Page: page}), nil
 }
 
 func lastLines(text string, most int) string {
