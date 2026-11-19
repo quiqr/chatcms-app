@@ -43,6 +43,7 @@ type Options struct {
 	Administration AdministrationService
 	AIUse          AIUseService
 	About          AboutSource
+	Workspaces     WorkspaceStatistics
 	// Onboarding serves setting a project up: its key, its site, and where
 	// it publishes.
 	Onboarding OnboardingService
@@ -163,6 +164,9 @@ func New(opts Options) http.Handler {
 		administrationHandlers(mux, opts.Administration)
 		if opts.About != nil {
 			aboutHandlers(mux, opts.Administration, opts.About)
+		}
+		if opts.Workspaces != nil {
+			workspaceStatisticsHandlers(mux, opts.Administration, opts.Workspaces)
 		}
 	}
 

@@ -38,6 +38,27 @@ type AboutSource interface {
 	About(ctx context.Context) AboutView
 }
 
+type WorkspaceStatistics interface {
+	WorkspaceStatistics(ctx context.Context) (any, error)
+}
+
+func workspaceStatisticsHandlers(mux *http.ServeMux, admin AdministrationService, source WorkspaceStatistics) {
+	mux.Handle("GET /api/administration/workspaces", RequireActor(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if !admin.MayAdminister(r.Context(), ActorFrom(r.Context())) {
+				writeTenancyError(w, ErrNotAllowed)
+				return
+			}
+			stats, err := source.WorkspaceStatistics(r.Context())
+			if err != nil {
+				writeTenancyError(w, err)
+				return
+			}
+			WriteJSON(w, http.StatusOK, stats)
+		})))
+	mux.HandleFunc("/api/administration/workspaces", MethodNotAllowed)
+}
+
 func aboutHandlers(mux *http.ServeMux, admin AdministrationService, about AboutSource) {
 	mux.Handle("GET /api/administration/about", RequireActor(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {

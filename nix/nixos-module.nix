@@ -297,6 +297,16 @@ in
       '';
     };
 
+    workspaceHistoryDays = lib.mkOption {
+      type = lib.types.ints.positive;
+      default = 90;
+      description = ''
+        How many days the history of workspaces (starts, refusals, failures
+        and how many ran at once) is kept for the platform admin's Workspaces
+        screen.
+      '';
+    };
+
     workspaceBackend = lib.mkOption {
       type = lib.types.enum [ "local" "microvm" "gvisor" ];
       default = "local";
@@ -453,6 +463,7 @@ in
         CHATCMS_CHECK_MEMORY = cfg.checkMemory;
         CHATCMS_WORKSPACE_IDLE = cfg.workspaceIdle;
         CHATCMS_WORKSPACES_AT_ONCE = toString cfg.workspacesAtOnce;
+        CHATCMS_WORKSPACE_HISTORY_DAYS = toString cfg.workspaceHistoryDays;
         CHATCMS_WORKSPACE_BACKEND = cfg.workspaceBackend;
         CHATCMS_TEMPLATE_FEED = if cfg.templateFeed == null then "off" else cfg.templateFeed;
       } // lib.optionalAttrs cfg.pinHugo {

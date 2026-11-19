@@ -29,12 +29,114 @@ func (q *Queries) CountBusyWorkspacesBesides(ctx context.Context, arg CountBusyW
 	return count, err
 }
 
+const countWorkspaceEventsSince = `-- name: CountWorkspaceEventsSince :many
+SELECT kind, reason, count(*)::int AS times
+FROM workspace_events
+WHERE kind IN ('refused', 'failed') AND at >= $1
+GROUP BY kind, reason
+ORDER BY kind, times DESC, reason
+`
+
+type CountWorkspaceEventsSinceRow struct {
+	Kind   string `json:"kind"`
+	Reason string `json:"reason"`
+	Times  int32  `json:"times"`
+}
+
+func (q *Queries) CountWorkspaceEventsSince(ctx context.Context, at pgtype.Timestamptz) ([]CountWorkspaceEventsSinceRow, error) {
+	rows, err := q.db.Query(ctx, countWorkspaceEventsSince, at)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CountWorkspaceEventsSinceRow{}
+	for rows.Next() {
+		var i CountWorkspaceEventsSinceRow
+		if err := rows.Scan(&i.Kind, &i.Reason, &i.Times); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const countWorkspacesByState = `-- name: CountWorkspacesByState :many
+SELECT w.state, w.backend, o.slug AS organisation_slug, o.name AS organisation_name,
+       p.id AS project_id, p.slug AS project_slug, p.name AS project_name, count(*)::int AS workspaces
+FROM workspaces w
+JOIN projects p ON p.id = w.project_id
+JOIN organisations o ON o.id = p.organisation_id
+GROUP BY w.state, w.backend, o.slug, o.name, p.id, p.slug, p.name
+ORDER BY o.slug, p.slug, w.state
+`
+
+type CountWorkspacesByStateRow struct {
+	State            string      `json:"state"`
+	Backend          string      `json:"backend"`
+	OrganisationSlug string      `json:"organisation_slug"`
+	OrganisationName string      `json:"organisation_name"`
+	ProjectID        pgtype.UUID `json:"project_id"`
+	ProjectSlug      string      `json:"project_slug"`
+	ProjectName      string      `json:"project_name"`
+	Workspaces       int32       `json:"workspaces"`
+}
+
+func (q *Queries) CountWorkspacesByState(ctx context.Context) ([]CountWorkspacesByStateRow, error) {
+	rows, err := q.db.Query(ctx, countWorkspacesByState)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CountWorkspacesByStateRow{}
+	for rows.Next() {
+		var i CountWorkspacesByStateRow
+		if err := rows.Scan(
+			&i.State,
+			&i.Backend,
+			&i.OrganisationSlug,
+			&i.OrganisationName,
+			&i.ProjectID,
+			&i.ProjectSlug,
+			&i.ProjectName,
+			&i.Workspaces,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const deleteWorkspace = `-- name: DeleteWorkspace :exec
 DELETE FROM workspaces WHERE id = $1
 `
 
 func (q *Queries) DeleteWorkspace(ctx context.Context, id pgtype.UUID) error {
 	_, err := q.db.Exec(ctx, deleteWorkspace, id)
+	return err
+}
+
+const forgetWorkspaceEvents = `-- name: ForgetWorkspaceEvents :exec
+DELETE FROM workspace_events WHERE at < $1
+`
+
+func (q *Queries) ForgetWorkspaceEvents(ctx context.Context, at pgtype.Timestamptz) error {
+	_, err := q.db.Exec(ctx, forgetWorkspaceEvents, at)
+	return err
+}
+
+const forgetWorkspaceSamples = `-- name: ForgetWorkspaceSamples :exec
+DELETE FROM workspace_samples WHERE at < $1
+`
+
+func (q *Queries) ForgetWorkspaceSamples(ctx context.Context, at pgtype.Timestamptz) error {
+	_, err := q.db.Exec(ctx, forgetWorkspaceSamples, at)
 	return err
 }
 
@@ -141,6 +243,48 @@ func (q *Queries) LockWorkspaces(ctx context.Context) error {
 	return err
 }
 
+const recordWorkspaceEvent = `-- name: RecordWorkspaceEvent :exec
+INSERT INTO workspace_events (at, kind, backend, project_id, millis, reason)
+VALUES ($1, $2, $3, $4, $5, $6)
+`
+
+type RecordWorkspaceEventParams struct {
+	At        pgtype.Timestamptz `json:"at"`
+	Kind      string             `json:"kind"`
+	Backend   string             `json:"backend"`
+	ProjectID pgtype.UUID        `json:"project_id"`
+	Millis    *int32             `json:"millis"`
+	Reason    string             `json:"reason"`
+}
+
+func (q *Queries) RecordWorkspaceEvent(ctx context.Context, arg RecordWorkspaceEventParams) error {
+	_, err := q.db.Exec(ctx, recordWorkspaceEvent,
+		arg.At,
+		arg.Kind,
+		arg.Backend,
+		arg.ProjectID,
+		arg.Millis,
+		arg.Reason,
+	)
+	return err
+}
+
+const sampleWorkspaces = `-- name: SampleWorkspaces :exec
+INSERT INTO workspace_samples (at, starting, warm) VALUES ($1, $2, $3)
+ON CONFLICT (at) DO UPDATE SET starting = EXCLUDED.starting, warm = EXCLUDED.warm
+`
+
+type SampleWorkspacesParams struct {
+	At       pgtype.Timestamptz `json:"at"`
+	Starting int32              `json:"starting"`
+	Warm     int32              `json:"warm"`
+}
+
+func (q *Queries) SampleWorkspaces(ctx context.Context, arg SampleWorkspacesParams) error {
+	_, err := q.db.Exec(ctx, sampleWorkspaces, arg.At, arg.Starting, arg.Warm)
+	return err
+}
+
 const sleepWorkspace = `-- name: SleepWorkspace :exec
 UPDATE workspaces SET state = 'sleeping', handle = '', reason = $2 WHERE id = $1
 `
@@ -222,4 +366,59 @@ type WarmWorkspaceParams struct {
 func (q *Queries) WarmWorkspace(ctx context.Context, arg WarmWorkspaceParams) error {
 	_, err := q.db.Exec(ctx, warmWorkspace, arg.ID, arg.Handle)
 	return err
+}
+
+const workspacePeaksSince = `-- name: WorkspacePeaksSince :many
+SELECT date_trunc('day', at)::date AS day, max(warm)::int AS warm, max(starting)::int AS starting
+FROM workspace_samples
+WHERE at >= $1
+GROUP BY 1
+ORDER BY 1
+`
+
+type WorkspacePeaksSinceRow struct {
+	Day      pgtype.Date `json:"day"`
+	Warm     int32       `json:"warm"`
+	Starting int32       `json:"starting"`
+}
+
+func (q *Queries) WorkspacePeaksSince(ctx context.Context, at pgtype.Timestamptz) ([]WorkspacePeaksSinceRow, error) {
+	rows, err := q.db.Query(ctx, workspacePeaksSince, at)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []WorkspacePeaksSinceRow{}
+	for rows.Next() {
+		var i WorkspacePeaksSinceRow
+		if err := rows.Scan(&i.Day, &i.Warm, &i.Starting); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const workspaceStartsSince = `-- name: WorkspaceStartsSince :one
+SELECT count(*)::int AS starts,
+       coalesce(percentile_cont(0.5) WITHIN GROUP (ORDER BY millis), 0)::float8 AS median_millis,
+       coalesce(percentile_cont(0.9) WITHIN GROUP (ORDER BY millis), 0)::float8 AS slow_millis
+FROM workspace_events
+WHERE kind = 'started' AND at >= $1
+`
+
+type WorkspaceStartsSinceRow struct {
+	Starts       int32   `json:"starts"`
+	MedianMillis float64 `json:"median_millis"`
+	SlowMillis   float64 `json:"slow_millis"`
+}
+
+func (q *Queries) WorkspaceStartsSince(ctx context.Context, at pgtype.Timestamptz) (WorkspaceStartsSinceRow, error) {
+	row := q.db.QueryRow(ctx, workspaceStartsSince, at)
+	var i WorkspaceStartsSinceRow
+	err := row.Scan(&i.Starts, &i.MedianMillis, &i.SlowMillis)
+	return i, err
 }

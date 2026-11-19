@@ -124,3 +124,29 @@ test("the about screen says what is running, on what, and under which license", 
   );
   await worksOnAPhone(page, testInfo);
 });
+
+test("the workspaces screen says what runs now and what happened lately", async ({
+  administering: page,
+  chatcms,
+}, testInfo) => {
+  await page.goto(`${chatcms.url}/administration`);
+  await page.getByRole("link", { name: "Workspaces", exact: true }).click();
+  await page.waitForURL(/\/administration\/workspaces$/);
+
+  await expect(page.getByRole("heading", { name: "Workspaces", level: 1 })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Now" })).toBeVisible();
+  await expect(page.getByRole("region", { name: /The past \d+ days/ })).toContainText(/History is kept \d+ days/);
+  await expect(page.getByRole("region", { name: "Per project" })).toBeVisible();
+
+  await worksOnAPhone(page, testInfo);
+});
+
+test("somebody who does not administer the installation sees no workspace statistics", async ({
+  signedIn: page,
+  chatcms,
+}) => {
+  const refused = await page.request.get(`${chatcms.url}/api/administration/workspaces`, {
+    failOnStatusCode: false,
+  });
+  expect(refused.status(), "an organisation admin read the workspace statistics").toBe(403);
+});

@@ -204,3 +204,19 @@ type Workspace struct {
 	LastUsedAt pgtype.Timestamptz `json:"last_used_at"`
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
+
+type WorkspaceEvent struct {
+	ID        int64              `json:"id"`
+	At        pgtype.Timestamptz `json:"at"`
+	Kind      string             `json:"kind"`
+	Backend   string             `json:"backend"`
+	ProjectID pgtype.UUID        `json:"project_id"`
+	Millis    *int32             `json:"millis"`
+	Reason    string             `json:"reason"`
+}
+
+type WorkspaceSample struct {
+	At       pgtype.Timestamptz `json:"at"`
+	Starting int32              `json:"starting"`
+	Warm     int32              `json:"warm"`
+}

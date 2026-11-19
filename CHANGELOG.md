@@ -62,6 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   comes from, found in the site's source for any generator.
 - Workspaces can run in gVisor sandboxes (`workspaceBackend = "gvisor"`),
   rootless and without network, on any host without KVM.
+- Platform admins see what workspaces run, start, fail and use on disk
+  (Workspaces); history is kept `workspaceHistoryDays`, 90 by default.
 
 ### Changed
 

@@ -1,7 +1,7 @@
 ---
 # chatcms-s46o
 title: Workspace statistics in the platform admin area
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-11-18T13:13:56Z

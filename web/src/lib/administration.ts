@@ -194,3 +194,25 @@ export function setAILimits(organisation: string, requestsPerMinute: number | nu
     tokensPerMonth,
   });
 }
+
+export type WorkspaceCounts = { starting: number; warm: number; sleeping: number };
+
+export type WorkspaceStatistics = {
+  backends: string[];
+  limit: number;
+  now: WorkspaceCounts;
+  organisations: { slug: string; name: string; counts: WorkspaceCounts }[];
+  projects: { organisation: string; slug: string; name: string; counts: WorkspaceCounts; diskBytes: number; diskKnown: boolean }[];
+  days: number;
+  starts: number;
+  medianMillis: number;
+  slowMillis: number;
+  refused: number;
+  failed: { reason: string; times: number }[];
+  peaks: { day: string; warm: number; starting: number }[];
+  historyDays: number;
+};
+
+export function readWorkspaceStatistics() {
+  return get<WorkspaceStatistics>("/api/administration/workspaces");
+}

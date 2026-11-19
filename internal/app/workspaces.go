@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -142,9 +143,10 @@ func (s *Server) startWorkspaces(ctx context.Context, tenancyStore *tenancy.Stor
 	}
 	hugo := s.projectHugo()
 	sources := publishSources{sites: s.sites, queries: s.db.Queries, baseURL: s.cfg.BaseURL}
+	history := workspace.NewPostgres(s.db)
 	made, err := workspace.New(
 		backend,
-		workspace.NewPostgres(s.db),
+		history,
 		workspaceCopies{sites: s.sites},
 		mayStillUse(sources, tenancyStore),
 		workspace.Settings{
@@ -154,7 +156,9 @@ func (s *Server) startWorkspaces(ctx context.Context, tenancyStore *tenancy.Stor
 			RuntimeFor: func(ctx context.Context, key workspace.Key, dir string) (runtime.Resolved, error) {
 				return hugo.Runtime(ctx, key.Project, os.DirFS(dir))
 			},
-			Tokens: s.workspaceTokens(),
+			Tokens:      s.workspaceTokens(),
+			History:     history,
+			HistoryDays: s.cfg.HistoryDays,
 		},
 	)
 	if err != nil {
@@ -165,4 +169,28 @@ func (s *Server) startWorkspaces(ctx context.Context, tenancyStore *tenancy.Stor
 	}
 	made.Run()
 	return made, nil
+}
+
+type workspaceStatistics struct {
+	store *workspace.Postgres
+	sites string
+	limit int
+	days  int
+	clock func() time.Time
+}
+
+const statisticsDays = 7
+
+func (w workspaceStatistics) WorkspaceStatistics(ctx context.Context) (any, error) {
+	stats, err := w.store.Statistics(ctx, w.clock().AddDate(0, 0, -statisticsDays))
+	if err != nil {
+		return nil, err
+	}
+	stats.Limit = w.limit
+	stats.Days = statisticsDays
+	stats.HistoryDays = w.days
+	for i := range stats.Projects {
+		stats.Projects[i].DiskBytes, stats.Projects[i].DiskKnown = workspace.DiskOf(filepath.Join(w.sites, stats.Projects[i].ID.String(), "people"), 5*time.Second)
+	}
+	return stats, nil
 }

@@ -48,6 +48,7 @@ type Config struct {
 	CheckMemory      int64
 	WorkspaceIdle    time.Duration
 	WorkspacesAtOnce int
+	HistoryDays      int
 	WorkspaceBackend string
 	WorkspaceGuest   string
 	Runsc            string
@@ -231,6 +232,18 @@ func LoadConfig(lookup Lookup) (Config, error) {
 	cfg.WorkspacesAtOnce, err = strconv.Atoi(atOnce)
 	if err != nil || cfg.WorkspacesAtOnce <= 0 {
 		return Config{}, &ConfigError{Variable: atOnceName, Reason: reasonInvalid}
+	}
+
+	days, err := resolve(lookup, "CHATCMS_WORKSPACE_HISTORY_DAYS")
+	if err != nil {
+		return Config{}, err
+	}
+	if days == "" {
+		days = "90"
+	}
+	cfg.HistoryDays, err = strconv.Atoi(days)
+	if err != nil || cfg.HistoryDays <= 0 {
+		return Config{}, &ConfigError{Variable: "CHATCMS_WORKSPACE_HISTORY_DAYS", Reason: reasonInvalid}
 	}
 
 	taps, err := resolve(lookup, "CHATCMS_WORKSPACE_TAPS")

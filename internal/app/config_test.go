@@ -477,6 +477,9 @@ func TestWorkspaceSettingsHaveDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if cfg.HistoryDays != 90 {
+		t.Errorf("HistoryDays = %d, want 90", cfg.HistoryDays)
+	}
 	if cfg.WorkspaceIdle != 15*time.Minute || cfg.WorkspacesAtOnce != 8 || len(cfg.Deprecated) != 0 {
 		t.Errorf("got %v, %d, %v, want 15m, 8 and nothing renamed", cfg.WorkspaceIdle, cfg.WorkspacesAtOnce, cfg.Deprecated)
 	}
@@ -484,15 +487,16 @@ func TestWorkspaceSettingsHaveDefaults(t *testing.T) {
 
 func TestWorkspaceSettingsComeFromTheEnvironment(t *testing.T) {
 	cfg, err := workspaceConfig(t, map[string]string{
-		"CHATCMS_WORKSPACE_IDLE":     "5m",
-		"CHATCMS_WORKSPACES_AT_ONCE": "3",
-		"CHATCMS_PREVIEW_IDLE":       "1h",
-		"CHATCMS_PREVIEWS_AT_ONCE":   "30",
+		"CHATCMS_WORKSPACE_IDLE":         "5m",
+		"CHATCMS_WORKSPACES_AT_ONCE":     "3",
+		"CHATCMS_WORKSPACE_HISTORY_DAYS": "30",
+		"CHATCMS_PREVIEW_IDLE":           "1h",
+		"CHATCMS_PREVIEWS_AT_ONCE":       "30",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.WorkspaceIdle != 5*time.Minute || cfg.WorkspacesAtOnce != 3 || len(cfg.Deprecated) != 0 {
+	if cfg.WorkspaceIdle != 5*time.Minute || cfg.WorkspacesAtOnce != 3 || cfg.HistoryDays != 30 || len(cfg.Deprecated) != 0 {
 		t.Errorf("got %v, %d, %v, want the new names to win", cfg.WorkspaceIdle, cfg.WorkspacesAtOnce, cfg.Deprecated)
 	}
 }
@@ -515,9 +519,10 @@ func TestTheOldPreviewNamesAreStillRead(t *testing.T) {
 
 func TestAnInvalidWorkspaceSettingNamesTheVariableUsed(t *testing.T) {
 	for variable, value := range map[string]string{
-		"CHATCMS_WORKSPACE_IDLE":     "soon",
-		"CHATCMS_WORKSPACES_AT_ONCE": "0",
-		"CHATCMS_PREVIEWS_AT_ONCE":   "many",
+		"CHATCMS_WORKSPACE_IDLE":         "soon",
+		"CHATCMS_WORKSPACES_AT_ONCE":     "0",
+		"CHATCMS_WORKSPACE_HISTORY_DAYS": "forever",
+		"CHATCMS_PREVIEWS_AT_ONCE":       "many",
 	} {
 		_, err := workspaceConfig(t, map[string]string{variable: value})
 		var configErr *ConfigError

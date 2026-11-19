@@ -31,17 +31,22 @@ const (
 )
 
 type Settings struct {
-	Most       int
-	Idle       time.Duration
-	Forget     time.Duration
-	Logger     *slog.Logger
-	RuntimeFor func(ctx context.Context, key Key, dir string) (runtime.Resolved, error)
-	Tokens     Tokens
+	Most        int
+	Idle        time.Duration
+	Forget      time.Duration
+	Logger      *slog.Logger
+	RuntimeFor  func(ctx context.Context, key Key, dir string) (runtime.Resolved, error)
+	Tokens      Tokens
+	History     History
+	HistoryDays int
 }
 
 func (s Settings) withDefaults() Settings {
 	if s.Most <= 0 {
 		s.Most = DefaultMost
+	}
+	if s.HistoryDays <= 0 {
+		s.HistoryDays = DefaultHistoryDays
 	}
 	if s.Idle <= 0 {
 		s.Idle = DefaultIdle
@@ -76,6 +81,7 @@ type live struct {
 	done     chan struct{}
 	progress *progress
 	used     time.Time
+	began    time.Time
 	written  time.Time
 	under    string
 	view     string
@@ -182,19 +188,26 @@ func (w *Workspaces) Run() {
 		defer w.loops.Done()
 		sweep := time.NewTicker(sweepEvery)
 		cleanup := time.NewTicker(cleanupEvery)
+		sample := time.NewTicker(sampleEvery)
 		defer sweep.Stop()
 		defer cleanup.Stop()
+		defer sample.Stop()
 		for {
 			select {
 			case <-w.stop:
 				return
 			case <-sweep.C:
 				w.SweepNow()
+			case <-sample.C:
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				w.SampleNow(ctx)
+				cancel()
 			case <-cleanup.C:
 				ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 				if err := w.CleanupNow(ctx); err != nil {
 					w.settings.Logger.Warn("cleaning up workspaces failed", "error", err)
 				}
+				w.ForgetHistoryNow(ctx)
 				cancel()
 			}
 		}
@@ -278,6 +291,9 @@ func (held *live) changed() bool {
 func (w *Workspaces) begin(ctx context.Context, spec Spec) (*live, error) {
 	now := w.clock()
 	record, err := w.store.Reserve(ctx, spec.Key, w.backend.Name(), w.settings.Most, now)
+	if errors.Is(err, ErrTooMany) {
+		w.record(Event{At: now, Kind: Refused, Backend: w.backend.Name(), Project: spec.Key.Project})
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -297,6 +313,7 @@ func (w *Workspaces) begin(ctx context.Context, spec Spec) (*live, error) {
 		done:     make(chan struct{}),
 		progress: newProgress(),
 		used:     now,
+		began:    now,
 		written:  now,
 		under:    under,
 		view:     view,
@@ -355,6 +372,11 @@ func (w *Workspaces) start(held *live) {
 	w.mu.Unlock()
 
 	held.progress.finish(err != nil)
+	if err == nil {
+		w.record(Event{At: w.clock(), Kind: Started, Backend: w.backend.Name(), Project: held.spec.Key.Project, Millis: int(w.clock().Sub(held.began).Milliseconds())})
+	} else {
+		w.record(Event{At: w.clock(), Kind: Failed, Backend: w.backend.Name(), Project: held.spec.Key.Project, Reason: reasonFor(err) + ": " + firstLine(err.Error(), 200)})
+	}
 	if err != nil {
 		w.revoke(ctx, held.spec.Key)
 		held.progress.logf(err.Error())

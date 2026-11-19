@@ -1,3 +1,4 @@
+import { PlatformWorkspaces } from "./routes/PlatformWorkspaces";
 import { AboutScreen } from "./routes/AboutScreen";
 import { Navigate, Outlet, Route, Routes } from "react-router";
 
@@ -105,6 +106,10 @@ export function App() {
           <Route
             path="/administration/people/:email"
             element={<PlatformAdminPage screen={<AdministeredPersonPage />} />}
+          />
+          <Route
+            path="/administration/workspaces"
+            element={<PlatformAdminPage screen={<PlatformWorkspaces />} />}
           />
           <Route
             path="/administration/history"
