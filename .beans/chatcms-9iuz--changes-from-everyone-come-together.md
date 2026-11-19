@@ -49,6 +49,6 @@ seeing a merge conflict. Publishing stays idiot proof.
   per-person workspace change); the same field changed twice is a plain
   question with no git words, at both widths (e2e 34).
 - The AI can combine two versions of a field (chatcms-izhr, `openspec/changes/archive/2026-11-19-add-ai-combine`).
-- Two people editing different pages are published together: proven by the
-  per-person workspace e2e specs.
+- Two people editing different pages are published together: proven by e2e
+  `40-two-people-one-publish`, added after this epic's changes shipped.
 - Soft page locking, optional here, is left out and filed as chatcms-na8c.
