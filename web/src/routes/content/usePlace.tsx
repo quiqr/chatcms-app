@@ -12,6 +12,7 @@ import { groupTitle } from "./ContentColumn";
 
 export type Place = {
   context?: string;
+  position?: string;
   contextTo?: string;
   backTo?: string;
   backLabel?: string;
@@ -47,6 +48,7 @@ export function usePlace(organisation: string, project: string, page: string): P
       place.context = listing.around
         ? say("editor.place", { collection: listing.title, index: listing.around.index, total: listing.total })
         : listing.title;
+      if (listing.around) place.position = say("editor.position", { index: listing.around.index, total: listing.total });
       if (listing.around?.previous) place.previous = `${base}/${listing.around.previous}${carried(query)}`;
       if (listing.around?.next) place.next = `${base}/${listing.around.next}${carried(query)}`;
     }

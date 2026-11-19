@@ -1,4 +1,5 @@
 import { ChevronLeft } from "lucide-react";
+import { ContentBreadcrumb } from "./content/ContentBreadcrumb";
 import { useState } from "react";
 import { NavLink, useParams } from "react-router";
 
@@ -62,6 +63,7 @@ export function EditorPage() {
           viewer={{ name: who.person.displayName || who.person.email }}
           title={opened ? opened.title : page}
           context={place.context ?? opened?.section}
+          heading={<ContentBreadcrumb project={project.slug} position={place.position} />}
           backTo={place.backTo}
           backLabel={place.backLabel}
           stepper={<Stepper place={place} />}

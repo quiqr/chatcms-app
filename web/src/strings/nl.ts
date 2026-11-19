@@ -10,6 +10,10 @@
 import type { Strings } from "../lib/say";
 
 export const nl: Strings = {
+  "breadcrumb.choose": "Kies een andere plek, nu {item}",
+  "breadcrumb.label": "Waar je bent",
+  "breadcrumb.picker": "Ga naar",
+  "breadcrumb.show-menu": "Toon het volledige inhoudsmenu",
   "refused.could-not-combine": "De assistent kon deze niet combineren. Kies een van de twee.",
   "refused.nothing-to-combine": "Hier staat geen vraag meer over open.",
   "refused.ai-limit-reached": "Je organisatie heeft haar AI-tegoed voorlopig opgebruikt. Kies een van de twee.",
@@ -259,6 +263,7 @@ export const nl: Strings = {
   "content-menu.open": "Inhoudsmenu",
   "content-menu.pages-many": "{count} pagina's",
   "content-menu.pages-one": "1 pagina",
+  "content-menu.show-named": "Toon het inhoudsmenu ({item})",
   "content-menu.show": "Toon het inhoudsmenu",
   "content-menu.waiting": "Wacht op publiceren",
   "content.cancel": "Annuleren",
@@ -300,6 +305,7 @@ export const nl: Strings = {
   "editor.back-to": "Terug naar {collection}",
   "editor.next": "Volgende",
   "editor.place": "{collection} · {index} van {total}",
+  "editor.position": "{index} van {total}",
   "editor.previous": "Vorige",
   "editor.show-on-website": "Tonen op de website",
   "editor.show-on-website-hint": "Staat dit uit, dan blijft de pagina van de website af.",

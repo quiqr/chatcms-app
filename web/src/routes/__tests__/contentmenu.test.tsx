@@ -7,7 +7,8 @@ import { fill } from "./fill";
 import { Inside } from "./here";
 import { setWidth } from "./width";
 import { CollectionView } from "../content/CollectionView";
-import { ContentColumn } from "../content/ContentColumn";
+import { ContentBreadcrumb } from "../content/ContentBreadcrumb";
+import { ContentColumn, showContentMenu } from "../content/ContentColumn";
 import { ContentBeside, ContentScreen } from "../content/ContentScreen";
 import { QuickFind } from "../content/QuickFind";
 import { Stepper, usePlace } from "../content/usePlace";
@@ -400,7 +401,7 @@ describe("the content column beside the editor", () => {
 
     editor();
     expect(panel()).toHaveAttribute("data-folded", "true");
-    await user.click(screen.getByRole("button", { name: "Show the content menu" }));
+    await user.click(screen.getByRole("button", { name: /^Show the content menu/ }));
     expect(panel()).toHaveAttribute("data-folded", "false");
     expect(await screen.findByRole("navigation", { name: "Content" })).toBeInTheDocument();
   });
@@ -534,5 +535,158 @@ describe("narrower screens", () => {
     expect(await screen.findByRole("heading", { name: "Posts", level: 2 })).toBeInTheDocument();
     expect(screen.queryByText("Published")).toBeNull();
     expect(screen.getByRole("link", { name: "Back to the content menu" })).toBeInTheDocument();
+  });
+});
+
+describe("the folded strip", () => {
+  function folded() {
+    window.localStorage.setItem("chatcms.content.folded.person-1", "true");
+    return at("/o/technative/p/journal/content/c/posts", <Route path="/o/:organisation/p/:project/*" element={<ContentBeside />} />);
+  }
+  const panel = () => document.querySelector("[data-panel='content']")!;
+
+  it("is one button that names where you are, with the count and a dot for what waits", async () => {
+    serve({ [`${base}/content-menu`]: { body: theMenu } });
+    folded();
+    const strip = await screen.findByRole("button", { name: "Show the content menu (Posts)" });
+    expect(strip).toHaveAttribute("data-strip", "content");
+    expect(strip.querySelector("[data-strip-title]")).toHaveTextContent("Posts");
+    expect(strip).toHaveTextContent("48");
+    expect(within(strip).getByRole("img", { name: "Waiting to be published" })).toBeInTheDocument();
+  });
+
+  it("has no dot when nothing waits", async () => {
+    const quiet = { ...theMenu, groups: theMenu.groups.map((group) => ({ ...group, items: group.items.map((entry) => ({ ...entry, hasChanges: false })) })) };
+    serve({ [`${base}/content-menu`]: { body: quiet } });
+    folded();
+    await screen.findByRole("button", { name: "Show the content menu (Posts)" });
+    expect(document.querySelector("[data-strip-dot]")).toBeNull();
+  });
+
+  it("unfolds when asked from elsewhere, and stays unfolded", async () => {
+    serve({ [`${base}/content-menu`]: { body: theMenu } });
+    const first = folded();
+    expect(panel()).toHaveAttribute("data-folded", "true");
+    act(() => showContentMenu());
+    expect(panel()).toHaveAttribute("data-folded", "false");
+    first.unmount();
+    at("/o/technative/p/journal/content/c/posts", <Route path="/o/:organisation/p/:project/*" element={<ContentBeside />} />);
+    expect(panel()).toHaveAttribute("data-folded", "false");
+  });
+});
+
+describe("the location picker", () => {
+  const many = {
+    groups: [
+      ...theMenu.groups,
+      {
+        key: "archive",
+        title: "Archive",
+        items: Array.from({ length: 9 }, (_, n) => ({ key: `year-${n}`, kind: "collection", title: `Year ${n}`, itemName: "post", count: n, hasChanges: false })),
+      },
+    ],
+    totals: { singles: 1, collections: 11 },
+    fallback: false,
+  };
+
+  function picker(path = "/o/technative/p/journal/content/c/posts") {
+    window.localStorage.setItem("chatcms.content.folded.person-1", "true");
+    return at(
+      path,
+      <Route
+        path="/o/:organisation/p/:project/*"
+        element={
+          <>
+            <ContentBeside />
+            <ContentBreadcrumb project="journal" position="3 of 48" />
+          </>
+        }
+      />,
+    );
+  }
+  const panel = () => document.querySelector("[data-panel='content']")!;
+  const trigger = () => screen.findByRole("button", { name: "Choose another place, now Posts" });
+
+  it("says where you are and switches while the column stays folded", async () => {
+    serve({ [`${base}/content-menu`]: { body: theMenu } });
+    const user = userEvent.setup();
+    picker();
+    const where = screen.getByRole("navigation", { name: "Where you are" });
+    await waitFor(() => expect(where).toHaveTextContent("Content/Journal/Posts· 3 of 48"));
+
+    const opener = await trigger();
+    expect(opener).toHaveAttribute("aria-expanded", "false");
+    await user.click(opener);
+    expect(opener).toHaveAttribute("aria-expanded", "true");
+    const dialog = await screen.findByRole("dialog", { name: "Go to" });
+    expect(within(dialog).getByRole("button", { name: /Posts/ })).toHaveAttribute("aria-current", "page");
+    await user.click(within(dialog).getByRole("button", { name: /Team/ }));
+
+    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/content/c/team"));
+    expect(screen.queryByRole("dialog", { name: "Go to" })).toBeNull();
+    expect(panel()).toHaveAttribute("data-folded", "true");
+  });
+
+  it("shows a large group as its label and count until opened", async () => {
+    serve({ [`${base}/content-menu`]: { body: many } });
+    const user = userEvent.setup();
+    picker();
+    await user.click(await trigger());
+    const dialog = await screen.findByRole("dialog", { name: "Go to" });
+    const label = within(dialog).getByRole("button", { name: /Archive/ });
+    expect(label).toHaveTextContent("9");
+    expect(label).toHaveAttribute("aria-expanded", "false");
+    expect(within(dialog).queryByRole("button", { name: /Year 0/ })).toBeNull();
+    await user.click(label);
+    expect(within(dialog).getAllByRole("button", { name: /Year \d/ })).toHaveLength(9);
+  });
+
+  it("finds what quick find finds", async () => {
+    serve({
+      [`${base}/content-menu`]: { body: theMenu },
+      [`${base}/search`]: { body: { groups: [{ title: "Posts", items: [{ key: "posts/spring-sale", title: "Spring sale", kind: "item" }] }] } },
+    });
+    const user = userEvent.setup();
+    picker();
+    await user.click(await trigger());
+    await user.type(await screen.findByRole("searchbox", { name: "Title" }), "spring");
+    await user.click(await screen.findByRole("button", { name: "Spring sale" }));
+    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/content/posts/spring-sale"));
+  });
+
+  it("unfolds the column from its footer", async () => {
+    serve({ [`${base}/content-menu`]: { body: theMenu } });
+    const user = userEvent.setup();
+    picker();
+    await user.click(await trigger());
+    await user.click(await screen.findByRole("button", { name: "Show the full content menu" }));
+    expect(panel()).toHaveAttribute("data-folded", "false");
+    expect(screen.queryByRole("dialog", { name: "Go to" })).toBeNull();
+  });
+
+  it("works by keyboard alone", async () => {
+    serve({ [`${base}/content-menu`]: { body: theMenu } });
+    const user = userEvent.setup();
+    picker();
+    const opener = await trigger();
+    opener.focus();
+    await user.keyboard("{Enter}");
+    const dialog = await screen.findByRole("dialog", { name: "Go to" });
+    await waitFor(() => expect(within(dialog).getByRole("searchbox", { name: "Title" })).toHaveFocus());
+    await user.keyboard("{ArrowDown}");
+    expect(within(dialog).getByRole("button", { name: /Home/ })).toHaveFocus();
+    await user.keyboard("{ArrowDown}");
+    expect(within(dialog).getByRole("button", { name: /Posts/ })).toHaveFocus();
+    await user.keyboard("{ArrowUp}");
+    expect(within(dialog).getByRole("button", { name: /Home/ })).toHaveFocus();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Go to" })).toBeNull());
+    expect(opener).toHaveFocus();
+    expect(opener).toHaveAttribute("aria-expanded", "false");
+
+    await user.keyboard("{Enter}");
+    await screen.findByRole("dialog", { name: "Go to" });
+    await user.keyboard("{ArrowDown}{Enter}");
+    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/content/home"));
   });
 });

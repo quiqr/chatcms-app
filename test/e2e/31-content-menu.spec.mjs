@@ -47,7 +47,7 @@ test("the content menu, a collection and the editor work together", async ({ sig
   await test.step("3. an open item knows its place and steps through the list", async () => {
     await page.getByRole("link", { name: "Autumn walk", exact: true }).click();
     await page.waitForURL(/\/content\/posts\/autumn\?sort=title$/);
-    await expect(page.getByText("Posts · 1 of 2").first()).toBeVisible();
+    await expect(phone ? page.getByText("Posts · 1 of 2").first() : page.getByRole("navigation", { name: "Where you are" })).toContainText(phone ? "Posts · 1 of 2" : "Posts· 1 of 2");
     if (!phone) {
       await expect(page.getByRole("navigation", { name: "Content" }).getByRole("link", { name: /Posts/ })).toHaveAttribute(
         "aria-current",
@@ -56,7 +56,7 @@ test("the content menu, a collection and the editor work together", async ({ sig
     }
     await page.getByRole("link", { name: "Next" }).first().click();
     await page.waitForURL(/\/content\/posts\/2024\/spring-sale\?sort=title$/);
-    await expect(page.getByText("Posts · 2 of 2").first()).toBeVisible();
+    await expect(phone ? page.getByText("Posts · 2 of 2").first() : page.getByRole("navigation", { name: "Where you are" })).toContainText(phone ? "Posts · 2 of 2" : "Posts· 2 of 2");
     await expect(page.getByRole("button", { name: "Next" }).first()).toBeDisabled();
     await worksOnAPhone(page, testInfo);
   });

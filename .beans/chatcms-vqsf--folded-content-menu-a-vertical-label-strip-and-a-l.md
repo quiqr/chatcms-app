@@ -1,11 +1,11 @@
 ---
 # chatcms-vqsf
 title: 'Folded content menu: a vertical label strip and a location picker'
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-11-18T15:04:32Z
-updated_at: 2026-11-18T15:04:32Z
+updated_at: 2026-11-19T14:28:51Z
 parent: chatcms-iqog
 ---
 

@@ -7,6 +7,10 @@
  * them reads them in the order they appear.
  */
 export const en = {
+  "breadcrumb.choose": "Choose another place, now {item}",
+  "breadcrumb.label": "Where you are",
+  "breadcrumb.picker": "Go to",
+  "breadcrumb.show-menu": "Show the full content menu",
   "refused.could-not-combine": "The assistant could not combine these. Choose one of the two.",
   "refused.nothing-to-combine": "There is no open question about this any more.",
   "refused.ai-limit-reached": "Your organisation has used its AI allowance for now. Choose one of the two.",
@@ -256,6 +260,7 @@ export const en = {
   "content-menu.open": "Content menu",
   "content-menu.pages-many": "{count} pages",
   "content-menu.pages-one": "1 page",
+  "content-menu.show-named": "Show the content menu ({item})",
   "content-menu.show": "Show the content menu",
   "content-menu.waiting": "Waiting to be published",
   "content.cancel": "Cancel",
@@ -297,6 +302,7 @@ export const en = {
   "editor.back-to": "Back to {collection}",
   "editor.next": "Next",
   "editor.place": "{collection} · {index} of {total}",
+  "editor.position": "{index} of {total}",
   "editor.previous": "Previous",
   "editor.show-on-website": "Show on website",
   "editor.show-on-website-hint": "When this is off, the page stays off the website.",

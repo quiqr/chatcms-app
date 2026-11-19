@@ -22,11 +22,31 @@ export function groupTitle(menu: ContentMenu, group: MenuGroup) {
   return group.key === "collections" ? say("content.collections") : say("content.pages");
 }
 
+const showing = "chatcms:show-content-menu";
+
+export function showContentMenu() {
+  window.dispatchEvent(new Event(showing));
+}
+
+export function whenAskedToShow(then: () => void) {
+  window.addEventListener(showing, then);
+  return () => window.removeEventListener(showing, then);
+}
+
+export function currentEntry(menu: ContentMenu, pathname: string, base: string) {
+  for (const group of menu.groups) {
+    for (const entry of group.items) {
+      if (isCurrent(pathname, base, entry)) return { group, entry };
+    }
+  }
+  return null;
+}
+
 export function foldedKey(person: string, project: string) {
   return `chatcms.content.groups.${person}.${project}`;
 }
 
-function isCurrent(pathname: string, base: string, entry: MenuEntry) {
+export function isCurrent(pathname: string, base: string, entry: MenuEntry) {
   if (entry.kind === "collection") {
     const collection = `${base}/c/${entry.key}`;
     const itemOf = `${base}/${entry.key}/`;

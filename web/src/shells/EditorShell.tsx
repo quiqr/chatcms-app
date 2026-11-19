@@ -23,6 +23,7 @@ export type EditorShellProps = {
   viewer: { name: string };
   title: string;
   context?: ReactNode;
+  heading?: ReactNode;
   backTo?: string;
   backLabel?: string;
   stepper?: ReactNode;
@@ -39,6 +40,7 @@ export function EditorShell({
   viewer,
   title,
   context,
+  heading,
   backTo,
   backLabel,
   stepper,
@@ -79,7 +81,7 @@ export function EditorShell({
             </NavLink>
           </Button>
           <div className="flex min-w-0 flex-1 flex-col">
-            {context && <p className="truncate text-[13px] text-subtle-foreground">{context}</p>}
+            {heading ?? (context && <p className="truncate text-[13px] text-subtle-foreground">{context}</p>)}
             <h1 className="truncate text-lg font-semibold">{title}</h1>
           </div>
           {stepper}

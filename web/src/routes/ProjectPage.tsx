@@ -16,12 +16,14 @@ export function ProjectPage({
   title,
   body,
   beside,
+  heading,
 }: {
   // A key rather than a sentence: a route is declared once, and the
   // language can change after that.
   title: Key;
   body?: ReactNode;
   beside?: ReactNode;
+  heading?: ReactNode;
 }) {
   const { organisation, who } = useHere();
   const { project: slug = "" } = useParams();
@@ -59,7 +61,7 @@ export function ProjectPage({
   }
 
   return (
-    <ProjectShell project={project} viewer={viewer} title={said} beside={beside}>
+    <ProjectShell project={project} viewer={viewer} title={said} heading={heading} beside={beside}>
       {content}
     </ProjectShell>
   );

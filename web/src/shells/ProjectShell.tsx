@@ -16,6 +16,7 @@ export type ProjectShellProps = {
   project: Project;
   viewer: { name: string; role: string };
   title: ReactNode;
+  heading?: ReactNode;
   actions?: ReactNode;
   syncState?: SyncState;
   beside?: ReactNode;
@@ -26,6 +27,7 @@ export function ProjectShell({
   project,
   viewer,
   title,
+  heading,
   actions,
   syncState = "saved",
   beside,
@@ -39,7 +41,11 @@ export function ProjectShell({
 
       <div className="flex min-h-0 min-w-0 shrink grow-[999] basis-[560px] flex-col">
         <TopBar viewer={{ name: viewer.name, role: named(viewer.role) }} className="shrink-0 px-8">
-          <h1 className="flex-1 text-lg font-semibold">{title}</h1>
+          {heading ? (
+            <div className="flex min-w-0 flex-1 items-center">{heading}</div>
+          ) : (
+            <h1 className="flex-1 text-lg font-semibold">{title}</h1>
+          )}
           <SyncIndicator state={syncState} />
           {actions}
           <Button asChild count={project.unpublished}>
