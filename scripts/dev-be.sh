@@ -150,6 +150,18 @@ if [ "${CHATCMS_DEV_BACKEND:-local}" = "microvm" ]; then
     ai_listen="${CHATCMS_AI_LISTEN:-0.0.0.0:$ai_port}"
     backend_said="microvm: one micro VM per person per project, $taps at once (chv0..chv$((taps - 1)))"
 fi
+if [ "${CHATCMS_DEV_BACKEND:-local}" = "gvisor" ]; then
+    echo "==> building the relay and finding gVisor"
+    relay="$(nix build --no-link --print-out-paths .#chatcms-relay)"
+    runsc="$(nix build --no-link --print-out-paths .#gvisor)"
+    sandboxed="$(nix build --no-link --print-out-paths .#opencode-sandboxed)"
+    export CHATCMS_WORKSPACE_BACKEND=gvisor
+    export CHATCMS_RUNSC="$runsc/bin/runsc"
+    export CHATCMS_RELAY="$relay/bin/chatcms-relay"
+    export CHATCMS_OPENCODE_BIN="$sandboxed/bin/opencode"
+    export CHATCMS_WORKSPACE_STATE="$state/w"
+    backend_said="gvisor: one gVisor sandbox per person per project, rootless and without network"
+fi
 
 quarto_said="off (CHATCMS_DEV_QUARTO=0)"
 if [ "${CHATCMS_DEV_QUARTO:-1}" != "0" ] && [ -z "${CHATCMS_PACKAGES:-}" ]; then

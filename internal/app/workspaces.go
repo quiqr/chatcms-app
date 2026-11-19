@@ -16,6 +16,7 @@ import (
 	"github.com/quiqr/chatcms-app/internal/runtime"
 	"github.com/quiqr/chatcms-app/internal/tenancy"
 	"github.com/quiqr/chatcms-app/internal/workspace"
+	"github.com/quiqr/chatcms-app/internal/workspace/gvisor"
 	"github.com/quiqr/chatcms-app/internal/workspace/local"
 	"github.com/quiqr/chatcms-app/internal/workspace/microvm"
 )
@@ -68,6 +69,20 @@ func mayStillUse(sources publishSources, people *tenancy.Store) workspace.Allowe
 }
 
 func (s *Server) workspaceBackend() (workspace.Backend, error) {
+	if s.cfg.WorkspaceBackend == "gvisor" {
+		gateway := ""
+		if s.aiListener != nil {
+			gateway = s.aiListener.Addr().String()
+		}
+		return gvisor.New(gvisor.Settings{
+			Runsc:    s.cfg.Runsc,
+			Relay:    s.cfg.RelayBin,
+			OpenCode: s.cfg.OpenCodeBin,
+			HugoBin:  s.cfg.HugoBin,
+			State:    s.cfg.WorkspaceState,
+			Gateway:  gateway,
+		})
+	}
 	if s.cfg.WorkspaceBackend != "microvm" {
 		gateway := ""
 		if s.aiListener != nil {

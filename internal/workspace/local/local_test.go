@@ -212,8 +212,8 @@ func TestBrowserPort(t *testing.T) {
 		"http://x:nope/":                 0,
 		"::":                             0,
 	} {
-		if got := browserPort(under); got != want {
-			t.Errorf("browserPort(%q) = %d, want %d", under, got, want)
+		if got := workspace.BrowserPort(under); got != want {
+			t.Errorf("workspace.BrowserPort(%q) = %d, want %d", under, got, want)
 		}
 	}
 }

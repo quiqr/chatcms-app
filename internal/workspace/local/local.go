@@ -7,7 +7,6 @@ import (
 	"io"
 	"maps"
 	"net"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -92,7 +91,7 @@ func (b *Backend) Start(ctx context.Context, spec workspace.Spec, log io.Writer)
 		"{source}": spec.Dir,
 		"{cache}":  cache,
 	}
-	if browser := browserPort(spec.Under); browser > 0 {
+	if browser := workspace.BrowserPort(spec.Under); browser > 0 {
 		values["{reload}"] = strconv.Itoa(browser)
 	}
 
@@ -285,27 +284,6 @@ func waitFor(ctx context.Context, endpoint workspace.Endpoint, within time.Durat
 		time.Sleep(100 * time.Millisecond)
 	}
 	return workspace.ErrNotReady
-}
-
-func browserPort(under string) int {
-	where, err := url.Parse(under)
-	if err != nil {
-		return 0
-	}
-	if named := where.Port(); named != "" {
-		if port, err := strconv.Atoi(named); err == nil {
-			return port
-		}
-		return 0
-	}
-	switch where.Scheme {
-	case "https":
-		return 443
-	case "http":
-		return 80
-	default:
-		return 0
-	}
 }
 
 func freePort() (int, error) {

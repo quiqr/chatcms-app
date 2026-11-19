@@ -50,6 +50,9 @@ type Config struct {
 	WorkspacesAtOnce int
 	WorkspaceBackend string
 	WorkspaceGuest   string
+	Runsc            string
+	RelayBin         string
+	WorkspaceState   string
 	WorkspaceRunDir  string
 	WorkspaceTaps    int
 	CloudHypervisor  string
@@ -125,6 +128,9 @@ func LoadConfig(lookup Lookup) (Config, error) {
 		{"CHATCMS_MAIL_STARTTLS", &cfg.MailStartTLS, "yes", false},
 		{"CHATCMS_WORKSPACE_BACKEND", &cfg.WorkspaceBackend, "local", false},
 		{"CHATCMS_WORKSPACE_GUEST", &cfg.WorkspaceGuest, "", false},
+		{"CHATCMS_RUNSC", &cfg.Runsc, "runsc", false},
+		{"CHATCMS_RELAY", &cfg.RelayBin, "", false},
+		{"CHATCMS_WORKSPACE_STATE", &cfg.WorkspaceState, "", false},
 		{"CHATCMS_WORKSPACE_RUN_DIR", &cfg.WorkspaceRunDir, "/run/chatcms/w", false},
 		{"CHATCMS_CLOUD_HYPERVISOR_BIN", &cfg.CloudHypervisor, "cloud-hypervisor", false},
 		{"CHATCMS_VIRTIOFSD_BIN", &cfg.VirtiofsdBin, "virtiofsd", false},
@@ -263,6 +269,13 @@ func LoadConfig(lookup Lookup) (Config, error) {
 	case "microvm":
 		if cfg.WorkspaceGuest == "" {
 			return Config{}, &ConfigError{Variable: "CHATCMS_WORKSPACE_GUEST", Reason: reasonMissing}
+		}
+	case "gvisor":
+		if cfg.RelayBin == "" {
+			return Config{}, &ConfigError{Variable: "CHATCMS_RELAY", Reason: reasonMissing}
+		}
+		if cfg.WorkspaceState == "" {
+			cfg.WorkspaceState = filepath.Join(cfg.StateDir, "w")
 		}
 	default:
 		return Config{}, &ConfigError{Variable: "CHATCMS_WORKSPACE_BACKEND", Reason: reasonInvalid}

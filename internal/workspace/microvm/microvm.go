@@ -2,13 +2,11 @@ package microvm
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,7 +16,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/quiqr/chatcms-app/internal/runtime"
 	"github.com/quiqr/chatcms-app/internal/workspace"
 )
 
@@ -33,7 +30,7 @@ const (
 
 var (
 	ErrIncomplete = errors.New("microvm: the backend is missing a part it needs")
-	ErrNoHugo     = errors.New("microvm: the preview's program is not in the package store, so the VM cannot see it")
+	ErrNoHugo     = workspace.ErrNotInStore
 	ErrTooLong    = errors.New("microvm: the preview command is too long to give a VM")
 )
 
@@ -167,78 +164,18 @@ func (b *Backend) Free() int {
 }
 
 func (b *Backend) inStore(path string) (string, error) {
-	if !filepath.IsAbs(path) {
-		found, err := exec.LookPath(path)
-		if err != nil {
-			return "", fmt.Errorf("%w: %v", ErrNoHugo, err)
-		}
-		path = found
-	}
-	real, err := filepath.EvalSymlinks(path)
-	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrNoHugo, err)
-	}
-	if !strings.HasPrefix(real, b.settings.Store+"/") {
-		return "", fmt.Errorf("%w: %s", ErrNoHugo, real)
-	}
-	return real, nil
+	return workspace.InStore(path, b.settings.Store)
 }
 
 func (b *Backend) run(spec workspace.Spec) (string, error) {
-	resolved := spec.Run
-	if resolved.Preview.Program == "" {
-		if b.settings.HugoBin == "" {
-			return "", ErrNoHugo
-		}
-		hugo, err := b.inStore(b.settings.HugoBin)
-		if err != nil {
-			return "", err
-		}
-		resolved, err = runtime.Resolver{InstalledHugo: hugo, Exists: func(string) bool { return true }}.Resolve(context.Background(), runtime.Default(""), false)
-		if err != nil {
-			return "", err
-		}
-	}
-	program, err := b.inStore(resolved.Preview.Program)
-	if err != nil {
-		return "", err
-	}
-	path := make([]string, 0, len(resolved.Path))
-	for _, dir := range resolved.Path {
-		real, err := filepath.EvalSymlinks(dir)
-		if err != nil || !strings.HasPrefix(real, b.settings.Store+"/") {
-			return "", fmt.Errorf("%w: %s", ErrNoHugo, dir)
-		}
-		path = append(path, real)
-	}
-
-	values := map[string]string{
-		"{host}":   "0.0.0.0",
-		"{port}":   strconv.Itoa(b.settings.Port),
-		"{url}":    spec.Under,
-		"{source}": "/site",
-		"{cache}":  "/run/preview/cache",
-	}
-	if port := browserPort(spec.Under); port > 0 {
-		values["{reload}"] = strconv.Itoa(port)
-	}
-	env := map[string]string{}
-	for name, value := range resolved.Env {
-		real, err := b.inStore(value)
-		if err != nil {
-			return "", err
-		}
-		env[name] = real
-	}
-	data, err := json.Marshal(map[string]any{
-		"cmd":  append([]string{program}, runtime.Fill(resolved.Preview.Args, values)...),
-		"path": path,
-		"env":  env,
+	return workspace.EncodeRun(spec, workspace.RunOptions{
+		HugoBin: b.settings.HugoBin,
+		Store:   b.settings.Store,
+		Host:    "0.0.0.0",
+		Port:    b.settings.Port,
+		Source:  "/site",
+		Cache:   "/run/preview/cache",
 	})
-	if err != nil {
-		return "", err
-	}
-	return base64.RawURLEncoding.EncodeToString(data), nil
 }
 
 func (b *Backend) Cmdline(slot int, run, under, token string) string {
@@ -569,27 +506,6 @@ func lastLines(path string, count int) string {
 		lines = lines[len(lines)-count:]
 	}
 	return strings.Join(lines, "\n")
-}
-
-func browserPort(under string) int {
-	where, err := url.Parse(under)
-	if err != nil {
-		return 0
-	}
-	if named := where.Port(); named != "" {
-		if port, err := strconv.Atoi(named); err == nil {
-			return port
-		}
-		return 0
-	}
-	switch where.Scheme {
-	case "https":
-		return 443
-	case "http":
-		return 80
-	default:
-		return 0
-	}
 }
 
 var _ workspace.Backend = (*Backend)(nil)

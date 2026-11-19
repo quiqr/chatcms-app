@@ -129,6 +129,17 @@
       workflowTools = pkgs: nixpkgs.lib.concatStringsSep ":"
         (map (tool: "${tool}/bin") (workflowToolPackages pkgs));
 
+      mkRelay = { pkgs, ... }: pkgs.buildGoModule {
+        pname = "chatcms-relay";
+        inherit version vendorHash;
+        src = goSource;
+        subPackages = [ "cmd/chatcms-relay" ];
+        doCheck = false;
+        env.CGO_ENABLED = 0;
+        ldflags = [ "-s" "-w" ];
+        meta.mainProgram = "chatcms-relay";
+      };
+
       mkGoTests = { pkgs, ... }@args: (mkServer args).overrideAttrs (old: {
         pname = "chatcmsd-tests";
         subPackages = null;
@@ -304,6 +315,16 @@
       };
       opencodeFor = system: nixpkgs-opencode.legacyPackages.${system}.opencode;
 
+      opencodeSandboxedFor = system:
+        let
+          from = nixpkgs-opencode.legacyPackages.${system};
+          opencode = opencodeFor system;
+        in
+        from.writeShellScriptBin "opencode" ''
+          export PATH=${from.ripgrep}/bin''${PATH:+:$PATH}
+          exec ${from.stdenv.cc.bintools.dynamicLinker} ${opencode}/bin/.opencode-wrapped "$@"
+        '';
+
       mkWorkspaceGuest = { pkgs, system, ... }:
         let
           guest = nixpkgs.lib.nixosSystem {
@@ -330,6 +351,9 @@
       } // nixpkgs.lib.optionalAttrs (args.system == "x86_64-linux" || args.system == "aarch64-linux") {
         workspace-guest = mkWorkspaceGuest args;
         opencode = opencodeFor args.system;
+        chatcms-relay = mkRelay args;
+        opencode-sandboxed = opencodeSandboxedFor args.system;
+        gvisor = args.pkgs.gvisor;
       });
 
       devShells = forAllSystems (args: {
@@ -349,6 +373,7 @@
         # A virtual machine can only be booted on Linux, so this check exists
         # there and not on a Mac, where the rest still runs.
         nixos-vm = import ./nix/vm-test.nix { inherit self pkgs; };
+        nixos-vm-gvisor = import ./nix/vm-test-gvisor.nix { inherit self pkgs; };
         e2e = import ./nix/e2e.nix { inherit self pkgs system; };
         workspace-guest = mkWorkspaceGuest args;
       });

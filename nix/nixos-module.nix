@@ -5,6 +5,7 @@ let
   cfg = config.services.chatcms;
   system = pkgs.stdenv.hostPlatform.system;
   microvm = cfg.workspaceBackend == "microvm";
+  gvisor = cfg.workspaceBackend == "gvisor";
   aiOn = cfg.ai.providerUrl != null;
   taps = lib.range 0 (cfg.workspacesAtOnce - 1);
   tapsUp = pkgs.writeShellScript "chatcms-taps-up" ''
@@ -297,14 +298,16 @@ in
     };
 
     workspaceBackend = lib.mkOption {
-      type = lib.types.enum [ "local" "microvm" ];
+      type = lib.types.enum [ "local" "microvm" "gvisor" ];
       default = "local";
       description = ''
         Where workspaces run. `local` runs each preview as a process of the
         server. `microvm` runs each in a Cloud Hypervisor micro VM of its own,
         which needs KVM; the module then makes a TAP device and an address per
         workspace and a firewall table that lets the VMs reach nothing but the
-        host.
+        host. `gvisor` runs each in a gVisor sandbox of its own, rootless and
+        without network, on any host without KVM; the preview, the agent and
+        the AI gateway are reached through Unix sockets only.
       '';
     };
 
@@ -462,12 +465,19 @@ in
         CHATCMS_VIRTIOFSD_BIN = "${pkgs.virtiofsd}/bin/virtiofsd";
         CHATCMS_WORKSPACE_TAPS = toString cfg.workspacesAtOnce;
         CHATCMS_WORKSPACE_RUN_DIR = "/run/chatcms/w";
+      } // lib.optionalAttrs gvisor {
+        CHATCMS_RUNSC = "${pkgs.gvisor}/bin/runsc";
+        CHATCMS_RELAY = "${self.packages.${system}.chatcms-relay}/bin/chatcms-relay";
+        CHATCMS_WORKSPACE_STATE = "${cfg.stateDir}/w";
       } // lib.optionalAttrs aiOn {
         CHATCMS_AI_PROVIDER_URL = cfg.ai.providerUrl;
         CHATCMS_AI_MODEL = cfg.ai.model;
         CHATCMS_AI_KEY_FILE = "%d/ai-key";
         CHATCMS_AI_LISTEN = "${if microvm then "0.0.0.0" else "127.0.0.1"}:${toString cfg.ai.port}";
-        CHATCMS_OPENCODE_BIN = "${self.packages.${system}.opencode}/bin/opencode";
+        CHATCMS_OPENCODE_BIN =
+          if gvisor
+          then "${self.packages.${system}.opencode-sandboxed}/bin/opencode"
+          else "${self.packages.${system}.opencode}/bin/opencode";
       } // lib.optionalAttrs (aiOn && cfg.ai.sessionHeader != null) {
         CHATCMS_AI_SESSION_HEADER = cfg.ai.sessionHeader;
       } // lib.optionalAttrs (cfg.firstAdministrator != null) {
