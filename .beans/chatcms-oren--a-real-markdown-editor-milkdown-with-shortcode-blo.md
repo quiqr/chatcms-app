@@ -1,12 +1,12 @@
 ---
 # chatcms-oren
 title: 'A real Markdown editor: Milkdown with shortcode blocks'
-status: in-progress
+status: completed
 type: epic
 priority: high
 created_at: 2026-11-18T12:37:26Z
-updated_at: 2026-11-19T20:00:00Z
-openspec-link: openspec/changes/archive/2026-11-19-markdown-editor
+updated_at: 2026-11-19T22:00:00Z
+openspec-link: openspec/changes/archive/2026-11-19-declared-shortcodes
 parent: chatcms-iqog
 ---
 
@@ -62,3 +62,16 @@ syntax layer.
 - `docs/design/DESIGN.md` section 5.6
 - Source notes: `content/quiqr_chatcms__markdown_editor.md` in the second
   brain, decision of 18 November 2026.
+
+## Summary of Changes
+
+- `markdown-editor` (openspec/changes/archive/2026-11-19-markdown-editor):
+  Milkdown replaces the textarea; an edit rewrites only the blocks it
+  touched, so untouched text is written back byte for byte; shortcodes are
+  locked blocks; a Markdown view shows exactly what is saved.
+- `declared-shortcodes` (openspec/changes/archive/2026-11-19-declared-shortcodes):
+  shortcodes declared in the Quiqr model open a form, picture included, and
+  are inserted from the toolbar; only changed parameters are rewritten; the
+  syntax is a dialect that follows the runtime (Hugo edits, Quarto locks).
+- Follow-ups: Quarto, Liquid and MDX dialects with forms; list fields in
+  shortcodes; thumbnails through the app (chatcms-u5zn).
