@@ -37,3 +37,26 @@ export function scaleFor(pointsWide: number, room: number, fit: boolean): number
   if (!fit || pointsWide <= 0) return ownSize;
   return Math.min(ownSize, Math.max(0.1, (room - margin) / pointsWide));
 }
+
+export const zoomSteps = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
+
+export function nextZoom(scale: number, direction: 1 | -1): number {
+  const ratio = scale / ownSize;
+  const larger = zoomSteps.filter((one) => one > ratio + 0.001);
+  const smaller = zoomSteps.filter((one) => one < ratio - 0.001);
+  const step = direction === 1 ? (larger[0] ?? Math.max(...zoomSteps)) : (smaller[smaller.length - 1] ?? Math.min(...zoomSteps));
+  return step * ownSize;
+}
+
+export function percentOf(scale: number): number {
+  return Math.round((scale / ownSize) * 100);
+}
+
+export function pageWithin(asked: number, total: number): number {
+  if (!Number.isFinite(asked)) return 1;
+  return Math.min(total, Math.max(1, Math.round(asked)));
+}
+
+export function languageOf(location: Location): "en" | "nl" {
+  return new URLSearchParams(location.search).get("lang") === "nl" ? "nl" : "en";
+}

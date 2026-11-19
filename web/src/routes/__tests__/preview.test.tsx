@@ -145,7 +145,7 @@ describe("a preview from its own origin", () => {
 
     render(<Preview organisation="technative" project="korenaar" page="posts/one" />);
 
-    expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "https://preview.example/v/k1/__chatcms/pdf/?file=report.pdf");
+    expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "https://preview.example/v/k1/__chatcms/pdf/?file=report.pdf&lang=en");
   });
 
   it("asks a PDF to fit the width of a phone", async () => {
@@ -154,7 +154,7 @@ describe("a preview from its own origin", () => {
 
     render(<Preview organisation="technative" project="korenaar" page="posts/one" />);
 
-    expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "https://preview.example/v/k1/__chatcms/pdf/?file=report.pdf&fit=width");
+    expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "https://preview.example/v/k1/__chatcms/pdf/?file=report.pdf&fit=width&lang=en");
     setWidth(1440);
   });
 

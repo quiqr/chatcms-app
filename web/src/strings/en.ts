@@ -7,10 +7,6 @@
  * them reads them in the order they appear.
  */
 export const en = {
-  "breadcrumb.choose": "Choose another place, now {item}",
-  "breadcrumb.label": "Where you are",
-  "breadcrumb.picker": "Go to",
-  "breadcrumb.show-menu": "Show the full content menu",
   "refused.could-not-combine": "The assistant could not combine these. Choose one of the two.",
   "refused.nothing-to-combine": "There is no open question about this any more.",
   "refused.ai-limit-reached": "Your organisation has used its AI allowance for now. Choose one of the two.",
@@ -263,6 +259,10 @@ export const en = {
   "content-menu.show-named": "Show the content menu ({item})",
   "content-menu.show": "Show the content menu",
   "content-menu.waiting": "Waiting to be published",
+  "breadcrumb.choose": "Choose another place, now {item}",
+  "breadcrumb.label": "Where you are",
+  "breadcrumb.picker": "Go to",
+  "breadcrumb.show-menu": "Show the full content menu",
   "content.cancel": "Cancel",
   "content.collections": "Collections",
   "content.it-will-go-from-your-site": "It will go from your site the next time you publish. Until then nothing changes for anybody reading it, and you can bring it back from your history.",
@@ -668,6 +668,18 @@ export const en = {
   "preferences.whichever-your-browser-asks-for": "Whichever language your browser asks for.",
 
   // preview
+  "pdf.contents": "Contents",
+  "pdf.contents-close": "Close the contents",
+  "pdf.download": "Download the PDF",
+  "pdf.next": "Next page",
+  "pdf.own-size": "Back to the actual size",
+  "pdf.page": "Page",
+  "pdf.previous": "Previous page",
+  "pdf.tools": "PDF tools",
+  "pdf.total": "/ {total}",
+  "pdf.zoom": "{percent}%",
+  "pdf.zoom-in": "Zoom in",
+  "pdf.zoom-out": "Zoom out",
   "preview.how-wide-to-show-the-site": "How wide to show the site",
   "preview.preparing": "Preparing your preview…",
   "preview.did-not-start": "The preview did not start. Try again in a moment.",

@@ -10,10 +10,6 @@
 import type { Strings } from "../lib/say";
 
 export const nl: Strings = {
-  "breadcrumb.choose": "Kies een andere plek, nu {item}",
-  "breadcrumb.label": "Waar je bent",
-  "breadcrumb.picker": "Ga naar",
-  "breadcrumb.show-menu": "Toon het volledige inhoudsmenu",
   "refused.could-not-combine": "De assistent kon deze niet combineren. Kies een van de twee.",
   "refused.nothing-to-combine": "Hier staat geen vraag meer over open.",
   "refused.ai-limit-reached": "Je organisatie heeft haar AI-tegoed voorlopig opgebruikt. Kies een van de twee.",
@@ -266,6 +262,10 @@ export const nl: Strings = {
   "content-menu.show-named": "Toon het inhoudsmenu ({item})",
   "content-menu.show": "Toon het inhoudsmenu",
   "content-menu.waiting": "Wacht op publiceren",
+  "breadcrumb.choose": "Kies een andere plek, nu {item}",
+  "breadcrumb.label": "Waar je bent",
+  "breadcrumb.picker": "Ga naar",
+  "breadcrumb.show-menu": "Toon het volledige inhoudsmenu",
   "content.cancel": "Annuleren",
   "content.collections": "Verzamelingen",
   "content.it-will-go-from-your-site": "De pagina verdwijnt van je site zodra je publiceert. Tot die tijd verandert er niets voor wie hem leest, en je kunt hem terughalen uit je geschiedenis.",
@@ -671,6 +671,18 @@ export const nl: Strings = {
   "preferences.whichever-your-browser-asks-for": "De taal waar je browser om vraagt.",
 
   // preview
+  "pdf.contents": "Inhoud",
+  "pdf.contents-close": "Sluit de inhoud",
+  "pdf.download": "Download de PDF",
+  "pdf.next": "Volgende pagina",
+  "pdf.own-size": "Terug naar het echte formaat",
+  "pdf.page": "Pagina",
+  "pdf.previous": "Vorige pagina",
+  "pdf.tools": "PDF-gereedschap",
+  "pdf.total": "/ {total}",
+  "pdf.zoom": "{percent}%",
+  "pdf.zoom-in": "Inzoomen",
+  "pdf.zoom-out": "Uitzoomen",
   "preview.how-wide-to-show-the-site": "Hoe breed je de site toont",
   "preview.preparing": "Je voorbeeld wordt klaargezet…",
   "preview.did-not-start": "Het voorbeeld is niet gestart. Probeer het zo nog eens.",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fileOf, fitsTheWidth, ownSize, remember, remembered, scaleFor } from "../pdf/where";
+import { fileOf, fitsTheWidth, languageOf, nextZoom, ownSize, pageWithin, percentOf, remember, remembered, scaleFor } from "../pdf/where";
 
 function at(href: string) {
   return new URL(href) as unknown as Location;
@@ -53,5 +53,28 @@ describe("the size of a page", () => {
     expect(scaleFor(420, 390, true)).toBeCloseTo(366 / 420);
     expect(scaleFor(420, 2000, true)).toBe(ownSize);
     expect(scaleFor(0, 390, true)).toBe(ownSize);
+  });
+});
+
+describe("the tools", () => {
+  it("zoom by steps from any start, and stop at the ends", () => {
+    expect(percentOf(nextZoom(ownSize, 1))).toBe(125);
+    expect(percentOf(nextZoom(ownSize, -1))).toBe(75);
+    expect(percentOf(nextZoom(ownSize * 0.87, 1))).toBe(100);
+    expect(percentOf(nextZoom(ownSize * 0.87, -1))).toBe(75);
+    expect(percentOf(nextZoom(ownSize * 3, 1))).toBe(300);
+    expect(percentOf(nextZoom(ownSize * 0.5, -1))).toBe(50);
+  });
+
+  it("go to the nearest page there is", () => {
+    expect(pageWithin(7, 12)).toBe(7);
+    expect(pageWithin(40, 12)).toBe(12);
+    expect(pageWithin(0, 12)).toBe(1);
+    expect(pageWithin(Number("seven"), 12)).toBe(1);
+  });
+
+  it("speak the language the pane asks for", () => {
+    expect(languageOf(at("https://preview.example/v/k1/__chatcms/pdf/?file=a.pdf&lang=nl"))).toBe("nl");
+    expect(languageOf(at("https://preview.example/v/k1/__chatcms/pdf/?file=a.pdf"))).toBe("en");
   });
 });

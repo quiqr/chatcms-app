@@ -95,7 +95,11 @@ function fromTheBrowser(): Language {
  * is not in the catalogue is a failed type check rather than a blank screen.
  */
 export function say(key: Key, fill?: Record<string, string | number>): string {
-  const text: string = catalogues[spoken][key] ?? en[key];
+  return sayIn(spoken, key, fill);
+}
+
+export function sayIn(language: Language, key: Key, fill?: Record<string, string | number>): string {
+  const text: string = catalogues[language][key] ?? en[key];
   if (!fill) return text;
 
   return text.replace(/\{(\w+)\}/g, (whole, name: string) =>

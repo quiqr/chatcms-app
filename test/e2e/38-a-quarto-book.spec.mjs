@@ -120,6 +120,56 @@ test("a book previewed as a PDF shows its text through PDF.js", async ({ signedI
   } else {
     expect(Number(await page1.evaluate((box) => box.style.getPropertyValue("--scale-factor")))).toBeCloseTo(96 / 72);
   }
+
+  const tools = viewer.getByRole("toolbar", { name: "PDF tools" });
+  const field = tools.getByRole("textbox", { name: "Page" });
+
+  await test.step("the toolbar says the page and goes to another", async () => {
+    await expect(field).toHaveValue("1");
+    await expect(tools.getByRole("button", { name: "Previous page" })).toBeDisabled();
+    const total = Number((await tools.getByText(/^\/ \d+$/).textContent()).replace(/\D/g, ""));
+    expect(total).toBeGreaterThan(1);
+    await field.fill(String(total));
+    await field.press("Enter");
+    await expect(field).toHaveValue(String(total));
+    await expect(tools.getByRole("button", { name: "Next page" })).toBeDisabled();
+    await tools.getByRole("button", { name: "Previous page" }).click();
+    await expect(field).toHaveValue(String(total - 1));
+  });
+
+  await test.step("zoom changes the size, keeps the proportions, and 100% goes back", async () => {
+    const before = await page1.evaluate((box) => box.getBoundingClientRect());
+    const start = await tools.getByRole("button", { name: "Back to the actual size" }).textContent();
+    await tools.getByRole("button", { name: "Zoom in" }).click();
+    await expect(tools.getByRole("button", { name: "Back to the actual size" })).not.toHaveText(start);
+    await expect(async () => {
+      const after = await page1.evaluate((box) => box.getBoundingClientRect());
+      expect(after.width).toBeGreaterThan(before.width);
+      expect(after.height / after.width).toBeCloseTo(before.height / before.width, 2);
+    }).toPass({ timeout: 10_000 });
+    await expect(viewer.locator(".textLayer").first()).toContainText("Korenaar", { timeout: 30_000 });
+    await tools.getByRole("button", { name: "Back to the actual size" }).click();
+    await expect(tools.getByRole("button", { name: "Back to the actual size" })).toHaveText("100%");
+    await expect(async () => {
+      expect(Number(await page1.evaluate((box) => box.style.getPropertyValue("--scale-factor")))).toBeCloseTo(96 / 72);
+    }).toPass({ timeout: 30_000 });
+  });
+
+  await test.step("the contents go to a chapter", async () => {
+    await tools.getByRole("button", { name: "Contents" }).click();
+    const contents = viewer.getByRole("navigation", { name: "Contents" });
+    if (process.env.CHATCMS_SHOTS) {
+      await page.screenshot({ path: `${process.env.CHATCMS_SHOTS}/pdf-viewer/${testInfo.project.name}.png` });
+    }
+    await contents.getByRole("button", { name: /Rye$/ }).click();
+    const rye = viewer.locator(".page").filter({ has: viewer.locator(".textLayer", { hasText: "A dark rye" }) });
+    await expect(rye).toBeInViewport({ timeout: 30_000 });
+    if (onAPhone(testInfo)) await expect(contents).toBeHidden();
+  });
+
+  await test.step("the PDF can be downloaded", async () => {
+    await expect(tools.getByRole("link", { name: "Download the PDF" })).toHaveAttribute("download", "Korenaar-Recipes.pdf");
+  });
 });
 
 test.describe("on a preview origin of its own", () => {

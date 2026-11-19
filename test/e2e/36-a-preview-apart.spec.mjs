@@ -60,7 +60,7 @@ test("a site whose runtime makes a PDF shows the PDF", async ({ signedIn: page, 
   await showThePreview(page, testInfo);
 
   const frame = page.locator('iframe[title="Your site"]');
-  await expect(frame).toHaveAttribute("src", new RegExp(`^${chatcms.previewUrl}/v/[A-Za-z0-9_-]+/__chatcms/pdf/\\?file=report\\.pdf$`), { timeout: 90_000 });
+  await expect(frame).toHaveAttribute("src", new RegExp(`^${chatcms.previewUrl}/v/[A-Za-z0-9_-]+/__chatcms/pdf/\\?file=report\\.pdf(&fit=width)?&lang=en$`), { timeout: 90_000 });
 
   await test.step("PDF.js shows its text, which can be selected", async () => {
     const viewer = page.frameLocator('iframe[title="Your site"]');
