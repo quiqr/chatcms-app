@@ -173,6 +173,19 @@ export const en = {
   "archive.does-not-count": "doesn’t count toward the limit",
 
   // body-editor
+  "body-editor.add": "Add",
+  "body-editor.bold": "Bold",
+  "body-editor.formatted": "Formatted",
+  "body-editor.heading": "Heading",
+  "body-editor.image": "Picture",
+  "body-editor.image-address": "Address of the picture",
+  "body-editor.image-description": "What the picture shows",
+  "body-editor.italic": "Italic",
+  "body-editor.link": "Link",
+  "body-editor.link-address": "Address to link to",
+  "body-editor.list": "List",
+  "body-editor.markdown": "Markdown",
+  "body-editor.markdown-only": "This text can only be edited as Markdown, so that nothing in it moves.",
   "body-editor.how-to-edit-the-text": "How to edit the text",
   "body-editor.text-formatting": "Text formatting",
 

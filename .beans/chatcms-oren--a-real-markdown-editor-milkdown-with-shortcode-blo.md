@@ -1,11 +1,11 @@
 ---
 # chatcms-oren
 title: 'A real Markdown editor: Milkdown with shortcode blocks'
-status: todo
+status: in-progress
 type: epic
 priority: high
 created_at: 2026-11-18T12:37:26Z
-updated_at: 2026-11-18T13:41:16Z
+updated_at: 2026-11-19T18:00:00Z
 parent: chatcms-iqog
 ---
 

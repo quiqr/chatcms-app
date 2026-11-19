@@ -63,7 +63,11 @@
         pname = "chatcms-web";
         inherit version;
         src = webSource;
-        npmDepsHash = "sha256-sx0r3y4shTHJ3AG1n0SfR0HxtyzmEyhktTbZIbDCHWI=";
+        env.CHATCMS_MARKDOWN_FIXTURES = "${nixpkgs.lib.fileset.toSource {
+          root = ./test/fixtures;
+          fileset = nixpkgs.lib.fileset.fileFilter (file: file.hasExt "md") ./test/fixtures;
+        }}";
+        npmDepsHash = "sha256-mBUV64hRrxJdJ+7V7wdiB/+bLbvfo9iirbaizB7o0Eg=";
 
         nativeBuildInputs = [ pkgs.nodejs_22 ];
 

@@ -69,6 +69,7 @@ pkgs.runCommand "chatcms-acceptance-tests"
   export CHATCMS_MAILPIT_BIN=${pkgs.mailpit}/bin/mailpit
   export CHATCMS_PACKAGES=quarto=${pkgs.quarto}
   export CHATCMS_QUARTO_BOOK=${../test/fixtures/quarto-book}
+  export CHATCMS_MARKDOWN_TRICKY=${../test/fixtures/markdown/tricky.md}
   export CI=1
 
   cp -r $src/. .

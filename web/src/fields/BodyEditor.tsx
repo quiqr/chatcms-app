@@ -1,25 +1,25 @@
-import { Bold, Image, Italic, Link2, List, Type } from "lucide-react";
-import { useRef, useState } from "react";
+import { Bold, Image, Italic, Link2, List, Type, type LucideIcon } from "lucide-react";
+import { Suspense, lazy, useRef, useState, type FormEvent } from "react";
 
+import { Button } from "../components/ui/button";
+import { Field } from "../components/ui/field";
+import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import { Segmented } from "../components/ui/segmented";
-import { say } from "../lib/say";
+import { say, type Key } from "../lib/say";
+import type { Formatting, MarkdownHandle } from "./markdown/MarkdownEditor";
 
-type Wrap = { before: string; after: string; sample: string };
+const MarkdownEditor = lazy(() => import("./markdown/MarkdownEditor"));
 
-const actions: Array<{ key: string; label: string; icon: typeof Bold; wrap: Wrap }> = [
-  { key: "heading", label: "Heading", icon: Type, wrap: { before: "## ", after: "", sample: "Heading" } },
-  { key: "bold", label: "Bold", icon: Bold, wrap: { before: "**", after: "**", sample: "bold" } },
-  { key: "italic", label: "Italic", icon: Italic, wrap: { before: "_", after: "_", sample: "italic" } },
-  { key: "link", label: "Link", icon: Link2, wrap: { before: "[", after: "](https://)", sample: "text" } },
-  { key: "list", label: "List", icon: List, wrap: { before: "- ", after: "", sample: "item" } },
-  { key: "image", label: "Image", icon: Image, wrap: { before: "![", after: "](/images/)", sample: "description" } },
+type Plain = { kind: "heading" | "bold" | "italic" | "list"; label: Key; icon: LucideIcon };
+
+const plain: Plain[] = [
+  { kind: "heading", label: "body-editor.heading", icon: Type },
+  { kind: "bold", label: "body-editor.bold", icon: Bold },
+  { kind: "italic", label: "body-editor.italic", icon: Italic },
 ];
 
-/**
- * BodyEditor edits a page's own text. It writes Markdown either way: the
- * toolbar puts the marks in for somebody who would rather not remember them,
- * and the source view shows exactly what is saved.
- */
+const toolClass = "flex size-11 items-center justify-center rounded-md text-subtle-foreground hover:bg-muted";
+
 export function BodyEditor({
   value,
   onChange,
@@ -30,67 +30,136 @@ export function BodyEditor({
   label?: string;
 }) {
   const [showing, setShowing] = useState<"formatted" | "markdown">("formatted");
-  const box = useRef<HTMLTextAreaElement>(null);
+  const [markdownOnly, setMarkdownOnly] = useState(false);
+  const editor = useRef<MarkdownHandle>(null);
+  const formatted = showing === "formatted" && !markdownOnly;
 
-  function apply(wrap: Wrap) {
-    const area = box.current;
-    if (!area) return;
-
-    const from = area.selectionStart;
-    const to = area.selectionEnd;
-    const chosen = value.slice(from, to) || wrap.sample;
-    const next = value.slice(0, from) + wrap.before + chosen + wrap.after + value.slice(to);
-
-    onChange(next);
-    requestAnimationFrame(() => {
-      area.focus();
-      area.setSelectionRange(from + wrap.before.length, from + wrap.before.length + chosen.length);
-    });
+  function apply(what: Formatting) {
+    editor.current?.format(what);
   }
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-medium">{label}</span>
-        <Segmented
-          label={say("body-editor.how-to-edit-the-text")}
-          value={showing}
-          options={[
-            { value: "formatted", label: "Formatted" },
-            { value: "markdown", label: "Markdown" },
-          ]}
-          onValueChange={(next) => setShowing(next as "formatted" | "markdown")}
-        />
+        {!markdownOnly && (
+          <Segmented
+            label={say("body-editor.how-to-edit-the-text")}
+            value={showing}
+            options={[
+              { value: "formatted", label: say("body-editor.formatted") },
+              { value: "markdown", label: say("body-editor.markdown") },
+            ]}
+            onValueChange={(next) => setShowing(next as "formatted" | "markdown")}
+          />
+        )}
       </div>
 
-      {showing === "formatted" && (
+      {markdownOnly && <p className="text-[13px] text-subtle-foreground">{say("body-editor.markdown-only")}</p>}
+
+      {formatted && (
         <div className="flex flex-wrap gap-1" role="toolbar" aria-label={say("body-editor.text-formatting")}>
-          {actions.map((action) => (
-            <button
-              key={action.key}
-              type="button"
-              aria-label={action.label}
-              onClick={() => apply(action.wrap)}
-              className="flex size-11 items-center justify-center rounded-md text-subtle-foreground hover:bg-muted"
-            >
-              <action.icon aria-hidden="true" className="size-4" />
+          {plain.map((tool) => (
+            <button key={tool.kind} type="button" aria-label={say(tool.label)} title={say(tool.label)} onMouseDown={(event) => event.preventDefault()} onClick={() => apply({ kind: tool.kind })} className={toolClass}>
+              <tool.icon aria-hidden="true" className="size-4" />
             </button>
           ))}
+          <AskAddress
+            icon={Link2}
+            label="body-editor.link"
+            fields={[{ name: "href", label: "body-editor.link-address", placeholder: "https://" }]}
+            onDone={(said) => apply({ kind: "link", href: said.href ?? "" })}
+          />
+          <button type="button" aria-label={say("body-editor.list")} title={say("body-editor.list")} onMouseDown={(event) => event.preventDefault()} onClick={() => apply({ kind: "list" })} className={toolClass}>
+            <List aria-hidden="true" className="size-4" />
+          </button>
+          <AskAddress
+            icon={Image}
+            label="body-editor.image"
+            fields={[
+              { name: "src", label: "body-editor.image-address", placeholder: "/images/" },
+              { name: "alt", label: "body-editor.image-description" },
+            ]}
+            onDone={(said) => apply({ kind: "image", src: said.src ?? "", alt: said.alt ?? "" })}
+          />
         </div>
       )}
 
-      <textarea
-        ref={box}
-        aria-label={label}
-        value={value}
-        rows={14}
-        spellCheck={showing === "formatted"}
-        onChange={(event) => onChange(event.target.value)}
-        className={
-          "min-h-64 rounded-md border border-input bg-card p-3 text-base sm:text-[15px] " +
-          (showing === "markdown" ? "font-mono text-[13px]" : "")
-        }
-      />
+      {formatted ? (
+        <Suspense fallback={<p className="min-h-64 whitespace-pre-wrap rounded-md border border-input bg-card p-3 text-[15px] text-subtle-foreground">{value}</p>}>
+          <div className="min-h-64 rounded-md border border-input bg-card p-3 text-base focus-within:ring-[3px] focus-within:ring-primary-soft sm:text-[15px]">
+            <MarkdownEditor
+              handle={editor}
+              value={value}
+              label={label}
+              onChange={onChange}
+              onCannot={() => {
+                setMarkdownOnly(true);
+                setShowing("markdown");
+              }}
+            />
+          </div>
+        </Suspense>
+      ) : (
+        <textarea
+          aria-label={label}
+          value={value}
+          rows={14}
+          spellCheck={false}
+          onChange={(event) => onChange(event.target.value)}
+          className="min-h-64 rounded-md border border-input bg-card p-3 font-mono text-[13px]"
+        />
+      )}
     </div>
+  );
+}
+
+type Asked = { name: string; label: Key; placeholder?: string };
+
+function AskAddress({
+  icon: Icon,
+  label,
+  fields,
+  onDone,
+}: {
+  icon: LucideIcon;
+  label: Key;
+  fields: Asked[];
+  onDone: (said: Record<string, string>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [said, setSaid] = useState<Record<string, string>>({});
+
+  function done(event: FormEvent) {
+    event.preventDefault();
+    if (!(said[fields[0]!.name] ?? "").trim()) return;
+    setOpen(false);
+    onDone(said);
+    setSaid({});
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger type="button" aria-label={say(label)} title={say(label)} className={toolClass}>
+        <Icon aria-hidden="true" className="size-4" />
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-3" onCloseAutoFocus={(event) => event.preventDefault()}>
+        <form onSubmit={done} className="flex flex-col gap-3">
+          {fields.map((field, at) => (
+            <Field
+              key={field.name}
+              label={say(field.label)}
+              autoFocus={at === 0}
+              placeholder={field.placeholder}
+              value={said[field.name] ?? ""}
+              onChange={(event) => setSaid((now) => ({ ...now, [field.name]: event.target.value }))}
+            />
+          ))}
+          <Button type="submit" size="compact" className="self-end">
+            {say("body-editor.add")}
+          </Button>
+        </form>
+      </PopoverContent>
+    </Popover>
   );
 }

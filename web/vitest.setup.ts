@@ -31,3 +31,9 @@ if (!window.matchMedia) {
     dispatchEvent: () => false,
   })) as unknown as typeof window.matchMedia;
 }
+
+const noRects = () => ({ length: 0, item: () => null, [Symbol.iterator]: [][Symbol.iterator] }) as unknown as DOMRectList;
+const noRect = () => new DOMRect(0, 0, 0, 0);
+if (!Range.prototype.getClientRects) Range.prototype.getClientRects = noRects;
+if (!Range.prototype.getBoundingClientRect) Range.prototype.getBoundingClientRect = noRect;
+if (!document.elementFromPoint) document.elementFromPoint = () => null;

@@ -47,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   person edits and uses the result, or keeps either version.
 - A PDF preview has a toolbar: the page in view and going to any page, zoom
   with a way back to the actual size, the PDF's contents, and download.
+- The page text is edited formatted; an edit rewrites only the blocks it
+  touched, and Hugo shortcodes show as locked blocks.
 
 ### Changed
 

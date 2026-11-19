@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 
 import { fill } from "./fill";
-import { Inside } from "./here";import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Inside } from "./here";import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PageEditor } from "../PageEditor";
 
@@ -82,6 +82,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+beforeAll(async () => {
+  await import("../../fields/markdown/MarkdownEditor");
+}, 30_000);
+
 describe("the page editor", () => {
   it("draws a control for each kind of field the model declares", async () => {
     vi.stubGlobal("fetch", server());
@@ -93,7 +97,7 @@ describe("the page editor", () => {
     expect(screen.getByLabelText("Colour")).toHaveValue("red");
     expect(screen.getByLabelText("Date")).toHaveValue("2026-03-01");
     expect(screen.getByLabelText("Tags 1")).toHaveValue("bread");
-    expect(screen.getByLabelText("Page text")).toHaveValue("The body of the page.\n");
+    expect(await screen.findByRole("textbox", { name: "Page text" })).toHaveTextContent("The body of the page.");
   });
 
   it("shows a group with the fields inside it", async () => {
@@ -188,18 +192,16 @@ describe("the page editor", () => {
     await waitFor(() => expect(sent.at(-1)).toEqual({ values: { links: [{ label: "Our shop", url: "/shop/" }] } }), { timeout: 4000 });
   });
 
-  it("writes Markdown from the toolbar", async () => {
+  it("shows the text formatted, and as Markdown exactly as it is saved", async () => {
     vi.stubGlobal("fetch", server());
     renderEditor();
 
-    const text = await screen.findByLabelText("Page text");
-    await userEvent.clear(text);
-    await userEvent.type(text, "plain");
-    (text as HTMLTextAreaElement).setSelectionRange(0, 5);
-
-    await userEvent.click(screen.getByRole("button", { name: "Bold" }));
-
-    await waitFor(() => expect(text).toHaveValue("**plain**"));
+    const formatted = await screen.findByRole("textbox", { name: "Page text" });
+    expect(formatted).toHaveAttribute("contenteditable", "true");
+    await userEvent.click(screen.getByRole("radio", { name: "Markdown" }));
+    expect(screen.getByRole("textbox", { name: "Page text" })).toHaveValue("The body of the page.\n");
+    await userEvent.click(screen.getByRole("radio", { name: "Formatted" }));
+    expect(await screen.findByRole("textbox", { name: "Page text" })).toHaveTextContent("The body of the page.");
   });
 
   it("can show the Markdown source instead", async () => {
@@ -389,7 +391,7 @@ describe("undo", () => {
     const sent: unknown[] = [];
     vi.stubGlobal("fetch", living(sent));
     renderEditor();
-    const body = await screen.findByLabelText("Page text");
+    const body = await screen.findByRole("textbox", { name: "Page text" });
     await fill(screen.getByLabelText("Page title"), "!");
     await saved(sent, 1);
 

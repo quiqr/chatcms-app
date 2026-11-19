@@ -176,6 +176,19 @@ export const nl: Strings = {
   "archive.does-not-count": "telt niet mee voor de limiet",
 
   // body-editor
+  "body-editor.add": "Toevoegen",
+  "body-editor.bold": "Vet",
+  "body-editor.formatted": "Opgemaakt",
+  "body-editor.heading": "Kop",
+  "body-editor.image": "Afbeelding",
+  "body-editor.image-address": "Adres van de afbeelding",
+  "body-editor.image-description": "Wat de afbeelding laat zien",
+  "body-editor.italic": "Cursief",
+  "body-editor.link": "Link",
+  "body-editor.link-address": "Adres om naar te linken",
+  "body-editor.list": "Lijst",
+  "body-editor.markdown": "Markdown",
+  "body-editor.markdown-only": "Deze tekst kan alleen als Markdown worden bewerkt, zodat er niets in verschuift.",
   "body-editor.how-to-edit-the-text": "Hoe je de tekst bewerkt",
   "body-editor.text-formatting": "Opmaak",
 
