@@ -195,7 +195,7 @@ cat <<NOTICE
 
     korenaar      has a site, unpublished work, and somewhere to publish to
     studio-noord  has no site, so the setup screen has something to do
-    recipes       a Quarto book: publishing builds its website and keeps its PDF
+    recipes       a Quarto book, previewed as its PDF; publishing builds its website and keeps the PDF
 
     Mail this instance sends: http://$reachable:$inbox_port
     Workspaces: $backend_said

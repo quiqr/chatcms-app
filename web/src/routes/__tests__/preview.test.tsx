@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useStartWorkspace } from "../../lib/workspace";
 import { Preview } from "../Preview";
+import { setWidth } from "./width";
 
 const workspacePath = "/api/organisations/technative/projects/korenaar/workspace";
 
@@ -145,6 +146,16 @@ describe("a preview from its own origin", () => {
     render(<Preview organisation="technative" project="korenaar" page="posts/one" />);
 
     expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "https://preview.example/v/k1/__chatcms/pdf/?file=report.pdf");
+  });
+
+  it("asks a PDF to fit the width of a phone", async () => {
+    setWidth(390);
+    vi.stubGlobal("fetch", server([{ body: { state: "warm", address: "https://preview.example/v/k1/", type: "pdf", open: "/report.pdf" } }]));
+
+    render(<Preview organisation="technative" project="korenaar" page="posts/one" />);
+
+    expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "https://preview.example/v/k1/__chatcms/pdf/?file=report.pdf&fit=width");
+    setWidth(1440);
   });
 
   it("offers to open what it cannot show", async () => {

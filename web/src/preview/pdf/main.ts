@@ -2,7 +2,7 @@ import { GlobalWorkerOptions, TextLayer, getDocument } from "pdfjs-dist";
 import worker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 import { install } from "../select";
-import { fileOf, remember, remembered } from "./where";
+import { fileOf, fitsTheWidth, remember, remembered, scaleFor } from "./where";
 
 function sessionStore(): Storage | null {
   try {
@@ -11,8 +11,6 @@ function sessionStore(): Storage | null {
     return null;
   }
 }
-
-const actualSize = 96 / 72;
 
 async function show() {
   const file = fileOf(window.location);
@@ -30,10 +28,11 @@ async function show() {
   GlobalWorkerOptions.workerSrc = worker;
   const pdf = await getDocument({ url: file.href }).promise;
   const pages: HTMLElement[] = [];
+  const fit = fitsTheWidth(window.location);
 
   for (let number = 1; number <= pdf.numPages; number++) {
     const page = await pdf.getPage(number);
-    const scale = actualSize;
+    const scale = scaleFor(page.getViewport({ scale: 1 }).width, document.documentElement.clientWidth, fit);
     const viewport = page.getViewport({ scale });
     const ratio = window.devicePixelRatio || 1;
 

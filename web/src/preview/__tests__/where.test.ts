@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fileOf, remember, remembered } from "../pdf/where";
+import { fileOf, fitsTheWidth, ownSize, remember, remembered, scaleFor } from "../pdf/where";
 
 function at(href: string) {
   return new URL(href) as unknown as Location;
@@ -39,5 +39,19 @@ describe("the page the viewer opens at", () => {
     expect(remembered(storage, file, "")).toBe(3);
     expect(remembered(storage, file, "#page=5")).toBe(5);
     expect(remembered(null, file, "")).toBe(1);
+  });
+});
+
+describe("the size of a page", () => {
+  it("is its own size unless asked to fit", () => {
+    expect(scaleFor(420, 300, false)).toBe(ownSize);
+    expect(fitsTheWidth(at("https://preview.example/v/k1/__chatcms/pdf/?file=a.pdf"))).toBe(false);
+    expect(fitsTheWidth(at("https://preview.example/v/k1/__chatcms/pdf/?file=a.pdf&fit=width"))).toBe(true);
+  });
+
+  it("shrinks to the room, keeping a margin, and never grows past its own size", () => {
+    expect(scaleFor(420, 390, true)).toBeCloseTo(366 / 420);
+    expect(scaleFor(420, 2000, true)).toBe(ownSize);
+    expect(scaleFor(0, 390, true)).toBe(ownSize);
   });
 });

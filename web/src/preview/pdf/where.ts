@@ -25,3 +25,15 @@ export function remember(storage: Storage | null, file: URL, page: number) {
     return;
   }
 }
+
+export const ownSize = 96 / 72;
+const margin = 24;
+
+export function fitsTheWidth(location: Location): boolean {
+  return new URLSearchParams(location.search).get("fit") === "width";
+}
+
+export function scaleFor(pointsWide: number, room: number, fit: boolean): number {
+  if (!fit || pointsWide <= 0) return ownSize;
+  return Math.min(ownSize, Math.max(0.1, (room - margin) / pointsWide));
+}

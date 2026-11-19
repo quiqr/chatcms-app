@@ -2,6 +2,7 @@ import { Monitor, Smartphone } from "lucide-react";
 import { useEffect, useRef, useState, type RefObject } from "react";
 
 import { Segmented } from "../components/ui/segmented";
+import { useIsPhone } from "../shells/useIsPhone";
 import { whatWentWrong } from "../lib/api";
 import { maybe, say, type Key } from "../lib/say";
 import { openWorkspace, readWorkspace, type PreviewSelection, type Workspace, type WorkspaceStep } from "../lib/tenancy";
@@ -36,6 +37,7 @@ export function Preview({
 }) {
   const [device, setDevice] = useState<"desktop" | "phone">("desktop");
   const [reloads, setReloads] = useState(0);
+  const onAPhone = useIsPhone();
 
   const { workspace, refused } = useWorkspace(organisation, project);
   const ready = workspace?.state === "warm" || (workspace?.state === "sleeping" && !workspace.reason);
@@ -43,7 +45,7 @@ export function Preview({
   const base = baseOf(workspace?.address, `/preview/${organisation}/${project}/`);
   const opened = (workspace?.open ?? "/").replace(/^\//, "");
   const at =
-    kind === "web" ? base + (workspace?.ownPages ? opened : pathOf(page)) : kind === "pdf" ? `${base}__chatcms/pdf/?file=${encodeURIComponent(opened)}` : base + opened;
+    kind === "web" ? base + (workspace?.ownPages ? opened : pathOf(page)) : kind === "pdf" ? `${base}__chatcms/pdf/?file=${encodeURIComponent(opened)}${onAPhone ? "&fit=width" : ""}` : base + opened;
   const frame = useRef<HTMLIFrameElement>(null);
   useFrameMessages(frame, base, onSelect, highlight);
 

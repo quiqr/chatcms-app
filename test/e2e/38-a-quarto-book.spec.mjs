@@ -112,6 +112,14 @@ test("a book previewed as a PDF shows its text through PDF.js", async ({ signedI
   if (onAPhone(testInfo)) await page.getByRole("radio", { name: "Preview" }).click();
   const viewer = page.frameLocator('iframe[title="Your site"]');
   await expect(viewer.locator(".textLayer").first()).toContainText("Korenaar", { timeout: 150_000 });
+  const page1 = viewer.locator(".page").first();
+  const room = await viewer.locator("html").evaluate((html) => html.clientWidth);
+  const wide = await page1.evaluate((box) => box.getBoundingClientRect().width);
+  if (onAPhone(testInfo)) {
+    expect(wide).toBeLessThanOrEqual(room - 24 + 1);
+  } else {
+    expect(Number(await page1.evaluate((box) => box.style.getPropertyValue("--scale-factor")))).toBeCloseTo(96 / 72);
+  }
 });
 
 test.describe("on a preview origin of its own", () => {

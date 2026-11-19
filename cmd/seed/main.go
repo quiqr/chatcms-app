@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing/fstest"
 
 	"github.com/google/uuid"
@@ -53,7 +54,7 @@ func main() {
 	fmt.Println("korenaar has a site with a remote under " + stateDir() + "/dev-remotes")
 	fmt.Println("studio-noord has none, so the onboarding screen has something to do")
 	if os.Getenv("CHATCMS_SEED_QUARTO_BOOK") != "" {
-		fmt.Println("recipes is a Quarto book that publishes its website and keeps its PDF")
+		fmt.Println("recipes is a Quarto book previewed as its PDF; it publishes its website and keeps the PDF")
 	}
 }
 
@@ -256,7 +257,11 @@ func bringABookIn(ctx context.Context, db *store.DB, projectID uuid.UUID, owner 
 	if err := gitsync.InitBareForDevelopment(ctx, cfg, remote); err != nil {
 		return err
 	}
-	repository, err := sites.Create(ctx, projectID.String(), remote, os.DirFS(book), gitsync.Identity{Name: owner.DisplayName, Email: owner.Email}, "Bring the book in")
+	content, err := previewedAsPDF(os.DirFS(book))
+	if err != nil {
+		return err
+	}
+	repository, err := sites.Create(ctx, projectID.String(), remote, content, gitsync.Identity{Name: owner.DisplayName, Email: owner.Email}, "Bring the book in")
 	if err != nil {
 		return err
 	}
@@ -269,6 +274,37 @@ func bringABookIn(ctx context.Context, db *store.DB, projectID uuid.UUID, owner 
 		 publish_to = 'its-own-line', publish_branch = 'quiqr/publish', publish_form = 'built' WHERE id = $1`,
 		pgtype.UUID{Bytes: projectID, Valid: true}, remote)
 	return err
+}
+
+type overlaid struct {
+	base  fs.FS
+	files fstest.MapFS
+}
+
+func (o overlaid) Open(name string) (fs.File, error) {
+	if _, ok := o.files[name]; ok {
+		return o.files.Open(name)
+	}
+	return o.base.Open(name)
+}
+
+func previewedAsPDF(book fs.FS) (fs.FS, error) {
+	const runtime = "quiqr/runtime.yaml"
+	data, err := fs.ReadFile(book, runtime)
+	if err != nil {
+		return nil, err
+	}
+	said := string(data)
+	for _, change := range [][2]string{
+		{"  type: web\n", "  type: pdf\n  open: /Korenaar-Recipes.pdf\n"},
+		{"--to, html]", "--to, typst]"},
+	} {
+		if !strings.Contains(said, change[0]) {
+			return nil, fmt.Errorf("the book's %s no longer says %q", runtime, change[0])
+		}
+		said = strings.Replace(said, change[0], change[1], 1)
+	}
+	return overlaid{base: book, files: fstest.MapFS{runtime: {Data: []byte(said), Mode: 0o644}}}, nil
 }
 
 // publishedHomePage is the page as the live site has it, and editedHomePage
