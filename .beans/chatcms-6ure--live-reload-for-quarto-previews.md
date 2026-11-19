@@ -1,7 +1,7 @@
 ---
 # chatcms-6ure
 title: Live reload for Quarto previews
-status: todo
+status: in-progress
 type: task
 priority: normal
 created_at: 2026-11-19T07:46:28Z

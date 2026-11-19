@@ -70,9 +70,10 @@ the `_freeze/` directory is the site's to commit.
 
 A preview may write beside the site, as `quarto preview` does. In a micro VM
 it writes into memory and nothing reaches the person's copy. The local
-backend writes into the copy, so a site's `.gitignore` has to keep such
-output out, as Quarto's own templates do with `/.quarto/` and the output
-directory.
+backend writes into the copy; files git does not track there are never taken
+for someone's work, and give way when a change arrives that adds the same
+file. A `.gitignore` for `/.quarto/` and the output directory, as Quarto's own
+templates have, keeps the copy tidy all the same.
 
 ## preview
 
@@ -84,7 +85,8 @@ directory.
 
 A `web` preview follows the page being edited when it is Hugo; any other
 preview opens `open`. A command without `{url}` is served at its own root:
-ChatCMS takes the preview's prefix off each request. A `pdf` preview shows `open`
+it is addressed as `<preview>/p/site/`, the shape Quarto's live reload
+recognises, and ChatCMS takes both off each request. A `pdf` preview shows `open`
 in the pane. An `other` preview offers `open` to open in a tab of its own.
 
 ## build

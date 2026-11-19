@@ -172,8 +172,30 @@ func (r *repo) catchUp(ctx context.Context) error {
 	if err != nil || ahead > 0 {
 		return err
 	}
-	dirty, err := r.git.run(ctx, "status", "--porcelain", "--untracked-files=all")
+	dirty, err := r.git.run(ctx, "status", "--porcelain", "--untracked-files=no")
 	if err != nil || strings.TrimSpace(dirty) != "" {
+		return err
+	}
+	_, err = r.git.run(ctx, "merge", "--ff-only", remote)
+	if err == nil {
+		return nil
+	}
+	in, listErr := r.git.run(ctx, "diff", "--name-only", "--diff-filter=A", "HEAD", remote)
+	if listErr != nil {
+		return err
+	}
+	removed := false
+	for _, name := range splitLines(in) {
+		full := filepath.Join(r.dir, filepath.FromSlash(name))
+		if !r.git.succeeds(ctx, "ls-files", "--error-unmatch", "--", name) {
+			if _, statErr := os.Lstat(full); statErr == nil {
+				if os.RemoveAll(full) == nil {
+					removed = true
+				}
+			}
+		}
+	}
+	if !removed {
 		return err
 	}
 	_, err = r.git.run(ctx, "merge", "--ff-only", remote)

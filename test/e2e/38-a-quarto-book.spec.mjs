@@ -113,3 +113,25 @@ test("a book previewed as a PDF shows its text through PDF.js", async ({ signedI
   const viewer = page.frameLocator('iframe[title="Your site"]');
   await expect(viewer.locator(".textLayer").first()).toContainText("Korenaar", { timeout: 150_000 });
 });
+
+test.describe("on a preview origin of its own", () => {
+  test.use({ previewApart: true });
+
+  test("a Quarto preview reloads by itself when its sources change", async ({ signedIn: page, chatcms }, testInfo) => {
+    test.skip(!/quarto=/.test(process.env.CHATCMS_PACKAGES ?? ""), "no Quarto provided to this installation");
+    test.setTimeout(300_000);
+    const project = chatcms.projectId();
+    chatcms.layOver(project, book, "Turn the site into a book");
+    await page.goto(`${chatcms.url}/o/technative/p/korenaar/sync`);
+    await page.getByRole("button", { name: "Check for updates" }).click();
+    await expect(page.getByText(/Joris updated this site/)).toBeVisible({ timeout: 60_000 });
+
+    await page.goto(`${chatcms.url}/o/technative/p/korenaar/content/preface`);
+    if (onAPhone(testInfo)) await page.getByRole("radio", { name: "Preview" }).click();
+    const preview = page.frameLocator('iframe[title="Your site"]');
+    await expect(preview.locator("body")).toContainText("Welcome to the bakery", { timeout: 150_000 });
+
+    chatcms.writeInEveryCopy(project, "index.qmd", "---\ntitle: Preface\n---\n\nThe oven is warm before dawn.\n");
+    await expect(preview.locator("body")).toContainText("The oven is warm before dawn", { timeout: 60_000 });
+  });
+});

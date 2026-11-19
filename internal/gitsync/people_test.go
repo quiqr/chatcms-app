@@ -311,10 +311,45 @@ func TestUnsharedCountsUnsavedWork(t *testing.T) {
 	sites, _, _ := sharedSite(t)
 	openFor(t, sites, "anna")
 	dir, _ := sites.DirFor("korenaar", "anna")
-	writeFile(t, filepath.Join(dir, "content", "draft.md"), "draft\n")
+	writeFile(t, filepath.Join(dir, "content", "_index.md"), "---\ntitle: Half saved\n---\n")
 
 	if n, err := sites.Unshared(t.Context(), "korenaar", "anna"); err != nil || n == 0 {
 		t.Errorf("Unshared() = %d, %v, want unsaved work counted", n, err)
+	}
+}
+
+func TestWhatAPreviewWritesIsNotWork(t *testing.T) {
+	sites, remote, cfg := sharedSite(t)
+	anna := openFor(t, sites, "anna")
+	dir, _ := sites.DirFor("korenaar", "anna")
+	writeFile(t, filepath.Join(dir, ".quarto", "xref", "index.json"), "{}")
+	writeFile(t, filepath.Join(dir, "_book", "index.html"), "<h1>old render</h1>")
+
+	if n, err := sites.Unshared(t.Context(), "korenaar", "anna"); err != nil || n != 0 {
+		t.Errorf("Unshared() = %d, %v, want a preview's output left out", n, err)
+	}
+	if status, err := anna.Status(t.Context()); err != nil || status.UnsavedWork {
+		t.Errorf("Status() = %+v, %v, want no unsaved work", status, err)
+	}
+
+	other := elsewhere(t, cfg, remote)
+	pushFrom(t, cfg, other, "content/news.md", "news\n", "News from elsewhere")
+	pushFrom(t, cfg, other, "_book/index.html", "<h1>committed render</h1>", "Someone commits the output")
+	shared, _ := sites.Open(t.Context(), "korenaar")
+	if _, err := shared.Sync(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	shared.Close()
+
+	again := openFor(t, sites, "anna")
+	if got := readSite(t, again, "content/news.md"); got != "news\n" {
+		t.Errorf("anna's copy holds %q, want the arrival despite the preview's output", got)
+	}
+	if got := readSite(t, again, "_book/index.html"); got != "<h1>committed render</h1>" {
+		t.Errorf("the committed file is %q", got)
+	}
+	if got := readSite(t, again, ".quarto/xref/index.json"); got != "{}" {
+		t.Errorf("output nobody committed was touched: %q", got)
 	}
 }
 

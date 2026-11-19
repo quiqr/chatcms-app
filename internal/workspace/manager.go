@@ -400,6 +400,9 @@ func (w *Workspaces) Report(key Key) (Report, bool) {
 	report := Report{State: held.state, Err: held.err, Type: held.spec.Run.Type, Open: held.spec.Run.Open, OwnPages: program != "" && filepath.Base(program) != "hugo"}
 	if held.state == Warm {
 		report.Address = held.spec.Under
+		if held.spec.Run.Rooted {
+			report.Address += RootedPath
+		}
 	}
 	if held.err != nil {
 		report.Reason = reasonFor(held.err)

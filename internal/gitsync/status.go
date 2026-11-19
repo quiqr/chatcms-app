@@ -11,7 +11,7 @@ import (
 func (r *repo) Status(ctx context.Context) (Status, error) {
 	status := Status{ExchangeInProgress: r.exchangeInProgress()}
 
-	dirty, err := r.git.run(ctx, "status", "--porcelain", "--untracked-files=all")
+	dirty, err := r.git.run(ctx, "status", "--porcelain", "--untracked-files=no")
 	if err != nil {
 		return Status{}, err
 	}

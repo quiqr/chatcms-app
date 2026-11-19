@@ -54,6 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The preview's live reload passes through the app again, and event streams
   are flushed as they are written.
 - Publishing the built site no longer fails when its settings name no author.
+- A Quarto preview reloads by itself when its sources change.
+- Output a preview writes into a person's copy no longer stops other people's
+  changes from arriving, or shows as saving.
 - A person without a display name can save; their address is used as the
   author.
 - A question about what two people changed can be answered later, and

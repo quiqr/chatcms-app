@@ -1,7 +1,7 @@
 ---
 # chatcms-2myi
 title: The local backend lets a preview write into the person's copy
-status: todo
+status: in-progress
 type: bug
 priority: normal
 created_at: 2026-11-19T07:46:28Z

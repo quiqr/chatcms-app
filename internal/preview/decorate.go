@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/quiqr/chatcms-app/internal/workspace"
 )
 
 const Assets = "__chatcms/"
@@ -34,9 +36,9 @@ func (s *Service) decorate(where *url.URL, prefix string, rooted bool) http.Hand
 	director := proxy.Director
 	proxy.Director = func(r *http.Request) {
 		if rooted {
-			r.URL.Path = "/" + strings.TrimPrefix(r.URL.Path, prefix)
+			r.URL.Path = "/" + inside(r.URL.Path, prefix)
 			if r.URL.RawPath != "" {
-				r.URL.RawPath = "/" + strings.TrimPrefix(r.URL.RawPath, prefix)
+				r.URL.RawPath = "/" + inside(r.URL.RawPath, prefix)
 			}
 		}
 		director(r)
@@ -48,12 +50,20 @@ func (s *Service) decorate(where *url.URL, prefix string, rooted bool) http.Hand
 	assets := s.assets
 	meta := []byte(`<meta name="chatcms-app" content="` + html.EscapeString(s.appOrigin()) + `">`)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if rest, found := strings.CutPrefix(r.URL.Path, prefix+Assets); found {
+		within := strings.TrimPrefix(r.URL.Path, prefix)
+		if rooted {
+			within = inside(r.URL.Path, prefix)
+		}
+		if rest, found := strings.CutPrefix(within, Assets); found && strings.HasPrefix(r.URL.Path, prefix) {
 			serveAsset(w, r, assets, rest, meta)
 			return
 		}
 		proxy.ServeHTTP(w, r)
 	})
+}
+
+func inside(path, prefix string) string {
+	return strings.TrimPrefix(strings.TrimPrefix(path, prefix), workspace.RootedPath)
 }
 
 func serveAsset(w http.ResponseWriter, r *http.Request, assets fs.FS, name string, meta []byte) {

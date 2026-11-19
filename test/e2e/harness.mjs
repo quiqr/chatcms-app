@@ -3,7 +3,7 @@
 // takes nothing from the machine it runs on beyond the programs Nix pins, so
 // the suite says the same thing in the gate as on a developer's laptop.
 import { execFileSync, spawn } from "node:child_process";
-import { cpSync, mkdtempSync, rmSync, writeFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { cpSync, mkdtempSync, readdirSync, rmSync, writeFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, normalize } from "node:path";
@@ -377,7 +377,14 @@ export class Harness {
     sh(git, ["-C", working, "push", "origin", "HEAD:refs/heads/main"]);
   }
 
-  layOver(project, fixture, message) {
+  writeInEveryCopy(project, path, content) {
+    const people = join(this.state, "sites", project, "people");
+    for (const person of readdirSync(people)) {
+      writeFileSync(join(people, person, "working-copy", path), content);
+    }
+  }
+
+    layOver(project, fixture, message) {
     const working = mkdtempSync(join(this.root, "replaced-"));
     const remote = join(this.state, "dev-remotes", `${project}.git`);
     const git = process.env.CHATCMS_GIT_BIN ?? "git";

@@ -248,8 +248,10 @@ backend that runs the command. A changed declaration takes effect when the
 person next opens the preview. A package may name its nixpkgs revision, an
 installation may provide packages itself (`CHATCMS_PACKAGES`), and Python and
 R packages for code cells are built as one environment each and handed to
-Quarto. A preview command without `{url}` is served at its root: the proxy
-takes the prefix off. In a micro VM the site is overlaid with a tmpfs, so a
+Quarto. A preview command without `{url}` is served at its root: it is
+addressed as `<prefix>p/site/`, which Quarto's live reload recognises, and
+the proxy takes both off. Files git does not track in a person's copy are
+output, never work. In a micro VM the site is overlaid with a tmpfs, so a
 preview may write and the person's copy is never touched. See
 `docs/RUNTIME.md`.
 

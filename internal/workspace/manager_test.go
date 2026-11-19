@@ -706,3 +706,25 @@ func TestAPreviewThatIsNotHugoHasPagesOfItsOwn(t *testing.T) {
 	}
 	endpoint(t, h.w, aKey())
 }
+
+func TestARootedPreviewIsAddressedTheWayQuartoExpects(t *testing.T) {
+	h := newHarness(t, 8)
+	made, err := workspace.New(h.backend, h.store, h.copies, h.isAllowed, workspace.Settings{
+		RuntimeFor: func(context.Context, workspace.Key, string) (runtime.Resolved, error) {
+			return runtime.Resolved{Preview: runtime.Command{Program: "/nix/store/q-quarto/bin/quarto"}, Rooted: true}, nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { made.Close(context.Background()) })
+	key := aKey()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	if _, err := made.Endpoint(ctx, key, "https://preview.test/v/{view}/"); err != nil {
+		t.Fatal(err)
+	}
+	if report, _ := made.Report(key); !strings.HasSuffix(report.Address, "/p/site/") {
+		t.Errorf("Address = %q", report.Address)
+	}
+}

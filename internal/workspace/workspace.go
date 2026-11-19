@@ -41,6 +41,8 @@ type Spec struct {
 	Token string
 }
 
+const RootedPath = "p/site/"
+
 type Endpoint struct {
 	Host      string
 	Port      int

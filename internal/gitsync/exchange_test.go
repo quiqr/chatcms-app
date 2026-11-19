@@ -515,11 +515,17 @@ func TestStatusAfterSave(t *testing.T) {
 func TestStatusSeesUnsavedWork(t *testing.T) {
 	repository, _, _ := cloned(t)
 	dir := repository.(*repo).dir
-	writeFile(t, filepath.Join(dir, "content", "stray.md"), "written behind our back")
+	writeFile(t, filepath.Join(dir, "content", "_index.md"), "written behind our back")
 
 	status, _ := repository.Status(t.Context())
 	if !status.UnsavedWork {
-		t.Error("status does not notice a file that was written but not saved")
+		t.Error("status does not notice a page that was changed but not saved")
+	}
+
+	run(t, testConfig(t), dir, "checkout", "--", "content/_index.md")
+	writeFile(t, filepath.Join(dir, "_site", "index.html"), "a render nobody saves")
+	if status, _ := repository.Status(t.Context()); status.UnsavedWork {
+		t.Error("a file nobody tracks was taken for unsaved work")
 	}
 }
 

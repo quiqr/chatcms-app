@@ -135,11 +135,14 @@ func TestARootedPreviewIsAskedWithoutThePrefix(t *testing.T) {
 	ask(origin, "/v/k/")
 	ask(origin, "/v/k/chapters/bread.html")
 	ask(origin, "/v/k/a%20b.html")
-	if len(paths) != 3 || paths[0] != "/" || paths[1] != "/chapters/bread.html" || paths[2] != "/a b.html" {
+	ask(origin, "/v/k/p/site/chapters/rye.html")
+	if len(paths) != 4 || paths[0] != "/" || paths[1] != "/chapters/bread.html" || paths[2] != "/a b.html" || paths[3] != "/chapters/rye.html" {
 		t.Errorf("the preview was asked %v", paths)
 	}
-	if body := ask(origin, "/v/k/__chatcms/select.js").Body.String(); body != "console.log('select')" {
-		t.Errorf("the assets moved: %q", body)
+	for _, path := range []string{"/v/k/__chatcms/select.js", "/v/k/p/site/__chatcms/select.js"} {
+		if body := ask(origin, path).Body.String(); body != "console.log('select')" {
+			t.Errorf("%s: the assets moved: %q", path, body)
+		}
 	}
 }
 
