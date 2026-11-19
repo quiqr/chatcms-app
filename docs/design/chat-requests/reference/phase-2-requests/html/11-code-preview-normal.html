@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Code + preview · implementer</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.ln{display:block;padding:0 14px;white-space:pre}
+</style>
+
+<style>
+html,body{background:#F7F7F5}
+.qp-screens{position:fixed;right:calc(12px + env(safe-area-inset-right, 0px));bottom:calc(16px + env(safe-area-inset-bottom, 0px));z-index:50;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;background:#18181B;color:#FAFAFA;font:500 13px Geist,ui-sans-serif,system-ui,sans-serif;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.qp-screens:hover{color:#FFFFFF;background:#27272A}
+.qp-screens:focus-visible{outline:2px solid #37B6FF;outline-offset:2px}
+</style>
+</head>
+<body>
+
+<div style="width: 1440px; height: 900px; overflow: hidden; display: flex; font-family: Geist, ui-sans-serif, system-ui, sans-serif; color: #18181B; background: #F7F7F5">
+  <nav aria-label="Project" style="flex: none; width: 64px; background: #FFFFFF; border-right: 1px solid #E5E5E2; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0">
+    <span style="width: 36px; height: 36px; border-radius: 9px; background: #E6F2FB; color: #0A5A8F; font-weight: 650; font-size: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px">E</span>
+    <span style="width: 44px; height: 44px; border-radius: 10px; background: #F1F1EE; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#18181B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></span>
+    <span style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#52525B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg></span>
+    <span style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#52525B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 13l2.5-7h11L20 13"/><path d="M4 13v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5h-5a3 3 0 0 1-6 0z"/></svg><span style="position: absolute; top: 5px; right: 3px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; background: #D97706; color: #FFFFFF; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center">2</span></span>
+  </nav>
+
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+    <header style="height: 60px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 20px; border-bottom: 1px solid #E5E5E2; background: #FFFFFF">
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+        <span style="font-size: 12px; color: #6B6B73">Template draft · footer-linkedin</span>
+        <span style="font-size: 16px; font-weight: 600">Protecting the Lear’s macaw</span>
+      </div>
+      <div role="group" aria-label="View" style="display: flex; gap: 2px; padding: 3px; background: #F1F1EE; border-radius: 9px">
+        <span style="height: 32px; padding: 0 10px; display: flex; align-items: center; font-size: 13px; color: #52525B">Form</span>
+        <span style="height: 32px; padding: 0 10px; display: flex; align-items: center; font-size: 13px; color: #52525B">Form + preview</span>
+        <span style="height: 32px; padding: 0 10px; display: flex; align-items: center; font-size: 13px; color: #52525B">Chat + preview</span>
+        <span style="height: 32px; padding: 0 10px; display: flex; align-items: center; gap: 6px; border-radius: 6px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(16,24,40,.08); font-size: 13px; font-weight: 500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7l-5 5 5 5"/><path d="M16 7l5 5-5 5"/></svg>Code + preview</span>
+        <span style="height: 32px; padding: 0 10px; display: flex; align-items: center; font-size: 13px; color: #52525B">Preview</span>
+      </div>
+      <span style="height: 36px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 8px; background: #0B6BAA; color: #FFFFFF; font-size: 14px; font-weight: 600">Publish</span>
+    </header>
+
+    <div style="flex: 1; min-height: 0; display: flex">
+      <!-- chat with template assistant -->
+      <section aria-label="Chat" style="flex: none; width: 380px; background: #FFFFFF; border-right: 1px solid #E5E5E2; display: flex; flex-direction: column">
+        <div style="flex: 1; min-height: 0; overflow: hidden; padding: 16px; display: flex; flex-direction: column; justify-content: flex-end; gap: 12px">
+          <figure aria-label="Request from Sanne" style="margin: 0; border: 1px solid #E5E5E2; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px; background: #FAFAF9">
+            <figcaption style="font-size: 12px; color: #6B6B73; display: flex; justify-content: space-between"><span>Request · Sanne · Template change</span><a href="09-implementer-for-me-open.html" style="color: #0B6BAA; text-decoration: none">Open</a></figcaption>
+            <span style="font-size: 14px; line-height: 1.45">Add our LinkedIn page next to Contact. And the year should update by itself.</span>
+          </figure>
+          <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.5">
+            <span style="display: flex; gap: 8px; align-items: center; font-size: 12px; color: #6B6B73"><span style="width: 18px; height: 18px; border-radius: 5px; background: #18181B; color: #FFFFFF; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center">Q</span>Template assistant</span>
+            <span>Added a LinkedIn link after Contact and made the year automatic. The URL goes in the site settings so editors can change it.</span>
+
+            
+
+            <div style="border: 1px solid #E5E5E2; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px">
+              <span style="display: flex; justify-content: space-between; font-size: 13px"><b style="font-weight: 600">2 files changed</b><span style="color: #6B6B73; font-family: 'Geist Mono', monospace; font-size: 12px">+3 −1</span></span>
+              <span style="font-size: 12px; color: #52525B">Affects 24 pages · goes live with the next publish</span>
+              <span style="display: flex; gap: 8px">
+                <button type="button" style="flex: 1; height: 36px; border: 1px solid #E5E5E2; border-radius: 8px; background: #FFFFFF; font: inherit; font-size: 13px">Discard</button>
+                <button type="button" style="flex: 2; height: 36px; border: 0; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 600; background: #0B6BAA; color: #FFFFFF">Apply</button>
+              </span>
+            </div>
+          </div>
+        </div>
+        <form style="flex: none; padding: 12px 16px 16px; border-top: 1px solid #EDEDEA; display: flex; align-items: flex-end; gap: 8px">
+          <label for="m" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Message the template assistant</label>
+          <textarea id="m" rows="1" placeholder="Adjust the change…" style="flex: 1; min-width: 0; min-height: 40px; box-sizing: border-box; border: 1px solid #D9D9D5; border-radius: 10px; resize: none; font: inherit; font-size: 14px; padding: 9px 12px"></textarea>
+          <button type="submit" aria-label="Send" style="width: 40px; height: 40px; flex: none; border: 0; border-radius: 50%; background: #E5E5E2; color: #6B6B73; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+        </form>
+      </section>
+
+      <!-- code -->
+      <section aria-label="Code changes" style="flex: 1; min-width: 0; background: #FAFAF9; border-right: 1px solid #E5E5E2; display: flex; flex-direction: column">
+        <div style="flex: none; height: 44px; display: flex; align-items: center; gap: 4px; padding: 0 10px; border-bottom: 1px solid #E5E5E2; background: #FFFFFF; font-family: 'Geist Mono', monospace; font-size: 12px">
+          <span style="height: 30px; padding: 0 10px; border-radius: 6px; background: #F1F1EE; display: flex; align-items: center">layouts/partials/footer.html</span>
+          <span style="height: 30px; padding: 0 10px; display: flex; align-items: center; color: #6B6B73">config/_default/params.toml</span>
+        </div>
+        <pre style="flex: 1; margin: 0; padding: 12px 0; font-family: 'Geist Mono', monospace; font-size: 12.5px; line-height: 1.75; color: #3F3F46; overflow: hidden"><span class="ln" style="color: #A1A1AA">14  &lt;footer class="site-footer"&gt;</span><span class="ln" style="color: #A1A1AA">15    &lt;span class="brand"&gt;ecosymbia&lt;/span&gt;</span><span class="ln">16    &lt;nav class="footer-links"&gt;</span><span class="ln">17      &lt;a href="/contact/"&gt;Contact&lt;/a&gt;</span><span class="ln" style="background: #DFF3E6; color: #14532D">18 +    &lt;a href="&#123;&#123; site.Params.linkedin &#125;&#125;" rel="me"&gt;LinkedIn&lt;/a&gt;</span><span class="ln">19      &lt;a href="/privacy/"&gt;Privacy&lt;/a&gt;</span><span class="ln">20      &lt;a href="/newsletter/"&gt;Newsletter&lt;/a&gt;</span><span class="ln">21    &lt;/nav&gt;</span><span class="ln" style="background: #FDECEC; color: #7F1D1D">22 −  &lt;small&gt;© 2024 Ecosymbia B.V. · Utrecht&lt;/small&gt;</span><span class="ln" style="background: #DFF3E6; color: #14532D">22 +  &lt;small&gt;© &#123;&#123; now.Year &#125;&#125; Ecosymbia B.V. · Utrecht&lt;/small&gt;</span><span class="ln" style="color: #A1A1AA">23  &lt;/footer&gt;</span></pre>
+        <div style="flex: none; padding: 8px 14px; border-top: 1px solid #E5E5E2; font-size: 12px; color: #6B6B73; display: flex; gap: 14px; background: #FFFFFF"><span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 7px; height: 7px; border-radius: 50%; background: #15803D"></span>Preview build ok · 1.2 s</span><span>Draft only: editors don’t see this yet</span></div>
+      </section>
+
+      <!-- preview -->
+      <section aria-label="Preview" style="flex: none; width: 440px; background: #EFEFEC; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+        <span style="align-self: flex-start; height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 7px; background: #FEF3C7; color: #92400E; font-size: 12px; font-weight: 500">Template draft · only you see this</span>
+        <div style="flex: 1; min-height: 0; background: #FFFFFF; border-radius: 10px; box-shadow: 0 1px 2px rgba(16,24,40,.06), 0 12px 32px rgba(16,24,40,.08); overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end">
+          <div style="padding: 24px 28px; font-family: 'Source Serif 4', Georgia, serif; color: #26332A; font-size: 15px; line-height: 1.6">Results are reported to the state environmental agency every six months.</div>
+          <footer style="background: #2F4A2A; color: #D8E3D3; font-family: 'Source Serif 4', Georgia, serif; padding: 24px 28px; display: flex; flex-direction: column; gap: 10px">
+            <span style="font-size: 18px; font-weight: 600; color: #FFFFFF">ecosymbia</span>
+            <span style="display: flex; gap: 16px; font-size: 14px"><span>Contact</span><span style="background: rgba(134,239,172,.25); border-radius: 3px; padding: 0 4px">LinkedIn</span><span>Privacy</span><span>Newsletter</span></span>
+            <span style="font-size: 12px; color: #A9BBA2">© <span style="background: rgba(134,239,172,.25); border-radius: 3px; padding: 0 2px">2026</span> Ecosymbia B.V. · Utrecht</span>
+          </footer>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

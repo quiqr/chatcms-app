@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone · done with Undo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; display: flex; flex-direction: column; font-family: Geist, ui-sans-serif, system-ui, sans-serif; color: #18181B; background: #F7F7F5">
+  <header style="flex: none; padding: 52px 12px 10px; background: #FFFFFF; border-bottom: 1px solid #E5E5E2; display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: center; gap: 6px">
+      <span style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#18181B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></span>
+      <span style="flex: 1; min-width: 0; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Protecting the Lear’s macaw</span>
+    </div>
+    <div role="group" aria-label="View" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 3px; background: #F1F1EE; border-radius: 10px; margin: 0 4px">
+      <span style="height: 36px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #52525B">Edit</span>
+      <span style="height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 7px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(16,24,40,.08); font-size: 14px; font-weight: 500">Preview</span>
+      <span style="height: 36px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; color: #52525B">Chat<span style="font-size: 11px; font-weight: 600; color: #FFFFFF; background: #B45309; border-radius: 999px; padding: 1px 6px">1</span></span>
+    </div>
+  </header>
+
+  <article style="flex: 1; overflow: hidden; background: #FFFFFF; padding: 22px 20px; display: flex; flex-direction: column; gap: 14px; font-family: 'Source Serif 4', Georgia, serif; color: #26332A">
+    <span style="font-size: 28px; line-height: 1.12; font-weight: 600; color: #1D2B20">Protecting the Lear’s macaw</span>
+    <div style="position: relative">
+      <p style="margin: 0; font-size: 17px; line-height: 1.6"><span style="background: rgba(217,119,6,.12); outline: 2px dashed rgba(180,83,9,.6); outline-offset: 2px; border-radius: 2px">The Lear’s macaw nests only in the sandstone cliffs of northeastern Bahia.</span></p>
+      <div role="status" style="position: absolute; left: 0; top: calc(100% + 8px); z-index: 2; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 4px 0 12px; border-radius: 999px; background: #FFFFFF; border: 1.5px solid #D97706; font-family: Geist, sans-serif; font-size: 13px; box-shadow: 0 8px 24px rgba(16,24,40,.18)">
+        <strong>A question for you</strong>
+        <button type="button" style="height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: #B45309; color: #FFFFFF; font: inherit; font-size: 13px; font-weight: 600">Answer</button>
+      </div>
+    </div>
+    <div style="position: relative; margin-top: 44px">
+      <p style="margin: 0; font-size: 17px; line-height: 1.6">Before construction started, <span style="background: #DFF3E6; box-shadow: 0 0 0 2px #DFF3E6; border-radius: 2px">from 2019 to 2022 our team surveyed the nesting cliffs</span> and shared every sighting with local partners.</p>
+      <div role="status" style="position: absolute; left: 0; top: calc(100% + 8px); z-index: 2; display: inline-flex; align-items: center; gap: 4px; height: 44px; padding: 0 4px 0 12px; border-radius: 999px; background: #FFFFFF; border: 1px solid rgba(24,24,27,.14); font-family: Geist, sans-serif; font-size: 14px; box-shadow: 0 8px 24px rgba(16,24,40,.18)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        <span style="font-weight: 500; padding-right: 6px">Changed</span>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: #F1F1EE; font: inherit; font-size: 14px; font-weight: 600">Undo</button>
+      </div>
+    </div>
+  </article>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

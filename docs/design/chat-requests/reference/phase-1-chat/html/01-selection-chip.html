@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chat · input at the selection</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+
+<style>
+html,body{background:#F7F7F5}
+.qp-screens{position:fixed;right:calc(12px + env(safe-area-inset-right, 0px));bottom:calc(16px + env(safe-area-inset-bottom, 0px));z-index:50;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;background:#18181B;color:#FAFAFA;font:500 13px Geist,ui-sans-serif,system-ui,sans-serif;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.qp-screens:hover{color:#FFFFFF;background:#27272A}
+.qp-screens:focus-visible{outline:2px solid #37B6FF;outline-offset:2px}
+</style>
+</head>
+<body>
+
+<div style="width: 1440px; height: 900px; overflow: hidden; display: flex; font-family: Geist, ui-sans-serif, system-ui, sans-serif; color: #18181B; background: #F7F7F5">
+  <nav aria-label="Project" style="flex: none; width: 64px; background: #FFFFFF; border-right: 1px solid #E5E5E2; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0">
+    <span style="width: 36px; height: 36px; border-radius: 9px; background: #E6F2FB; color: #0A5A8F; font-weight: 650; font-size: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px">E</span>
+    <span style="width: 44px; height: 44px; border-radius: 10px; background: #F1F1EE; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#18181B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></span>
+    <span style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#52525B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg></span>
+    <span style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#52525B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M5 20h14"/></svg></span>
+  </nav>
+
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+    <header style="height: 60px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 24px; border-bottom: 1px solid #E5E5E2; background: #FFFFFF">
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+        <span style="font-size: 12px; color: #6B6B73">Case studies · 3 of 10</span>
+        <span style="font-size: 16px; font-weight: 600">Protecting the Lear’s macaw</span>
+      </div>
+      <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #52525B"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18a5 5 0 0 1-.6-9.96A6 6 0 0 1 18 8.5a4.5 4.5 0 0 1-.5 9.5z"/><path d="M9.5 13l2 2 3.5-3.5"/></svg>Saved</span>
+      <div role="group" aria-label="View" style="display: flex; gap: 2px; padding: 3px; background: #F1F1EE; border-radius: 9px">
+        <button type="button" aria-pressed="false" style="height: 32px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: #52525B">Form</button>
+        <button type="button" aria-pressed="false" style="height: 32px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: #52525B">Form + preview</button>
+        <button type="button" aria-pressed="false" style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: #52525B"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>Chat + preview</button>
+        <button type="button" aria-pressed="true" style="height: 32px; padding: 0 10px; border: 0; border-radius: 6px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(16,24,40,.08); font: inherit; font-size: 13px; font-weight: 500">Preview</button>
+      </div>
+      <span style="height: 36px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; border-radius: 8px; background: #0B6BAA; color: #FFFFFF; font-size: 14px; font-weight: 600">Publish<span style="font-size: 12px; background: rgba(255,255,255,.2); border-radius: 999px; padding: 1px 7px">2</span></span>
+    </header>
+
+    <section aria-label="Preview" style="flex: 1; min-height: 0; background: #EFEFEC; padding: 20px 24px; display: flex; flex-direction: column; gap: 10px">
+      <span style="height: 30px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 8px; background: #FFFFFF; font-size: 13px; color: #52525B; align-self: flex-start"><span style="width: 7px; height: 7px; border-radius: 50%; background: #0B6BAA"></span>Preview · ecosymbia.com/case-studies/lears-macaw/</span>
+      <div style="flex: 1; min-height: 0; background: #FFFFFF; border-radius: 12px; box-shadow: 0 1px 2px rgba(16,24,40,.06), 0 12px 32px rgba(16,24,40,.08); overflow: hidden; display: flex; flex-direction: column">
+        <div style="flex: none; display: flex; justify-content: space-between; align-items: center; padding: 16px 64px; border-bottom: 1px solid #E8EEE6; font-family: 'Source Serif 4', Georgia, serif; color: #2F4A2A">
+          <span style="font-size: 20px; font-weight: 600">ecosymbia</span>
+          <span style="display: flex; gap: 22px; font-size: 15px"><span>Services</span><span>Case studies</span><span>News</span><span>Contact</span></span>
+        </div>
+        <article style="padding: 40px 64px; max-width: 760px; display: flex; flex-direction: column; gap: 18px; font-family: 'Source Serif 4', Georgia, serif; color: #26332A">
+          <span style="font-family: Geist, sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #5C7A55">Case study · Brazil</span>
+          <span style="font-size: 40px; line-height: 1.1; font-weight: 600; color: #1D2B20">Protecting the Lear’s macaw</span>
+          <p style="margin: 0; font-size: 19px; line-height: 1.6">The Lear’s macaw nests only in the sandstone cliffs of northeastern Bahia. A new wind farm was planned less than twenty kilometres away.</p>
+          <div style="position: relative">
+            <p style="margin: 0; font-size: 19px; line-height: 1.6">Before construction started, <span style="background: rgba(11,107,170,.20); border-radius: 2px; box-shadow: 0 0 0 2px rgba(11,107,170,.20)">our team surveyed the nesting cliffs over three breeding seasons and shared every sighting with local partners</span>. The results shaped where the turbines could safely go.</p>
+
+            
+              <button type="button" aria-label="Chat about the selected text" style="position: absolute; left: 470px; top: calc(100% + 6px); z-index: 5; height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px 0 6px; border: 0; border-radius: 999px; background: #18181B; color: #FFFFFF; font-family: Geist, sans-serif; font-size: 13px; font-weight: 500; box-shadow: 0 6px 16px rgba(16,24,40,.28); cursor: pointer"><span style="width: 20px; height: 20px; border-radius: 5px; background: #FFFFFF; color: #18181B; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center">Q</span>Chat</button>
+            
+
+            
+          </div>
+          <p style="margin: 0; font-size: 19px; line-height: 1.6">Three of the planned turbine positions were moved away from the main flight corridor, and monitoring continues during operation.</p>
+          <div style="position: relative">
+            <p style="margin: 0; font-size: 19px; line-height: 1.6"><span style="">Results are reported to the state environmental agency every six months.</span></p>
+            
+          </div>
+        </article>
+      </div>
+    </section>
+  </div>
+</div>
+
+</body>
+</html>

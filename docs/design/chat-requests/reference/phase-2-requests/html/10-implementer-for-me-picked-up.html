@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Requests · for me</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+
+<style>
+html,body{background:#F7F7F5}
+.qp-screens{position:fixed;right:calc(12px + env(safe-area-inset-right, 0px));bottom:calc(16px + env(safe-area-inset-bottom, 0px));z-index:50;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;background:#18181B;color:#FAFAFA;font:500 13px Geist,ui-sans-serif,system-ui,sans-serif;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.qp-screens:hover{color:#FFFFFF;background:#27272A}
+.qp-screens:focus-visible{outline:2px solid #37B6FF;outline-offset:2px}
+</style>
+</head>
+<body>
+
+<div style="width: 1440px; height: 900px; overflow: hidden; display: flex; font-family: Geist, ui-sans-serif, system-ui, sans-serif; color: #18181B; background: #F7F7F5">
+  <nav aria-label="Project" style="flex: none; width: 64px; background: #FFFFFF; border-right: 1px solid #E5E5E2; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0">
+    <span style="width: 36px; height: 36px; border-radius: 9px; background: #E6F2FB; color: #0A5A8F; font-weight: 650; font-size: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px">E</span>
+    <span style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#52525B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></span>
+    <span style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#52525B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg></span>
+    <span title="Requests" style="position: relative; width: 44px; height: 44px; border-radius: 10px; background: #F1F1EE; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#18181B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 13l2.5-7h11L20 13"/><path d="M4 13v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5h-5a3 3 0 0 1-6 0z"/></svg><span style="position: absolute; top: 5px; right: 3px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; background: #D97706; color: #FFFFFF; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center">3</span></span>
+    <span style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#52525B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M5 20h14"/></svg></span>
+  </nav>
+
+  <section aria-label="Requests" style="flex: none; width: 400px; background: #FFFFFF; border-right: 1px solid #E5E5E2; display: flex; flex-direction: column">
+    <div style="padding: 18px 20px 12px; display: flex; flex-direction: column; gap: 12px">
+      <span style="font-size: 18px; font-weight: 600">Requests</span>
+      <div role="tablist" style="display: flex; gap: 2px; padding: 3px; background: #F1F1EE; border-radius: 9px; align-self: flex-start">
+        <span role="tab" aria-selected="true" style="height: 32px; padding: 0 12px; border-radius: 6px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(16,24,40,.08); font-size: 13px; font-weight: 500; display: flex; align-items: center">For me · 3</span>
+        <span role="tab" aria-selected="false" style="height: 32px; padding: 0 12px; font-size: 13px; color: #52525B; display: flex; align-items: center">Sent by me · 1</span>
+      </div>
+      <div style="display: flex; gap: 6px">
+        <span style="height: 28px; padding: 0 10px; border-radius: 999px; background: #18181B; color: #FFFFFF; font-size: 12px; font-weight: 500; display: flex; align-items: center">Open</span>
+        <span style="height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid #E5E5E2; font-size: 12px; color: #3F3F46; display: flex; align-items: center">Done</span>
+        <span style="height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid #E5E5E2; font-size: 12px; color: #3F3F46; display: flex; align-items: center; gap: 4px">All types<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+      </div>
+    </div>
+    <ul style="list-style: none; margin: 0; padding: 0 10px; display: flex; flex-direction: column; gap: 4px">
+      <li style="padding: 12px; border-radius: 10px; background: #E6F2FB; box-shadow: inset 3px 0 0 #0B6BAA; display: flex; gap: 12px">
+        <span aria-hidden="true" style="flex: none; width: 64px; height: 44px; border-radius: 6px; background: #2F4A2A; color: #D8E3D3; font-family: 'Source Serif 4', Georgia, serif; font-size: 7px; line-height: 1.3; padding: 6px; box-sizing: border-box; overflow: hidden">ecosymbia<br>Contact · Privacy<br>© 2024</span>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+          <span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 14px; font-weight: 600">Add LinkedIn to the footer</span><span style="font-size: 12px; color: #6B6B73">2 h</span></span>
+          <span style="display: flex; gap: 6px; align-items: center; font-size: 12px; color: #6B6B73"><span style="padding: 1px 6px; border-radius: 4px; background: #F1F1EE; color: #3F3F46">Template change</span>Sanne · picked up by you</span>
+        </span>
+      </li>
+      <li style="padding: 12px; border-radius: 10px; display: flex; gap: 12px">
+        <span aria-hidden="true" style="flex: none; width: 64px; height: 44px; border-radius: 6px; background: #EEF3EC; border: 1px solid #DCE5D8; box-sizing: border-box; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 5px"><span style="background: #C9D8C2; border-radius: 2px"></span><span style="background: #C9D8C2; border-radius: 2px"></span></span>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+          <span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 14px; font-weight: 600">Show the country on case study cards</span><span style="font-size: 12px; color: #6B6B73">Yesterday</span></span>
+          <span style="display: flex; gap: 6px; align-items: center; font-size: 12px; color: #6B6B73"><span style="padding: 1px 6px; border-radius: 4px; background: #F1F1EE; color: #3F3F46">Template change</span>Joost → via Sanne · open</span>
+        </span>
+      </li>
+      <li style="padding: 12px; border-radius: 10px; display: flex; gap: 12px">
+        <span aria-hidden="true" style="flex: none; width: 64px; height: 44px; border-radius: 6px; background: #F7F7F5; border: 1px solid #E5E5E2; box-sizing: border-box; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg></span>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+          <span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 14px; font-weight: 600">Logo looks blurry on phones</span><span style="font-size: 12px; color: #6B6B73">3 d</span></span>
+          <span style="display: flex; gap: 6px; align-items: center; font-size: 12px; color: #6B6B73"><span style="padding: 1px 6px; border-radius: 4px; background: #F1F1EE; color: #3F3F46">Template change</span>Sanne · open</span>
+        </span>
+      </li>
+      <li style="padding: 10px 12px; font-size: 12px; color: #A1A1AA; line-height: 1.5">Content requests (like a new page) go to editors, not here.</li>
+    </ul>
+  </section>
+
+  <main style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+    <header style="height: 60px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 28px; border-bottom: 1px solid #E5E5E2; background: #FFFFFF">
+      <span style="flex: 1; display: flex; flex-direction: column"><span style="font-size: 12px; color: #6B6B73">Template change · to implementers</span><span style="font-size: 16px; font-weight: 600">Add LinkedIn to the footer</span></span>
+      <span style="height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; background: #E6F2FB; color: #0A5A8F">Picked up by you</span>
+    </header>
+
+    <div style="flex: 1; min-height: 0; overflow: hidden; padding: 24px 28px; display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; gap: 20px; align-items: flex-start">
+        <figure style="flex: none; width: 340px; margin: 0; display: flex; flex-direction: column; gap: 6px">
+          <div aria-label="Snapshot of the element" style="border-radius: 10px; background: #2F4A2A; color: #D8E3D3; font-family: 'Source Serif 4', Georgia, serif; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; outline: 2px solid #D97706; outline-offset: 3px">
+            <span style="font-size: 16px; font-weight: 600; color: #FFFFFF">ecosymbia</span>
+            <span style="display: flex; gap: 16px; font-size: 13px"><span>Contact</span><span>Privacy</span><span>Newsletter</span></span>
+            <span style="font-size: 11px; color: #A9BBA2">© 2024 Ecosymbia B.V. · Utrecht</span>
+          </div>
+          <figcaption style="font-size: 12px; color: #6B6B73">Footer on <a href="#" style="color: #0B6BAA">/case-studies/lears-macaw/</a> · as it looked when sent</figcaption>
+        </figure>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+          <span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #52525B">layouts/partials/footer.html:18</span>
+          <span style="font-size: 12px; color: #6B6B73">Found by the template hint in the preview build</span>
+        </div>
+      </div>
+
+      <ol aria-label="Thread" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; max-width: 720px">
+        <li style="display: flex; gap: 10px">
+          <span style="flex: none; width: 32px; height: 32px; border-radius: 50%; background: #F3E8FF; color: #6B21A8; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center">S</span>
+          <span style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 13px"><b style="font-weight: 600">Sanne Bakker</b> <span style="color: #6B6B73">· Editor · 2 h ago</span></span><span style="font-size: 15px; line-height: 1.55">Add our LinkedIn page next to Contact. And the year should update by itself.</span></span>
+        </li>
+        
+          <li style="display: flex; gap: 10px; align-items: center; font-size: 13px; color: #52525B"><span style="flex: none; width: 32px; display: flex; justify-content: center"><span style="width: 8px; height: 8px; border-radius: 50%; background: #0B6BAA"></span></span>You picked this up and forwarded it to the template assistant · 4 min ago</li>
+        
+      </ol>
+
+      <div style="margin-top: auto; border: 1px solid #E5E5E2; border-radius: 12px; background: #FFFFFF; padding: 14px; display: flex; flex-direction: column; gap: 12px; max-width: 760px">
+        
+        
+          <div style="display: flex; gap: 10px; align-items: center">
+            <span style="flex: 1; font-size: 14px">The template assistant has a draft ready.</span>
+            <a href="11-code-preview-normal.html" style="height: 40px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 8px; background: #0B6BAA; color: #FFFFFF; font-size: 14px; font-weight: 600; text-decoration: none">Continue in Code + preview</a>
+          </div>
+        
+        <div style="display: flex; align-items: center; gap: 8px; border-top: 1px solid #F1F1EE; padding-top: 12px">
+          <label for="reply" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Reply to Sanne</label>
+          <input id="reply" placeholder="Reply to Sanne" style="flex: 1; min-width: 0; height: 40px; box-sizing: border-box; border: 1px solid #D9D9D5; border-radius: 8px; padding: 0 12px; font: inherit; font-size: 14px">
+          <span style="font-size: 12px; color: #6B6B73">Visible to Sanne and implementers</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>
