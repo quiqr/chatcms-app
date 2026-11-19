@@ -5,7 +5,8 @@ status: in-progress
 type: feature
 priority: normal
 created_at: 2026-11-19T20:04:29Z
-updated_at: 2026-11-19T20:04:29Z
+updated_at: 2026-11-20T01:00:00Z
+openspec-link: openspec/changes/archive/2026-11-19-where-a-selection-is-from
 parent: chatcms-z0p7
 ---
 
