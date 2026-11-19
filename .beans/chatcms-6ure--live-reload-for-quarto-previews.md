@@ -1,18 +1,11 @@
-updated_at: 2026-11-19T08:07:42Z
-openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
-updated_at: 2026-11-19T08:07:42Z
-openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
-updated_at: 2026-11-19T08:07:42Z
-openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
-updated_at: 2026-11-19T08:07:42Z
-openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
-updated_at: 2026-11-19T08:07:42Z
-openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
-updated_at: 2026-11-19T08:07:42Z
-openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
-updated_at: 2026-11-19T08:07:42Z
-openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
-updated_at: 2026-11-19T08:07:42Z
+---
+# chatcms-6ure
+title: Live reload for Quarto previews
+status: completed
+type: task
+priority: normal
+created_at: 2026-11-19T07:46:28Z
+updated_at: 2026-11-19T08:08:03Z
 openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
 parent: chatcms-z0p7
 ---

@@ -1,18 +1,11 @@
-updated_at: 2026-11-19T08:07:42Z
-openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
-updated_at: 2026-11-19T08:07:42Z
-openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
-updated_at: 2026-11-19T08:07:42Z
-openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
-updated_at: 2026-11-19T08:07:42Z
-openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
-updated_at: 2026-11-19T08:07:42Z
-openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
-updated_at: 2026-11-19T08:07:42Z
-openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
-updated_at: 2026-11-19T08:07:42Z
-openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
-updated_at: 2026-11-19T08:07:42Z
+---
+# chatcms-2myi
+title: The local backend lets a preview write into the person's copy
+status: completed
+type: bug
+priority: normal
+created_at: 2026-11-19T07:46:28Z
+updated_at: 2026-11-19T08:08:03Z
 openspec-link: openspec/changes/archive/2026-11-19-fix-quarto-previews
 ---
 
