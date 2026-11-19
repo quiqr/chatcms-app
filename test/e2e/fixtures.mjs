@@ -1,6 +1,6 @@
 import { test as base, expect } from "@playwright/test";
 
-import { Harness, administrator, owner } from "./harness.mjs";
+import { Harness, administrator, owner, realAI } from "./harness.mjs";
 
 // Each spec gets a ChatCMS of its own: its own database, its own remote and
 // its own seeded site. Nothing a test does can reach another, so the order
@@ -17,6 +17,10 @@ export const test = base.extend({
     try {
       await harness.start();
       await use(harness);
+      if (realAI && assistant) {
+        const used = harness.aiUse();
+        console.log(`real AI: ${used.calls} calls, ${used.tokensIn} tokens in, ${used.tokensOut} tokens out`);
+      }
     } finally {
       await harness.stop();
     }

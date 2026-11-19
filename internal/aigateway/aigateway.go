@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -97,13 +98,27 @@ func (t *Tokens) Revoke(ctx context.Context, key workspace.Key) error {
 var _ workspace.Tokens = (*Tokens)(nil)
 
 type Settings struct {
-	ProviderURL string
-	Key         string
-	Model       string
-	Client      *http.Client
-	Logger      *slog.Logger
-	Now         func() time.Time
-	Allowed     []*net.IPNet
+	ProviderURL   string
+	Key           string
+	Model         string
+	SessionHeader string
+	UserAgent     string
+	Client        *http.Client
+	Logger        *slog.Logger
+	Now           func() time.Time
+	Allowed       []*net.IPNet
+}
+
+func (s Settings) userAgent() string {
+	if s.UserAgent != "" {
+		return s.UserAgent
+	}
+	return "quiqr-chatcms"
+}
+
+func sessionOf(caller Caller) string {
+	sum := sha256.Sum256([]byte("chatcms-session\x00" + caller.Person.String() + "\x00" + caller.Project.String()))
+	return hex.EncodeToString(sum[:16])
 }
 
 type Gateway struct {
@@ -299,6 +314,10 @@ func (g *Gateway) complete(w http.ResponseWriter, r *http.Request) {
 	}
 	outgoing.Header.Set("Content-Type", "application/json")
 	outgoing.Header.Set("Authorization", "Bearer "+g.settings.Key)
+	outgoing.Header.Set("User-Agent", g.settings.userAgent())
+	if g.settings.SessionHeader != "" {
+		outgoing.Header.Set(g.settings.SessionHeader, sessionOf(caller))
+	}
 	if streamed {
 		outgoing.Header.Set("Accept", "text/event-stream")
 	}
@@ -362,6 +381,7 @@ func (g *Gateway) stream(w http.ResponseWriter, answer *http.Response, caller Ca
 func (g *Gateway) record(caller Caller, in, out int64, status int) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	g.settings.Logger.Info("ai call", "model", g.settings.Model, "tokens_in", in, "tokens_out", out, "status", status, "project", caller.Project.String())
 	if err := g.store.Record(ctx, Usage{Caller: caller, Model: g.settings.Model, TokensIn: in, TokensOut: out, Status: status}); err != nil {
 		g.settings.Logger.Warn("recording AI use failed", "error", err)
 	}

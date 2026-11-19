@@ -41,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to both; Artifacts lists and downloads what each publish kept.
 - A runtime package may name its nixpkgs revision, and an installation may
   provide packages itself (`services.chatcms.packages`).
+- OpenCode Go works as the AI provider (`ai.sessionHeader`); developers can
+  run the assistant and its tests against a real model (`docs/TESTING.md`).
 
 ### Changed
 

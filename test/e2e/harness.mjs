@@ -23,6 +23,12 @@ function freePort() {
   });
 }
 
+export const realAI = process.env.E2E_REAL_AI
+  ? process.env.E2E_REAL_AI === "1"
+    ? join(process.env.HOME ?? "", ".config", "chatcms", "ai.env")
+    : process.env.E2E_REAL_AI
+  : "";
+
 export class Harness {
   constructor({ assistant = false, previewApart = false } = {}) {
     this.assistant = assistant;
@@ -90,7 +96,7 @@ export class Harness {
     this.inboxPort = await freePort();
     await this.startTheInbox();
     await this.startTheTemplates();
-    const assistant = this.assistant ? await this.startTheModel() : {};
+    const assistant = !this.assistant ? {} : realAI ? await this.aRealModel() : await this.startTheModel();
 
     this.server = spawn(process.env.CHATCMS_BIN ?? "chatcmsd", [], {
       env: {
@@ -405,6 +411,32 @@ export class Harness {
     const bare = join(this.state, "dev-remotes", `${name}.git`);
     sh(git, ["clone", "--bare", work, bare]);
     return bare;
+  }
+
+  async aRealModel() {
+    const said = {};
+    for (const line of readFileSync(realAI, "utf8").split("\n")) {
+      const found = line.match(/^\s*(?:export\s+)?(CHATCMS_AI_[A-Z_]+)=(.*)$/);
+      if (found) said[found[1]] = found[2].trim().replace(/^(["'])(.*)\1$/, "$2");
+    }
+    for (const needed of ["CHATCMS_AI_PROVIDER_URL", "CHATCMS_AI_MODEL"]) {
+      if (!said[needed]) throw new Error(`${realAI} does not set ${needed}`);
+    }
+    return { ...said, CHATCMS_AI_LISTEN: `127.0.0.1:${await freePort()}` };
+  }
+
+  aiUse() {
+    let calls = 0;
+    let tokensIn = 0;
+    let tokensOut = 0;
+    for (const line of this.log.split("\n")) {
+      if (!line.includes('"msg":"ai call"')) continue;
+      const said = JSON.parse(line);
+      calls += 1;
+      tokensIn += said.tokens_in ?? 0;
+      tokensOut += said.tokens_out ?? 0;
+    }
+    return { calls, tokensIn, tokensOut };
   }
 
   async startTheModel() {

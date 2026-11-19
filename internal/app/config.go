@@ -60,6 +60,7 @@ type Config struct {
 	AIProviderURL    string
 	AIModel          string
 	AIKey            string
+	AISessionHeader  string
 	OpenCodeBin      string
 	PreviewURL       string
 	Packages         map[string]string
@@ -133,6 +134,7 @@ func LoadConfig(lookup Lookup) (Config, error) {
 		{"CHATCMS_AI_PROVIDER_URL", &cfg.AIProviderURL, "", false},
 		{"CHATCMS_AI_MODEL", &cfg.AIModel, "", false},
 		{"CHATCMS_AI_KEY", &cfg.AIKey, "", false},
+		{"CHATCMS_AI_SESSION_HEADER", &cfg.AISessionHeader, "", false},
 		{"CHATCMS_OPENCODE_BIN", &cfg.OpenCodeBin, "", false},
 		{"CHATCMS_PREVIEW_URL", &cfg.PreviewURL, "", false},
 	}

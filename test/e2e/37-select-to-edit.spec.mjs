@@ -1,4 +1,5 @@
 import { test, expect, onAPhone } from "./fixtures.mjs";
+import { realAI } from "./harness.mjs";
 
 test.use({ assistant: true, previewApart: true });
 
@@ -36,8 +37,9 @@ test("a sentence selected in the preview is changed on its own page, and the cha
     const message = panel.getByRole("textbox", { name: "Your message" });
     await message.fill("Change it to Korenaar by night");
     await message.press("Enter");
-    await expect(panel.getByText("Done. The home page has its new title.")).toBeVisible({ timeout: 150_000 });
-    await expect(panel.getByText(/^Changed /)).toBeVisible();
+    if (!realAI) await expect(panel.getByText("Done. The home page has its new title.")).toBeVisible({ timeout: 150_000 });
+    await expect(panel.getByText(/^Changed /)).toBeVisible({ timeout: 150_000 });
+    if (realAI) return;
     const asked = chatcms.asked.flatMap((one) => one.messages ?? []).map((one) => (typeof one.content === "string" ? one.content : JSON.stringify(one.content)));
     expect(asked.some((text) => text.includes('with key "home"') && text.includes("Korenaar Bakery"))).toBe(true);
   });

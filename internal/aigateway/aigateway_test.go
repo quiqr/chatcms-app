@@ -101,9 +101,10 @@ func (m *memory) recorded() []Usage {
 }
 
 type provider struct {
-	mu   sync.Mutex
-	seen []map[string]any
-	auth []string
+	mu      sync.Mutex
+	seen    []map[string]any
+	auth    []string
+	headers []http.Header
 }
 
 func (p *provider) server(t *testing.T) *httptest.Server {
@@ -114,6 +115,7 @@ func (p *provider) server(t *testing.T) *httptest.Server {
 		p.mu.Lock()
 		p.seen = append(p.seen, body)
 		p.auth = append(p.auth, r.Header.Get("Authorization"))
+		p.headers = append(p.headers, r.Header.Clone())
 		p.mu.Unlock()
 
 		if r.URL.Path != "/v1/chat/completions" {
@@ -443,5 +445,31 @@ func TestNewNeedsItsParts(t *testing.T) {
 	}
 	if monthStart(time.Date(2026, 3, 17, 23, 0, 0, 0, time.FixedZone("x", 3*3600))) != time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC) {
 		t.Errorf("monthStart is not the first of the month in UTC")
+	}
+}
+
+func TestTheProviderIsToldWhoAsksWhenItWantsTo(t *testing.T) {
+	r := newRig(t)
+	token, _ := r.token(t)
+	r.ask(t, http.MethodPost, "/v1/chat/completions", token, `{"model":"anything","messages":[{"role":"user","content":"hi"}]}`, workspaceAddress)
+	if got := r.provider.headers[0].Get("User-Agent"); got != "quiqr-chatcms" {
+		t.Errorf("User-Agent = %q", got)
+	}
+	if got := r.provider.headers[0].Get("X-Opencode-Session"); got != "" {
+		t.Errorf("a session header was sent unasked: %q", got)
+	}
+
+	r.gateway.settings.SessionHeader = "x-opencode-session"
+	r.gateway.settings.UserAgent = "quiqr-chatcms/1.2.3"
+	r.ask(t, http.MethodPost, "/v1/chat/completions", token, `{"model":"anything","messages":[]}`, workspaceAddress)
+	r.ask(t, http.MethodPost, "/v1/chat/completions", token, `{"model":"anything","messages":[]}`, workspaceAddress)
+	other, _ := r.token(t)
+	r.ask(t, http.MethodPost, "/v1/chat/completions", other, `{"model":"anything","messages":[]}`, workspaceAddress)
+	first, second, third := r.provider.headers[1].Get("X-Opencode-Session"), r.provider.headers[2].Get("X-Opencode-Session"), r.provider.headers[3].Get("X-Opencode-Session")
+	if len(first) != 32 || first != second || first == third {
+		t.Errorf("sessions = %q, %q, %q, want one stable per workspace", first, second, third)
+	}
+	if got := r.provider.headers[1].Get("User-Agent"); got != "quiqr-chatcms/1.2.3" {
+		t.Errorf("User-Agent = %q", got)
 	}
 }

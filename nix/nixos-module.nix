@@ -355,6 +355,13 @@ in
         default = 8091;
         description = "The port the AI gateway listens on.";
       };
+
+      sessionHeader = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        example = "x-opencode-session";
+        description = "A header the provider wants a stable session in; the gateway sends one per person and project. OpenCode Go asks for x-opencode-session.";
+      };
     };
 
     extraEnvironment = lib.mkOption {
@@ -461,6 +468,8 @@ in
         CHATCMS_AI_KEY_FILE = "%d/ai-key";
         CHATCMS_AI_LISTEN = "${if microvm then "0.0.0.0" else "127.0.0.1"}:${toString cfg.ai.port}";
         CHATCMS_OPENCODE_BIN = "${self.packages.${system}.opencode}/bin/opencode";
+      } // lib.optionalAttrs (aiOn && cfg.ai.sessionHeader != null) {
+        CHATCMS_AI_SESSION_HEADER = cfg.ai.sessionHeader;
       } // lib.optionalAttrs (cfg.firstAdministrator != null) {
         CHATCMS_FIRST_ADMINISTRATOR = cfg.firstAdministrator;
       } // lib.optionalAttrs (cfg.mail.host != null) {

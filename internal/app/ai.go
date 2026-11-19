@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/quiqr/chatcms-app/internal/aigateway"
+	"github.com/quiqr/chatcms-app/internal/version"
 	"github.com/quiqr/chatcms-app/internal/workspace"
 )
 
@@ -19,10 +20,12 @@ func (s *Server) startAI() error {
 	}
 
 	gateway, err := aigateway.New(books, aigateway.Settings{
-		ProviderURL: s.cfg.AIProviderURL,
-		Key:         s.cfg.AIKey,
-		Model:       s.cfg.AIModel,
-		Logger:      s.logger,
+		ProviderURL:   s.cfg.AIProviderURL,
+		Key:           s.cfg.AIKey,
+		Model:         s.cfg.AIModel,
+		SessionHeader: s.cfg.AISessionHeader,
+		UserAgent:     "quiqr-chatcms/" + version.String(),
+		Logger:        s.logger,
 	})
 	if err != nil {
 		return err

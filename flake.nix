@@ -287,6 +287,7 @@
           CHATCMS_BWRAP_BIN = "${pkgs.bubblewrap}/bin/bwrap";
           CHATCMS_PRLIMIT_BIN = "${pkgs.util-linux}/bin/prlimit";
           CHATCMS_WORKFLOW_TOOLS = workflowTools pkgs;
+          CHATCMS_OPENCODE_BIN = "${opencodeFor system}/bin/opencode";
         };
         shellHook = ''
           echo "Quiqr ChatCMS dev shell (${system})"

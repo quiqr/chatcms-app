@@ -124,6 +124,64 @@ Two further checks that are not screen flows:
 - Migrations run cleanly from an empty database, asserted by the integration
   harness on every run.
 
+## The assistant: a scripted model, or a real one
+
+The assistant specs (`35-asking-the-assistant`, `37-select-to-edit`) run the
+real OpenCode, the real gateway and the real Quiqr tools. What answers them is
+a scripted model in `test/e2e/harness.mjs`: an OpenAI-compatible endpoint that
+replies with fixed text and fixed tool calls. The gate always uses it, so a
+run costs nothing and says the same thing every time. It proves the wiring,
+not that a model does the right thing.
+
+### Real AI inference
+
+Real inference is for developers, and never in the gate. Its settings live in
+a file outside the repository, read by `scripts/dev-be.sh` and by the opt-in
+e2e run:
+
+```bash
+mkdir -p ~/.config/chatcms && chmod 700 ~/.config/chatcms
+install -m 600 /dev/null ~/.config/chatcms/ai.key   # then put the key in it
+cat > ~/.config/chatcms/ai.env <<'END'
+CHATCMS_AI_PROVIDER_URL=https://opencode.ai/inference/go/v1
+CHATCMS_AI_MODEL=<a model id from the provider's /v1/models>
+CHATCMS_AI_KEY_FILE=/home/<you>/.config/chatcms/ai.key
+CHATCMS_AI_SESSION_HEADER=x-opencode-session
+END
+```
+
+- **OpenCode Go** (the example above): the key from the OpenCode Console. Go
+  wants a stable session per conversation in `x-opencode-session` and a user
+  agent of the client's own; the gateway sends both, one session per person
+  and project. Use a model that calls tools.
+- **Any other OpenAI-compatible provider**: its `/v1` address, a model, the
+  key; leave out `CHATCMS_AI_SESSION_HEADER`. A small, cheap model that calls
+  tools is enough.
+
+`scripts/dev-be.sh` says at start which model the assistant uses, or that it
+has none. `CHATCMS_AI_ENV` names another file.
+
+The assistant specs against the real model:
+
+```bash
+cd test/e2e
+E2E_REAL_AI=1 npx playwright test --project=desk 35-asking-the-assistant 37-select-to-edit
+#   E2E_REAL_AI=/path/to/other.env reads another file
+```
+
+A real model is checked for what it can be relied on to do: the page it was
+asked about changed as asked, is shown as changed, and Undo puts it back. The
+words of its reply and the shape of its tool calls are not checked. Each test
+prints what it used, from the gateway's log:
+
+```text
+real AI: 3 calls, 8263 tokens in, 144 tokens out
+```
+
+With OpenCode Go and `deepseek-v4.1-flash`, both specs at both widths took
+11 calls, about 31,000 tokens in and 600 out: about a cent at the list price
+Go reported, and drawn from the subscription's allowance rather than billed.
+
 ## What the gate runs
 
 `nix flake check` runs every check. `scripts/gate.sh <tier>` runs a tier of

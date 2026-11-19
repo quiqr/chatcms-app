@@ -128,6 +128,22 @@ export CHATCMS_STATE_DIR="$state"
 export CHATCMS_LISTEN="$host:$port"
 export CHATCMS_BASE_URL="http://$reachable:$port"
 
+ai_env="${CHATCMS_AI_ENV:-$HOME/.config/chatcms/ai.env}"
+ai_said="none; see docs/TESTING.md, Real AI inference"
+if [ -r "$ai_env" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+        case "$line" in
+            CHATCMS_AI_*=*)
+                name="${line%%=*}"
+                value="${line#*=}"
+                value="${value%\"}"; value="${value#\"}"
+                export "$name=$value"
+                ;;
+        esac
+    done < "$ai_env"
+    ai_said="${CHATCMS_AI_MODEL:-?} via ${CHATCMS_AI_PROVIDER_URL:-?} (from $ai_env)"
+fi
+
 if [ ! -d "$state/sites" ]; then
     echo "==> seeding"
     go run ./cmd/seed "$url"
@@ -145,6 +161,7 @@ cat <<NOTICE
     studio-noord  has no site, so the setup screen has something to do
 
     Mail this instance sends: http://$reachable:$inbox_port
+    The assistant's model: $ai_said
 
     The frontend in another terminal, with live reloading, on :$web_port:
       ${instance_prefix}scripts/dev-fe.sh

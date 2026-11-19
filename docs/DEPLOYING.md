@@ -196,6 +196,14 @@ must differ from `baseUrl`'s, and the URL may not have a path. Previews are
 then reached only through it, at an unguessable address per workspace, and
 no cookie is ever set for the preview host.
 
+## OpenCode Go as the provider
+
+`services.chatcms.ai` works with OpenCode Go: `providerUrl =
+"https://opencode.ai/inference/go/v1"`, a model from its `/v1/models`, the
+key from the OpenCode Console in `keyFile`, and `sessionHeader =
+"x-opencode-session"`, which Go asks for. The gateway then sends one stable
+session per person and project, and a user agent of its own.
+
 ## Packages the installation provides
 
 `services.chatcms.packages = { quarto = pkgs.quarto; };` gives every site that

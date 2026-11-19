@@ -1,6 +1,7 @@
 // Milestone 07, epic 6: "change X on page Y" through chat changes the page,
 // shows in the preview and is saved; Undo puts it back.
 import { test, expect, onAPhone, worksOnAPhone } from "./fixtures.mjs";
+import { realAI } from "./harness.mjs";
 
 test.use({ assistant: true });
 
@@ -19,8 +20,8 @@ test("the assistant changes a page when asked, and Undo puts it back", async ({ 
   await test.step("asking for a change", async () => {
     await message.fill("Change the title of the home page to Korenaar by night");
     await message.press("Enter");
-    await expect(panel.getByText("Done. The home page has its new title.")).toBeVisible({ timeout: 150_000 });
-    await expect(panel.getByText(/^Changed /)).toBeVisible();
+    if (!realAI) await expect(panel.getByText("Done. The home page has its new title.")).toBeVisible({ timeout: 150_000 });
+    await expect(panel.getByText(/^Changed /)).toBeVisible({ timeout: 150_000 });
   });
 
   const reopen = async () => {
@@ -47,7 +48,7 @@ test("the assistant changes a page when asked, and Undo puts it back", async ({ 
     await expect(page.getByRole("textbox", { name: "Page title" })).toHaveValue("Korenaar Bakery", { timeout: 20_000 });
   });
 
-  expect(chatcms.asked.some((asked) => (asked.tools ?? []).some((tool) => /update_page$/.test(tool.function?.name ?? "")))).toBe(true);
+  if (!realAI) expect(chatcms.asked.some((asked) => (asked.tools ?? []).some((tool) => /update_page$/.test(tool.function?.name ?? "")))).toBe(true);
   await worksOnAPhone(page, testInfo);
 });
 
