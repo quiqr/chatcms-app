@@ -148,6 +148,7 @@ export function NewItemDialog({
     }
   }
 
+  const onTheWeb = !address || address.address !== "";
   return (
     <Dialog open onOpenChange={(open) => !open && onCancel()}>
       <DialogContent title={say("collection.new", { noun: itemName })}>
@@ -188,16 +189,16 @@ export function NewItemDialog({
 
           {editing ? (
             <Field
-              label={say("new-item.address-field")}
+              label={onTheWeb ? say("new-item.address-field") : say("new-item.name")}
               className="font-mono text-sm"
               value={slug}
               onChange={(event) => setSlug(event.target.value)}
             />
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium">{say("new-item.address")}</span>
+              <span className="text-sm font-medium">{onTheWeb ? say("new-item.address") : say("new-item.name")}</span>
               <span className="min-w-0 flex-1 truncate font-mono text-sm text-muted-foreground">
-                {address?.address ?? ""}
+                {onTheWeb ? address?.address : address?.slug}
               </span>
               <Button type="button" variant="ghost" size="compact" onClick={() => setEditing(true)}>
                 {say("new-item.edit-address")}

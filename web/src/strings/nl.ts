@@ -469,6 +469,7 @@ export const nl: Strings = {
   "new-item.edit-address": "Wijzigen",
   "new-item.file": "Bestand",
   "new-item.folder": "Map",
+  "new-item.name": "Naam",
   "new-item.taken": "Op dit adres staat al iets ({noun}). Verander de titel of het adres.",
   "new-item.top-folder": "De bovenste map",
   "new-item.title": "Titel",

@@ -86,15 +86,23 @@ each item's file name in the list. Nobody else SHALL be sent a path.
 ### Requirement: Making an item checks its address first
 
 The new-item dialog SHALL ask for a title, and a folder when the collection
-has subfolders. It SHALL show the web address made from the title, which can
-be changed. For those who see technical detail it SHALL show the file that
-will be made. A taken address SHALL be refused before anything is written,
-and the dialog SHALL say how to fix it.
+has subfolders. On a Hugo site it SHALL show the web address made from the
+title; on any other site, where that address cannot be known, it SHALL show
+the name made from the title instead. Either can be changed. For those who
+see technical detail it SHALL show the file that will be made. A taken
+address SHALL be refused before anything is written, and the dialog SHALL
+say how to fix it.
 
 #### Scenario: Making a post
 
 - **WHEN** somebody types "Spring sale" and chooses Create and edit
 - **THEN** the item is made and opens in the editor
+
+#### Scenario: A book that is not a Hugo site
+
+- **WHEN** somebody makes a chapter in a Quarto book
+- **THEN** the dialog shows "Name" with the name made from the title, and no
+  web address
 
 #### Scenario: A taken address
 

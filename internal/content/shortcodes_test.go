@@ -78,3 +78,25 @@ func TestAQuartoPageCarriesNoShortcodes(t *testing.T) {
 		t.Fatalf("dialect %q, shortcodes %+v", page.Dialect, page.Shortcodes)
 	}
 }
+
+func TestOnlyAHugoSiteGivesANewItemAWebAddress(t *testing.T) {
+	project := uuid.New()
+	hugo := &sources{site: aSite()}
+	address, err := service(t, hugo, &syncer{}).Address(context.Background(), anEditor(project), project, content.NewPage{Section: "news", Title: "Spring"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if address.Address != "/news/spring/" {
+		t.Fatalf("address = %q", address.Address)
+	}
+
+	quarto := &sources{site: aSite()}
+	quarto.site.files["quiqr/runtime.yaml"] = &fstest.MapFile{Data: []byte("packages:\n  quarto: \"1.10.18\"\npreview:\n  command: [quarto, preview, \"{source}\"]\n")}
+	address, err = service(t, quarto, &syncer{}).Address(context.Background(), anEditor(project), project, content.NewPage{Section: "news", Title: "Spring"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if address.Address != "" || address.Slug != "spring" {
+		t.Fatalf("address = %+v", address)
+	}
+}

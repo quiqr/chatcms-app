@@ -481,10 +481,12 @@ func (s *Service) Address(ctx context.Context, actor policy.Actor, projectID uui
 	}
 
 	answer := Address{
-		Slug:    slug,
-		Folder:  folder,
-		Address: webAddress(collection, folder, slug),
-		Free:    !taken(site.FS(), collection, folder, slug),
+		Slug:   slug,
+		Folder: folder,
+		Free:   !taken(site.FS(), collection, folder, slug),
+	}
+	if RuntimeOf(site.FS()) == "hugo" {
+		answer.Address = webAddress(collection, folder, slug)
 	}
 	if policy.Can(actor, policy.ActionSeeTechnicalDetail, resource) {
 		answer.File = newItemFile(collection, folder, slug)

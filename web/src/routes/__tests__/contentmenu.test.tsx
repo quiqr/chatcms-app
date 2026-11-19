@@ -288,6 +288,26 @@ describe("a collection", () => {
     expect(calls.find((call) => call.method === "POST")?.body).toEqual({ title: "Summer", folder: "", slug: "" });
   });
 
+  it("says the web address for a website, and only a name where there is none", async () => {
+    serve({
+      [`${base}/collections/posts/items`]: { body: posts() },
+      [`${base}/collections/posts/address`]: (url) => ({
+        body: { slug: "summer", address: url.includes("book") ? "" : "/post/summer/", free: true },
+      }),
+    });
+    const user = userEvent.setup();
+    at("/o/technative/p/journal/content/c/posts", route);
+    await user.click(await screen.findByRole("button", { name: "New post" }));
+    await fill(screen.getByLabelText("Title"), "Summer");
+    expect(await screen.findByText("/post/summer/")).toBeInTheDocument();
+    expect(screen.getByText("Web address")).toBeInTheDocument();
+
+    await fill(screen.getByLabelText("Title"), " book");
+    expect(await screen.findByText("Name")).toBeInTheDocument();
+    expect(screen.getByText("summer")).toBeInTheDocument();
+    expect(screen.queryByText("Web address")).toBeNull();
+  });
+
   it("keeps Create and edit unavailable while the address is taken", async () => {
     serve({
       [`${base}/collections/posts/items`]: { body: posts() },

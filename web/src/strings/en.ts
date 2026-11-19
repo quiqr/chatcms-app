@@ -466,6 +466,7 @@ export const en = {
   "new-item.edit-address": "Edit",
   "new-item.file": "File",
   "new-item.folder": "Folder",
+  "new-item.name": "Name",
   "new-item.taken": "There's already a {noun} at this address. Change the title or the address.",
   "new-item.top-folder": "The top folder",
   "new-item.title": "Title",

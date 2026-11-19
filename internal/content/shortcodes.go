@@ -21,6 +21,14 @@ func ShortcodeDialect(m *model.Model, site fs.FS) string {
 	if m.ShortcodeDialect != "" {
 		return m.ShortcodeDialect
 	}
+	program := RuntimeOf(site)
+	if model.IsShortcodeDialect(program) {
+		return program
+	}
+	return ""
+}
+
+func RuntimeOf(site fs.FS) string {
 	data, err := fs.ReadFile(site, runtime.File)
 	if errors.Is(err, fs.ErrNotExist) {
 		return "hugo"
@@ -32,11 +40,7 @@ func ShortcodeDialect(m *model.Model, site fs.FS) string {
 	if err != nil || len(definition.Preview.Command) == 0 {
 		return ""
 	}
-	program := path.Base(definition.Preview.Command[0])
-	if model.IsShortcodeDialect(program) {
-		return program
-	}
-	return ""
+	return path.Base(definition.Preview.Command[0])
 }
 
 func ShortcodeShapes(declared []model.Shortcode) []ShortcodeShape {
