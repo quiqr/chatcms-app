@@ -445,3 +445,50 @@ func TestAnOpenQuestionIsPutAgainWhenAskedHowTheSiteStands(t *testing.T) {
 		t.Errorf("Standing() = %+v, want the open question", standing)
 	}
 }
+
+type combiner struct {
+	asked []string
+	text  string
+	err   error
+}
+
+func (c *combiner) Combine(ctx context.Context, actor policy.Actor, projectID uuid.UUID, page, field, mine, theirs string) (string, error) {
+	c.asked = append(c.asked, page+"|"+field+"|"+mine+"|"+theirs)
+	return c.text, c.err
+}
+
+func TestTheAssistantIsAskedToCombineOneField(t *testing.T) {
+	project := uuid.New()
+	working := &site{model: aModel(), syncResult: gitsync.SyncResult{Conflict: aConflict()}}
+	made := service(t, &sources{site: working})
+
+	if _, err := made.Combine(context.Background(), anEditor(project), project, "content/_index.md", "summary"); err == nil {
+		t.Error("combining without an assistant succeeded")
+	}
+
+	asked := &combiner{text: "We bake with plums and pears."}
+	made.Combining(asked)
+	text, err := made.Combine(context.Background(), anEditor(project), project, "content/_index.md", "summary")
+	if err != nil || text != "We bake with plums and pears." || len(asked.asked) != 1 || !strings.Contains(asked.asked[0], "We bake with plums.") {
+		t.Fatalf("Combine() = %q, %v, asked %v", text, err, asked.asked)
+	}
+	if _, err := made.Combine(context.Background(), anEditor(project), project, "content/_index.md", "nothing"); err == nil {
+		t.Error("a field nobody changed was combined")
+	}
+	if _, err := made.Combine(context.Background(), aViewer(project), project, "content/_index.md", "summary"); err == nil {
+		t.Error("a viewer asked for a combination")
+	}
+}
+
+func TestACombinedTextIsKept(t *testing.T) {
+	project := uuid.New()
+	working := &site{model: aModel(), syncResult: gitsync.SyncResult{Conflict: aConflict()}}
+	if _, err := service(t, &sources{site: working}).Answered(context.Background(), anEditor(project), project,
+		[]sitesync.Answer{{File: "content/_index.md", Combined: map[string]string{"summary": "We bake with plums and pears."}}}); err != nil {
+		t.Fatalf("Answered() error = %v", err)
+	}
+	written := string(working.resolved["content/_index.md"])
+	if !strings.Contains(written, "We bake with plums and pears.") || !strings.Contains(written, "My body.") {
+		t.Errorf("written:\n%s", written)
+	}
+}

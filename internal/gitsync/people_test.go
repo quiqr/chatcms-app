@@ -464,3 +464,54 @@ func TestWhatIsNotPublishedCountsEveryonesSharedSaves(t *testing.T) {
 		t.Errorf("Unshared() = %d, %v, want anna's one save", n, err)
 	}
 }
+
+func TestACopyWithNothingOfItsOwnFollowsARewrittenSharedVersion(t *testing.T) {
+	sites, remote, cfg := sharedSite(t)
+	shared, _ := sites.Open(t.Context(), "korenaar")
+	save(t, shared, "Seed", "Edit about", map[string]string{"content/about.md": "waiting to be published\n"})
+	shared.Close()
+
+	anna := openFor(t, sites, "anna")
+	if got := readSite(t, anna, "content/about.md"); got != "waiting to be published\n" {
+		t.Fatalf("anna's copy holds %q", got)
+	}
+
+	other := elsewhere(t, cfg, remote)
+	pushFrom(t, cfg, other, "content/news.md", "news\n", "News from elsewhere")
+	shared, _ = sites.Open(t.Context(), "korenaar")
+	if _, err := shared.Sync(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	shared.Close()
+
+	again := openFor(t, sites, "anna")
+	if got := readSite(t, again, "content/news.md"); got != "news\n" {
+		t.Errorf("anna's copy did not follow the shared version: news is %q", got)
+	}
+	if got := readSite(t, again, "content/about.md"); got != "waiting to be published\n" {
+		t.Errorf("about is %q", got)
+	}
+}
+
+func TestACopyWithWorkOfItsOwnIsNotThrownAway(t *testing.T) {
+	sites, remote, cfg := sharedSite(t)
+	shared, _ := sites.Open(t.Context(), "korenaar")
+	save(t, shared, "Seed", "Edit about", map[string]string{"content/about.md": "waiting to be published\n"})
+	shared.Close()
+
+	anna := openFor(t, sites, "anna")
+	save(t, anna, "Anna", "Anna's page", map[string]string{"content/anna.md": "mine\n"})
+
+	other := elsewhere(t, cfg, remote)
+	pushFrom(t, cfg, other, "content/news.md", "news\n", "News from elsewhere")
+	shared, _ = sites.Open(t.Context(), "korenaar")
+	if _, err := shared.Sync(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	shared.Close()
+
+	again := openFor(t, sites, "anna")
+	if got := readSite(t, again, "content/anna.md"); got != "mine\n" {
+		t.Errorf("anna's own work is %q", got)
+	}
+}

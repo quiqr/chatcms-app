@@ -39,6 +39,11 @@ func (s *stubSync) AbandonChanges(context.Context, Actor, string, string) (Stand
 	return s.standing, s.err
 }
 
+func (s *stubSync) CombineChanges(_ context.Context, _ Actor, _, _, file, field string) (CombinedView, error) {
+	s.calls = append(s.calls, "combine "+file+" "+field)
+	return CombinedView{Text: "both"}, s.err
+}
+
 func withSync(service SyncService, signedIn bool) http.Handler {
 	known := map[string]Actor{}
 	if signedIn {
@@ -198,5 +203,25 @@ func TestTheWrongMethodOnStandingIsSaidToBe(t *testing.T) {
 	recorder := signedInCall(t, handler, http.MethodDelete, projectBase+"/standing", nil)
 	if recorder.Code != http.StatusMethodNotAllowed {
 		t.Errorf("status = %d, want 405", recorder.Code)
+	}
+}
+
+func TestCombiningAsksAboutOneField(t *testing.T) {
+	service := &stubSync{}
+	handler := withSync(service, true)
+	got := signedInCall(t, handler, http.MethodPost, "/api/organisations/technative/projects/korenaar/standing/combine", map[string]any{"file": "content/_index.md", "field": "title"})
+	if got.Code != http.StatusOK || !strings.Contains(got.Body.String(), `"text":"both"`) || service.calls[0] != "combine content/_index.md title" {
+		t.Errorf("POST = %d %s, calls %v", got.Code, got.Body, service.calls)
+	}
+}
+
+func TestACombinedAnswerIsPassedOn(t *testing.T) {
+	service := &stubSync{}
+	handler := withSync(service, true)
+	signedInCall(t, handler, http.MethodPost, "/api/organisations/technative/projects/korenaar/standing/answer", map[string]any{
+		"answers": []map[string]any{{"file": "content/_index.md", "combined": map[string]string{"title": "Both titles"}}},
+	})
+	if len(service.answered) != 1 || service.answered[0].Combined["title"] != "Both titles" {
+		t.Errorf("answered %+v", service.answered)
 	}
 }

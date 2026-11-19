@@ -383,6 +383,10 @@ export class Harness {
     sh(git, ["-C", working, "push", "origin", "HEAD:refs/heads/main"]);
   }
 
+  inTheSharedVersion(project, path) {
+    return readFileSync(join(this.state, "sites", project, "working-copy", path), "utf8");
+  }
+
   writeInEveryCopy(project, path, content) {
     const people = join(this.state, "sites", project, "people");
     for (const person of readdirSync(people)) {
@@ -450,6 +454,18 @@ export class Harness {
         if (request.url.endsWith("/models")) {
           response.setHeader("Content-Type", "application/json");
           response.end(JSON.stringify({ object: "list", data: [{ id: "e2e", object: "model" }] }));
+          return;
+        }
+        const combining = (asked.messages ?? []).find((message) => message.role === "user" && /First version:/.test(message.content ?? ""));
+        if (!asked.stream && combining) {
+          const first = (combining.content.match(/First version:\n([\s\S]*?)\n\nSecond version:/) ?? [])[1] ?? "";
+          const second = (combining.content.match(/Second version:\n([\s\S]*)$/) ?? [])[1] ?? "";
+          response.setHeader("Content-Type", "application/json");
+          response.end(JSON.stringify({
+            id: "e2e", object: "chat.completion", created: 1, model: "e2e",
+            choices: [{ index: 0, message: { role: "assistant", content: `${first.trim()} & ${second.trim()}` }, finish_reason: "stop" }],
+            usage: { prompt_tokens: 40, completion_tokens: 10, total_tokens: 50 },
+          }));
           return;
         }
         const update = (asked.tools ?? []).find((tool) => /update_page$/.test(tool.function?.name ?? ""));

@@ -1,5 +1,5 @@
 import { AlertTriangle, CloudOff, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 
 import { Button } from "../components/ui/button";
@@ -10,6 +10,8 @@ import {
   abandonChanges,
   answerChanges,
   bringChanges,
+  combineChanges,
+  readAssistant,
   readStanding,
   type Answer,
   type FieldConflict,
@@ -43,20 +45,46 @@ function Words({ words }: { words: Word[] }) {
   );
 }
 
+type Chosen = "mine" | "theirs" | "combined";
+
 function Question({
   page,
   field,
   who,
   chosen,
   onChoose,
+  combined,
+  onCombined,
+  canCombine,
 }: {
   page: PageConflict;
   field: FieldConflict;
   who: string;
-  chosen: "mine" | "theirs";
-  onChoose: (choice: "mine" | "theirs") => void;
+  chosen: Chosen;
+  onChoose: (choice: Chosen) => void;
+  combined?: string;
+  onCombined: (text: string) => void;
+  canCombine: boolean;
 }) {
+  const { organisation } = useHere();
+  const { project = "" } = useParams();
   const [comparing, setComparing] = useState(false);
+  const [combining, setCombining] = useState(false);
+  const [trouble, setTrouble] = useState("");
+
+  async function combine() {
+    setCombining(true);
+    setTrouble("");
+    try {
+      const made = await combineChanges(organisation, project, page.file, field.path);
+      onCombined(made.text);
+      onChoose("combined");
+    } catch (error: unknown) {
+      setTrouble(whatWentWrong(error, "refused.could-not-combine"));
+    } finally {
+      setCombining(false);
+    }
+  }
 
   return (
     <li className="flex flex-col gap-2 rounded-md border border-border p-3">
@@ -73,7 +101,35 @@ function Question({
         <Button variant="ghost" onClick={() => setComparing(!comparing)}>
           {comparing ? say("sync.hide") : say("sync.compare")}
         </Button>
+        {canCombine && (
+          <Button variant="ghost" onClick={() => void combine()} disabled={combining}>
+            {combining ? say("sync.combining") : say("sync.let-the-ai-combine")}
+          </Button>
+        )}
       </div>
+      {trouble && (
+        <p role="alert" className="text-sm text-destructive-foreground">
+          {trouble}
+        </p>
+      )}
+      {combined !== undefined && (
+        <div className="flex flex-col gap-2 rounded-md bg-muted p-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm text-subtle-foreground">{say("sync.combined", { field: field.name })}</span>
+            <textarea
+              value={combined}
+              onChange={(event) => onCombined(event.target.value)}
+              rows={Math.min(8, Math.max(2, combined.split("\n").length))}
+              className="min-h-11 rounded-md border border-input bg-card px-3 py-2 text-base sm:text-[15px] focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary-soft"
+            />
+          </label>
+          <div>
+            <Button variant={chosen === "combined" ? "primary" : "ghost"} onClick={() => onChoose("combined")}>
+              {say("sync.use-the-combination")}
+            </Button>
+          </div>
+        </div>
+      )}
       {comparing && (
         <div className="flex flex-col gap-2">
           {field.words && field.words.length > 0 ? (
@@ -100,7 +156,20 @@ function Question({
 export function SyncPage() {
   const { organisation } = useHere();
   const { project = "" } = useParams();
-  const [choices, setChoices] = useState<Record<string, Record<string, "mine" | "theirs">>>({});
+  const [choices, setChoices] = useState<Record<string, Record<string, Chosen>>>({});
+  const [combined, setCombined] = useState<Record<string, Record<string, string>>>({});
+  const [canCombine, setCanCombine] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    readAssistant(organisation, project).then(
+      (found) => live && setCanCombine(found.available),
+      () => live && setCanCombine(false),
+    );
+    return () => {
+      live = false;
+    };
+  }, [organisation, project]);
   const [busy, setBusy] = useState(false);
   const [trouble, setTrouble] = useState("");
   const [showTechnical, setShowTechnical] = useState(false);
@@ -130,9 +199,17 @@ export function SyncPage() {
   function answers(conflicts: PageConflict[]): Answer[] {
     return conflicts.map((page) => {
       if (page.wholeFile) {
-        return { file: page.file, whole: choices[page.file]?.["whole"] ?? "mine" };
+        const whole = choices[page.file]?.["whole"];
+        return { file: page.file, whole: whole === "theirs" ? "theirs" : "mine" };
       }
-      return { file: page.file, fields: choices[page.file] ?? {} };
+      const fields: Record<string, "mine" | "theirs"> = {};
+      const texts: Record<string, string> = {};
+      for (const [path, choice] of Object.entries(choices[page.file] ?? {})) {
+        if (choice === "combined" && combined[page.file]?.[path] !== undefined) texts[path] = combined[page.file]![path]!;
+        else if (choice === "theirs") fields[path] = "theirs";
+        else fields[path] = "mine";
+      }
+      return Object.keys(texts).length > 0 ? { file: page.file, fields, combined: texts } : { file: page.file, fields };
     });
   }
 
@@ -218,11 +295,19 @@ export function SyncPage() {
                   who={page.who || "Someone else"}
                   chosen={choices[page.file]?.[field.path] ?? "mine"}
                   onChoose={(choice) =>
-                    setChoices({
-                      ...choices,
-                      [page.file]: { ...(choices[page.file] ?? {}), [field.path]: choice },
-                    })
+                    setChoices((before) => ({
+                      ...before,
+                      [page.file]: { ...(before[page.file] ?? {}), [field.path]: choice },
+                    }))
                   }
+                  combined={combined[page.file]?.[field.path]}
+                  onCombined={(text) =>
+                    setCombined((before) => ({
+                      ...before,
+                      [page.file]: { ...(before[page.file] ?? {}), [field.path]: text },
+                    }))
+                  }
+                  canCombine={canCombine}
                 />
               ))}
             </ul>

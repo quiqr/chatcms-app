@@ -274,6 +274,7 @@ func New(opts Options) http.Handler {
 		mux.HandleFunc(base+"/standing/answer", MethodNotAllowed)
 
 		mux.Handle("POST "+base+"/standing/abandon", RequireActor(abandonChangesHandler(opts.Sync)))
+		mux.Handle("POST "+base+"/standing/combine", RequireActor(combineChangesHandler(opts.Sync)))
 		mux.HandleFunc(base+"/standing/abandon", MethodNotAllowed)
 	}
 

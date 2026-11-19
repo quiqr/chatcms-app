@@ -255,6 +255,15 @@ output, never work. In a micro VM the site is overlaid with a tmpfs, so a
 preview may write and the person's copy is never touched. See
 `docs/RUNTIME.md`.
 
+When two people changed the same field, the sync screen may ask the AI
+to combine them: `sitesync.Service.Combine` finds the open question, and the
+app's combiner asks the model once through `aigateway.Gateway.Ask`, as that
+person and inside their organisation's limits. The person may edit the text;
+an answer carries it as `combined` and it is written like any other answer.
+A person's copy remembers in `refs/chatcms/taken` the version it last took
+from the shared one; when it holds nothing since, it takes the shared version
+even after an answer rewrote its history.
+
 **`internal/artifacts`** keeps what a publish workflow's `outputs` send to
 `artifact`: the engine hands the files over after the last step succeeded,
 the store copies each under `<state>/artifacts/<project>/<id>` and records it

@@ -12,6 +12,33 @@ type SyncService interface {
 	BringChanges(ctx context.Context, actor Actor, organisation, project string) (StandingView, error)
 	AnswerChanges(ctx context.Context, actor Actor, organisation, project string, answers []AnswerRequest) (StandingView, error)
 	AbandonChanges(ctx context.Context, actor Actor, organisation, project string) (StandingView, error)
+	CombineChanges(ctx context.Context, actor Actor, organisation, project, file, field string) (CombinedView, error)
+}
+
+type CombinedView struct {
+	Text string `json:"text"`
+}
+
+type combineRequest struct {
+	File  string `json:"file"`
+	Field string `json:"field"`
+}
+
+func combineChangesHandler(service SyncService) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body combineRequest
+		if err := Decode(w, r, &body); err != nil {
+			WriteDecodeError(w, err)
+			return
+		}
+		combined, err := service.CombineChanges(r.Context(), ActorFrom(r.Context()),
+			r.PathValue("organisation"), r.PathValue("project"), body.File, body.Field)
+		if err != nil {
+			writeTenancyError(w, err)
+			return
+		}
+		WriteJSON(w, http.StatusOK, combined)
+	})
 }
 
 // StandingView is how a site stands, for the indicator and the sync screen.
@@ -58,9 +85,10 @@ type FieldConflictView struct {
 
 // AnswerRequest is which version to keep for one page.
 type AnswerRequest struct {
-	File   string            `json:"file"`
-	Fields map[string]string `json:"fields,omitempty"`
-	Whole  string            `json:"whole,omitempty"`
+	File     string            `json:"file"`
+	Fields   map[string]string `json:"fields,omitempty"`
+	Combined map[string]string `json:"combined,omitempty"`
+	Whole    string            `json:"whole,omitempty"`
 }
 
 type answersRequest struct {

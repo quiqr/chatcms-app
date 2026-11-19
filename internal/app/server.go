@@ -439,6 +439,9 @@ func (s *Server) startContent(ctx context.Context, tenancyStore *tenancy.Store) 
 	if err != nil {
 		return err
 	}
+	if s.aiGateway != nil {
+		standing.Combining(aiCombiner{gateway: s.aiGateway, queries: s.db.Queries})
+	}
 
 	s.standing, err = sitesync.NewWeb(standing, tenancyStore)
 	if err != nil {

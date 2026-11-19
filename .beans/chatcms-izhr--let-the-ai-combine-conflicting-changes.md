@@ -1,7 +1,7 @@
 ---
 # chatcms-izhr
 title: Let the AI combine conflicting changes
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-11-18T12:51:49Z

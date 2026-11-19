@@ -46,7 +46,8 @@ type Technical struct {
 var ErrIncomplete = errors.New("sitesync: the service is missing a part it needs")
 
 type Service struct {
-	sources Sources
+	sources  Sources
+	combiner Combiner
 }
 
 func NewService(sources Sources) (*Service, error) {
@@ -205,7 +206,8 @@ type Answer struct {
 	File string
 	// Fields maps a field's path to which version to keep. A field left out
 	// keeps what was written here.
-	Fields map[string]Choice
+	Fields   map[string]Choice
+	Combined map[string]string
 	// Whole, for a page whose difference could not be put as fields, says to
 	// keep one whole version.
 	Whole Choice
@@ -276,7 +278,7 @@ func resolve(path gitsync.ConflictedPath, m *model.Model, answer Answer) ([]byte
 	if answer.Whole == Theirs {
 		return path.Remote, nil
 	}
-	if answer.Whole == Mine || len(answer.Fields) == 0 {
+	if answer.Whole == Mine || (len(answer.Fields) == 0 && len(answer.Combined) == 0) {
 		return path.Local, nil
 	}
 
@@ -311,7 +313,54 @@ func resolve(path gitsync.ConflictedPath, m *model.Model, answer Answer) ([]byte
 			return nil, err
 		}
 	}
+	for field, text := range answer.Combined {
+		if err := mine.Set(field, text); err != nil {
+			return nil, fmt.Errorf("the combined %s could not be kept: %w", field, err)
+		}
+	}
 	return mine.Bytes()
+}
+
+type Combiner interface {
+	Combine(ctx context.Context, actor policy.Actor, projectID uuid.UUID, page, field, mine, theirs string) (string, error)
+}
+
+func (s *Service) Combining(combiner Combiner) { s.combiner = combiner }
+
+var refusedNothingToCombine = &httpapi.RefusedError{
+	Key:    "refused.nothing-to-combine",
+	Reason: "there is no open question about this field any more",
+}
+
+func (s *Service) Combine(ctx context.Context, actor policy.Actor, projectID uuid.UUID, file, field string) (string, error) {
+	if err := s.allowed(ctx, actor, policy.ActionEditContent, projectID); err != nil {
+		return "", err
+	}
+	if s.combiner == nil {
+		return "", &httpapi.RefusedError{Key: "refused.assistant-not-available", Reason: "the assistant is not available on this installation"}
+	}
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
+	if err != nil {
+		return "", err
+	}
+	defer done()
+
+	result, err := site.Sync(ctx)
+	if err != nil && !errors.Is(err, gitsync.ErrExchangeInProgress) {
+		return "", err
+	}
+	m, _ := site.Model()
+	for _, page := range Describe(result.Conflict, m, "") {
+		if page.File != file {
+			continue
+		}
+		for _, one := range page.Fields {
+			if one.Path == field {
+				return s.combiner.Combine(ctx, actor, projectID, page.Title, one.Name, one.Mine, one.Theirs)
+			}
+		}
+	}
+	return "", refusedNothingToCombine
 }
 
 // Abandon gives up on an exchange and puts the site back as it was, for

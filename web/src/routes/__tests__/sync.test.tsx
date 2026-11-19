@@ -238,3 +238,67 @@ describe("the sync status screen", () => {
     }
   });
 });
+
+describe("letting the AI combine two versions", () => {
+  it("offers a combination that can be changed and used", async () => {
+    const sent: [string, unknown][] = [];
+    vi.stubGlobal(
+      "fetch",
+      server(
+        {
+          [`${base}/standing`]: asking,
+          [`${base}/chat`]: { available: true },
+          [`POST ${base}/standing/combine`]: { text: "We bake with apples and plums." },
+          [`POST ${base}/standing/answer`]: states.saved,
+        },
+        (path, body) => sent.push([path, body]),
+      ),
+    );
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Let the AI combine them" }));
+    const box = await screen.findByRole("textbox", { name: "Combined Summary" });
+    expect(box).toHaveValue("We bake with apples and plums.");
+    expect(sent).toContainEqual([`${base}/standing/combine`, { file: "content/_index.md", field: "summary" }]);
+
+    await userEvent.type(box, " Daily.");
+    await userEvent.click(screen.getByRole("button", { name: "Save these answers" }));
+    await waitFor(() =>
+      expect(sent).toContainEqual([
+        `${base}/standing/answer`,
+        { answers: [{ file: "content/_index.md", fields: {}, combined: { summary: "We bake with apples and plums. Daily." } }] },
+      ]),
+    );
+  });
+
+  it("can still keep one of the two after combining", async () => {
+    const sent: [string, unknown][] = [];
+    vi.stubGlobal(
+      "fetch",
+      server(
+        {
+          [`${base}/standing`]: asking,
+          [`${base}/chat`]: { available: true },
+          [`POST ${base}/standing/combine`]: { text: "Both." },
+          [`POST ${base}/standing/answer`]: states.saved,
+        },
+        (path, body) => sent.push([path, body]),
+      ),
+    );
+    renderPage();
+    await userEvent.click(await screen.findByRole("button", { name: "Let the AI combine them" }));
+    await screen.findByRole("textbox", { name: "Combined Summary" });
+    await userEvent.click(screen.getByRole("button", { name: "Keep mine" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save these answers" }));
+    await waitFor(() =>
+      expect(sent).toContainEqual([`${base}/standing/answer`, { answers: [{ file: "content/_index.md", fields: { summary: "mine" } }] }]),
+    );
+  });
+
+  it("is not offered without an assistant", async () => {
+    vi.stubGlobal("fetch", server({ [`${base}/standing`]: asking, [`${base}/chat`]: { available: false } }));
+    renderPage();
+    await screen.findByRole("button", { name: "Keep mine" });
+    expect(screen.queryByRole("button", { name: "Let the AI combine them" })).toBeNull();
+  });
+});

@@ -523,8 +523,13 @@ export type Standing = {
 export type Answer = {
   file: string;
   fields?: Record<string, "mine" | "theirs">;
+  combined?: Record<string, string>;
   whole?: "mine" | "theirs";
 };
+
+export function combineChanges(organisation: string, name: string, file: string, field: string) {
+  return post<{ text: string }>(`${project(organisation, name)}/standing/combine`, { file, field });
+}
 
 export function readStanding(organisation: string, name: string) {
   return get<Standing>(`${project(organisation, name)}/standing`);

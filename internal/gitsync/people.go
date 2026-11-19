@@ -112,6 +112,9 @@ func (s *Sites) copyFor(ctx context.Context, cfg Config, shared, dir string) err
 	if _, err := git.run(ctx, "config", "--add", "remote.origin.fetch", "+refs/remotes/origin/*:refs/remotes/published/*"); err != nil {
 		return err
 	}
+	if _, err := git.run(ctx, "update-ref", takenRef, "HEAD"); err != nil {
+		return err
+	}
 	if _, err := git.run(ctx, "fetch", "--prune", "origin"); err != nil {
 		return err
 	}
@@ -160,8 +163,10 @@ func (r *repo) catchUp(ctx context.Context) error {
 		return nil
 	}
 	if r.unborn(ctx) {
-		_, err := r.git.run(ctx, "reset", "--hard", remote)
-		return err
+		if _, err := r.git.run(ctx, "reset", "--hard", remote); err != nil {
+			return err
+		}
+		return r.took(ctx)
 	}
 
 	behind, err := r.countIn(ctx, "HEAD.."+remote)
@@ -169,8 +174,17 @@ func (r *repo) catchUp(ctx context.Context) error {
 		return err
 	}
 	ahead, err := r.countIn(ctx, remote+"..HEAD")
-	if err != nil || ahead > 0 {
+	if err != nil {
 		return err
+	}
+	if ahead > 0 {
+		if !r.holdsNothingOfItsOwn(ctx) {
+			return nil
+		}
+		if _, err := r.git.run(ctx, "reset", "--hard", remote); err != nil {
+			return err
+		}
+		return r.took(ctx)
 	}
 	dirty, err := r.git.run(ctx, "status", "--porcelain", "--untracked-files=no")
 	if err != nil || strings.TrimSpace(dirty) != "" {
@@ -178,7 +192,7 @@ func (r *repo) catchUp(ctx context.Context) error {
 	}
 	_, err = r.git.run(ctx, "merge", "--ff-only", remote)
 	if err == nil {
-		return nil
+		return r.took(ctx)
 	}
 	in, listErr := r.git.run(ctx, "diff", "--name-only", "--diff-filter=A", "HEAD", remote)
 	if listErr != nil {
@@ -198,8 +212,30 @@ func (r *repo) catchUp(ctx context.Context) error {
 	if !removed {
 		return err
 	}
-	_, err = r.git.run(ctx, "merge", "--ff-only", remote)
+	if _, err = r.git.run(ctx, "merge", "--ff-only", remote); err != nil {
+		return err
+	}
+	return r.took(ctx)
+}
+
+const takenRef = "refs/chatcms/taken"
+
+func (r *repo) took(ctx context.Context) error {
+	_, err := r.git.run(ctx, "update-ref", takenRef, "HEAD")
 	return err
+}
+
+func (r *repo) holdsNothingOfItsOwn(ctx context.Context) bool {
+	head, err := r.git.run(ctx, "rev-parse", "--verify", "--quiet", "HEAD")
+	if err != nil {
+		return false
+	}
+	taken, err := r.git.run(ctx, "rev-parse", "--verify", "--quiet", takenRef)
+	if err != nil || strings.TrimSpace(taken) != strings.TrimSpace(head) {
+		return false
+	}
+	dirty, err := r.git.run(ctx, "status", "--porcelain", "--untracked-files=no")
+	return err == nil && strings.TrimSpace(dirty) == ""
 }
 
 func (s *Sites) Share(ctx context.Context, site, person string) (SyncResult, error) {
@@ -231,6 +267,9 @@ func (s *Sites) Share(ctx context.Context, site, person string) (SyncResult, err
 				last = err
 				continue
 			}
+			return SyncResult{}, err
+		}
+		if err := r.took(ctx); err != nil {
 			return SyncResult{}, err
 		}
 		return result, nil

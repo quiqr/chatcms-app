@@ -86,6 +86,12 @@ func (w *Web) AnswerChanges(ctx context.Context, who httpapi.Actor, organisation
 		for field, choice := range one.Fields {
 			answer.Fields[field] = Choice(choice)
 		}
+		if len(one.Combined) > 0 {
+			answer.Combined = map[string]string{}
+			for field, text := range one.Combined {
+				answer.Combined[field] = text
+			}
+		}
 		answers = append(answers, answer)
 	}
 
@@ -161,3 +167,15 @@ func standingView(standing Standing) httpapi.StandingView {
 }
 
 var _ httpapi.SyncService = (*Web)(nil)
+
+func (w *Web) CombineChanges(ctx context.Context, who httpapi.Actor, organisation, project, file, field string) (httpapi.CombinedView, error) {
+	actor, id, err := w.reach(ctx, who, organisation, project)
+	if err != nil {
+		return httpapi.CombinedView{}, err
+	}
+	text, err := w.service.Combine(ctx, actor, id, file, field)
+	if err != nil {
+		return httpapi.CombinedView{}, err
+	}
+	return httpapi.CombinedView{Text: text}, nil
+}

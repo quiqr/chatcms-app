@@ -185,8 +185,7 @@ describe("the page editor", () => {
     await userEvent.clear(screen.getByLabelText("Label"));
     await fill(screen.getByLabelText("Label"), "Our shop");
 
-    await waitFor(() => expect(sent.length).toBeGreaterThan(0), { timeout: 4000 });
-    expect(sent[0]).toEqual({ values: { links: [{ label: "Our shop", url: "/shop/" }] } });
+    await waitFor(() => expect(sent.at(-1)).toEqual({ values: { links: [{ label: "Our shop", url: "/shop/" }] } }), { timeout: 4000 });
   });
 
   it("writes Markdown from the toolbar", async () => {

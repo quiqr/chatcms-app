@@ -10,6 +10,9 @@
 import type { Strings } from "../lib/say";
 
 export const nl: Strings = {
+  "refused.could-not-combine": "De assistent kon deze niet combineren. Kies een van de twee.",
+  "refused.nothing-to-combine": "Hier staat geen vraag meer over open.",
+  "refused.ai-limit-reached": "Je organisatie heeft haar AI-tegoed voorlopig opgebruikt. Kies een van de twee.",
   "refused.runtime-definition": "De runtime-definitie van deze site is niet bruikbaar: {reason}",
   "refused.package-not-found": "{package} {version} is niet gevonden. Controleer de versie in quiqr/runtime.yaml.",
   "refused.package-unavailable": "{package} {version} kon niet klaargezet worden. Probeer het over een paar minuten nog eens.",
@@ -874,6 +877,10 @@ export const nl: Strings = {
   "site-panel.show": "Toon de navigatie",
 
   // sync
+  "sync.let-the-ai-combine": "Laat de AI ze combineren",
+  "sync.combining": "Bezig met combineren…",
+  "sync.combined": "Gecombineerd: {field}",
+  "sync.use-the-combination": "Gebruik de combinatie",
   "sync.also-changed-this-field": "{who} heeft {field} ook gewijzigd. Welke houden we aan?",
   "sync.also-changed-whole-page": "{who} heeft dit ook gewijzigd. We kunnen de twee niet naast elkaar tonen, dus kies welke je houdt.",
   "sync.check-for-updates": "Kijken of er iets nieuws is",

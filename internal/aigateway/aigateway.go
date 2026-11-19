@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -426,4 +427,61 @@ func (t *Tokens) Caller(ctx context.Context, token string) (Caller, bool, error)
 
 func (g *Gateway) FromAWorkspace(r *http.Request) bool {
 	return g.from(r)
+}
+
+type Message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+var (
+	ErrLimited    = errors.New("aigateway: the organisation's limit is reached")
+	ErrNoAnswer   = errors.New("aigateway: the model did not answer")
+	ErrNotEnabled = errors.New("aigateway: no model is configured")
+)
+
+func (g *Gateway) Ask(ctx context.Context, caller Caller, messages []Message) (string, error) {
+	if g == nil || g.settings.ProviderURL == "" {
+		return "", ErrNotEnabled
+	}
+	if status, _, reason := g.admit(ctx, caller.Organisation); status != 0 {
+		return "", fmt.Errorf("%w: %s", ErrLimited, reason)
+	}
+	body, _ := json.Marshal(map[string]any{"model": g.settings.Model, "messages": messages})
+	ctx, cancel := context.WithTimeout(ctx, providerTimeout)
+	defer cancel()
+	outgoing, err := http.NewRequestWithContext(ctx, http.MethodPost, g.settings.ProviderURL+"/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	outgoing.Header.Set("Content-Type", "application/json")
+	outgoing.Header.Set("Authorization", "Bearer "+g.settings.Key)
+	outgoing.Header.Set("User-Agent", g.settings.userAgent())
+	if g.settings.SessionHeader != "" {
+		outgoing.Header.Set(g.settings.SessionHeader, sessionOf(caller))
+	}
+	answer, err := g.settings.Client.Do(outgoing)
+	if err != nil {
+		g.record(caller, 0, 0, http.StatusBadGateway)
+		return "", fmt.Errorf("%w: %v", ErrNoAnswer, err)
+	}
+	defer answer.Body.Close()
+	var said struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+		usageBody
+	}
+	decodeErr := json.NewDecoder(io.LimitReader(answer.Body, maxBody)).Decode(&said)
+	var in, out int64
+	if said.Usage != nil {
+		in, out = said.Usage.PromptTokens, said.Usage.CompletionTokens
+	}
+	g.record(caller, in, out, answer.StatusCode)
+	if answer.StatusCode != http.StatusOK || decodeErr != nil || len(said.Choices) == 0 || strings.TrimSpace(said.Choices[0].Message.Content) == "" {
+		return "", fmt.Errorf("%w: it answered %d", ErrNoAnswer, answer.StatusCode)
+	}
+	return said.Choices[0].Message.Content, nil
 }

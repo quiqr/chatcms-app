@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   provide packages itself (`services.chatcms.packages`).
 - OpenCode Go works as the AI provider (`ai.sessionHeader`); developers can
   run the assistant and its tests against a real model (`docs/TESTING.md`).
+- When two people changed the same field, the AI can combine the two; the
+  person edits and uses the result, or keeps either version.
 
 ### Changed
 
@@ -57,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   are flushed as they are written.
 - Publishing the built site no longer fails when its settings name no author.
 - A Quarto preview reloads by itself when its sources change.
+- After an answer replays waiting work, every person's copy shows the answered
+  version, instead of keeping the old one for good.
 - Output a preview writes into a person's copy no longer stops other people's
   changes from arriving, or shows as saving.
 - A person without a display name can save; their address is used as the

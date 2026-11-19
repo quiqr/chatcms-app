@@ -7,6 +7,9 @@
  * them reads them in the order they appear.
  */
 export const en = {
+  "refused.could-not-combine": "The assistant could not combine these. Choose one of the two.",
+  "refused.nothing-to-combine": "There is no open question about this any more.",
+  "refused.ai-limit-reached": "Your organisation has used its AI allowance for now. Choose one of the two.",
   "refused.runtime-definition": "This site's runtime definition cannot be used: {reason}",
   "refused.package-not-found": "{package} {version} could not be found. Check the version in quiqr/runtime.yaml.",
   "refused.package-unavailable": "{package} {version} could not be made ready. Try again in a few minutes.",
@@ -871,6 +874,10 @@ export const en = {
   "site-panel.show": "Show the navigation",
 
   // sync
+  "sync.let-the-ai-combine": "Let the AI combine them",
+  "sync.combining": "Combining…",
+  "sync.combined": "Combined {field}",
+  "sync.use-the-combination": "Use the combination",
   "sync.also-changed-this-field": "{who} also changed this {field}. Which one should we keep?",
   "sync.also-changed-whole-page": "{who} also changed this. We cannot show the two side by side, so choose which to keep.",
   "sync.check-for-updates": "Check for updates",

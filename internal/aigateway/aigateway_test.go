@@ -473,3 +473,29 @@ func TestTheProviderIsToldWhoAsksWhenItWantsTo(t *testing.T) {
 		t.Errorf("User-Agent = %q", got)
 	}
 }
+
+func TestTheHostCanAskOnceWithinTheOrganisationsLimits(t *testing.T) {
+	r := newRig(t)
+	caller := Caller{Person: uuid.New(), Project: uuid.New(), Organisation: uuid.New()}
+	said, err := r.gateway.Ask(t.Context(), caller, []Message{{Role: "user", Content: "Combine these"}})
+	if err != nil || said != "Hello" {
+		t.Fatalf("Ask() = %q, %v", said, err)
+	}
+	if r.provider.seen[0]["model"] != "deepseek-flash" || r.provider.auth[0] != "Bearer the-real-key" {
+		t.Errorf("the provider was asked %v with %q", r.provider.seen[0], r.provider.auth[0])
+	}
+	used := r.store.recorded()
+	if len(used) != 1 || used[0].Caller != caller || used[0].TokensIn != 10 {
+		t.Errorf("recorded %+v", used)
+	}
+
+	none := 0
+	r.store.limits = map[uuid.UUID]Limits{caller.Organisation: {RequestsPerMinute: &none}}
+	if _, err := r.gateway.Ask(t.Context(), caller, nil); !errors.Is(err, ErrLimited) {
+		t.Errorf("past the limit error = %v", err)
+	}
+	var off *Gateway
+	if _, err := off.Ask(t.Context(), caller, nil); !errors.Is(err, ErrNotEnabled) {
+		t.Errorf("no gateway error = %v", err)
+	}
+}
