@@ -5,7 +5,8 @@ status: in-progress
 type: epic
 priority: high
 created_at: 2026-11-18T12:37:26Z
-updated_at: 2026-11-19T18:00:00Z
+updated_at: 2026-11-19T20:00:00Z
+openspec-link: openspec/changes/archive/2026-11-19-markdown-editor
 parent: chatcms-iqog
 ---
 
