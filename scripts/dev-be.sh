@@ -128,6 +128,28 @@ export CHATCMS_STATE_DIR="$state"
 export CHATCMS_LISTEN="$host:$port"
 export CHATCMS_BASE_URL="http://$reachable:$port"
 
+backend_said="local: previews and the assistant run as processes on this machine"
+if [ "${CHATCMS_DEV_BACKEND:-local}" = "microvm" ]; then
+    taps="$(ip -o link show 2>/dev/null | grep -c ': chv[0-9]*:' || true)"
+    if [ "$taps" -eq 0 ]; then
+        echo "dev-be: CHATCMS_DEV_BACKEND=microvm needs TAP devices; make them once with: scripts/dev-taps.sh up 2" >&2
+        exit 1
+    fi
+    echo "==> building the workspace guest and finding its hypervisor"
+    nix build .#workspace-guest --out-link "$state/workspace-guest"
+    hypervisor="$(nix build --no-link --print-out-paths --inputs-from . nixpkgs#cloud-hypervisor)"
+    virtiofsd="$(nix build --no-link --print-out-paths --inputs-from . nixpkgs#virtiofsd)"
+    export CHATCMS_WORKSPACE_BACKEND=microvm
+    export CHATCMS_WORKSPACE_GUEST="$state/workspace-guest"
+    export CHATCMS_CLOUD_HYPERVISOR_BIN="$hypervisor/bin/cloud-hypervisor"
+    export CHATCMS_VIRTIOFSD_BIN="$virtiofsd/bin/virtiofsd"
+    export CHATCMS_WORKSPACE_TAPS="$taps"
+    export CHATCMS_WORKSPACES_AT_ONCE="$taps"
+    export CHATCMS_WORKSPACE_RUN_DIR="/tmp/chatcms-w${instance:+-$instance}"
+    export CHATCMS_AI_LISTEN="${CHATCMS_AI_LISTEN:-0.0.0.0:8091}"
+    backend_said="microvm: one micro VM per person per project, $taps at once (chv0..chv$((taps - 1)))"
+fi
+
 ai_env="${CHATCMS_AI_ENV:-$HOME/.config/chatcms/ai.env}"
 ai_said="none; see docs/TESTING.md, Real AI inference"
 if [ -r "$ai_env" ]; then
@@ -161,6 +183,7 @@ cat <<NOTICE
     studio-noord  has no site, so the setup screen has something to do
 
     Mail this instance sends: http://$reachable:$inbox_port
+    Workspaces: $backend_said
     The assistant's model: $ai_said
 
     The frontend in another terminal, with live reloading, on :$web_port:
