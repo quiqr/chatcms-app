@@ -24,7 +24,7 @@ export function OrganisationShell({
   const administers = useAdministers();
 
   return (
-    <div data-testid="organisation-shell" className="min-h-dvh">
+    <div data-testid="organisation-shell" className="flex min-h-dvh flex-col sm:h-dvh sm:min-h-0 sm:overflow-hidden">
       <TopBar viewer={viewer}>
         <NavLink to="/projects" className="flex min-h-11 items-center" aria-label={say("organisation-shell.quiqr-chatcms-go-to-your-projects")}>
           <img src="/quiqr-logo.svg" alt={say("organisation-shell.quiqr-chatcms")} className="h-7 w-auto" />
@@ -99,7 +99,9 @@ export function OrganisationShell({
         </NavLink>
       </TopBar>
 
-      <main className="mx-auto w-full max-w-[1200px] p-6">{children}</main>
+      <div data-scrolls="main" className="sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
+        <main className="mx-auto w-full max-w-[1200px] p-6">{children}</main>
+      </div>
     </div>
   );
 }

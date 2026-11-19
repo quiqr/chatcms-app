@@ -30,10 +30,10 @@ export function OrganisationAdminShell({
   const here = `/o/${organisation}/manage`;
 
   return (
-    <div className="flex min-h-dvh flex-col sm:flex-row">
+    <div className="flex min-h-dvh flex-col sm:h-dvh sm:min-h-0 sm:flex-row sm:overflow-hidden">
       <aside
         aria-label={say("manage.manage-organisation")}
-        className="flex flex-col gap-4 border-b border-border bg-card p-4 sm:min-h-dvh sm:w-[260px] sm:shrink-0 sm:border-b-0 sm:border-r"
+        className="flex flex-col gap-4 border-b border-border bg-card p-4 sm:w-[260px] sm:shrink-0 sm:overflow-y-auto sm:border-b-0 sm:border-r"
       >
         <NavLink to="/projects" className="flex min-h-11 items-center gap-2">
           <img src="/quiqr-logo.svg" alt={say("organisation-shell.quiqr-chatcms")} className="h-6 w-auto" />
@@ -89,7 +89,7 @@ export function OrganisationAdminShell({
         </div>
       </aside>
 
-      <div className="contents sm:flex sm:min-w-0 sm:flex-1 sm:flex-col">
+      <div className="contents sm:flex sm:min-h-0 sm:min-w-0 sm:flex-1 sm:flex-col">
         <TopBar viewer={viewer && { name: viewer.name, role: say("role.admin") }} className="order-first sm:order-none">
           <NavLink
             to={`/o/${organisation}/projects`}
@@ -99,7 +99,9 @@ export function OrganisationAdminShell({
           </NavLink>
         </TopBar>
 
-        <main className="w-full max-w-[1000px] p-6">{children}</main>
+        <div data-scrolls="main" className="sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
+          <main className="w-full max-w-[1000px] p-6">{children}</main>
+        </div>
       </div>
     </div>
   );

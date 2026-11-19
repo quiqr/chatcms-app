@@ -25,7 +25,7 @@ test("the assistant changes a page when asked, and Undo puts it back", async ({ 
   });
 
   const reopen = async () => {
-    if (phone) await page.getByRole("button", { name: "Close the assistant" }).click();
+    await page.getByRole("button", { name: "Close the assistant" }).click();
   };
 
   await test.step("the page holds the new title, and the preview shows it", async () => {
@@ -41,7 +41,7 @@ test("the assistant changes a page when asked, and Undo puts it back", async ({ 
   });
 
   await test.step("Undo puts it back without publishing", async () => {
-    if (phone) await page.getByRole("button", { name: "Open the assistant" }).click();
+    await page.getByRole("button", { name: "Open the assistant" }).click();
     await panel.getByRole("button", { name: "Undo" }).click();
     await expect(panel.getByText(/is back as it was/)).toBeVisible({ timeout: 20_000 });
     await reopen();

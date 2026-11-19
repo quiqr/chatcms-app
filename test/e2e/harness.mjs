@@ -98,35 +98,50 @@ export class Harness {
     await this.startTheTemplates();
     const assistant = !this.assistant ? {} : realAI ? await this.aRealModel() : await this.startTheModel();
 
-    this.server = spawn(process.env.CHATCMS_BIN ?? "chatcmsd", [], {
-      env: {
-        ...process.env,
-        CHATCMS_DATABASE_URL: this.database,
-        CHATCMS_SECRET_KEY_FILE: key,
-        CHATCMS_STATE_DIR: this.state,
-        CHATCMS_LISTEN: `127.0.0.1:${this.port}`,
-        CHATCMS_BASE_URL: this.url,
-        // With no Mailpit there is nowhere to send, and the server says so
-        // and writes links to its log instead, which is what it does on an
-        // installation with no mail server.
-        CHATCMS_MAIL_HOST: this.sendsMail ? "127.0.0.1" : "",
-        CHATCMS_MAIL_PORT: String(this.smtpPort),
-        CHATCMS_MAIL_FROM: "chatcms@localhost",
-        // Mailpit has no certificate, and asking for one would mean nothing
-        // could be sent at all.
-        CHATCMS_MAIL_STARTTLS: "no",
-        CHATCMS_TEMPLATE_FEED: `${this.templatesUrl}/templates.json`,
-        ...(this.previewApart ? { CHATCMS_PREVIEW_URL: this.previewUrl } : {}),
-        ...assistant,
-      },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    await this.startTheServer(key, assistant);
+  }
 
-    this.log = "";
-    this.server.stdout.on("data", (chunk) => (this.log += chunk));
-    this.server.stderr.on("data", (chunk) => (this.log += chunk));
+  async startTheServer(key, assistant) {
+    for (let attempt = 1; ; attempt += 1) {
+      if (assistant.CHATCMS_AI_LISTEN && attempt > 1) {
+        assistant = { ...assistant, CHATCMS_AI_LISTEN: `127.0.0.1:${await freePort()}` };
+      }
+      this.server = spawn(process.env.CHATCMS_BIN ?? "chatcmsd", [], {
+        env: {
+          ...process.env,
+          CHATCMS_DATABASE_URL: this.database,
+          CHATCMS_SECRET_KEY_FILE: key,
+          CHATCMS_STATE_DIR: this.state,
+          CHATCMS_LISTEN: `127.0.0.1:${this.port}`,
+          CHATCMS_BASE_URL: this.url,
+          // With no Mailpit there is nowhere to send, and the server says so
+          // and writes links to its log instead, which is what it does on an
+          // installation with no mail server.
+          CHATCMS_MAIL_HOST: this.sendsMail ? "127.0.0.1" : "",
+          CHATCMS_MAIL_PORT: String(this.smtpPort),
+          CHATCMS_MAIL_FROM: "chatcms@localhost",
+          // Mailpit has no certificate, and asking for one would mean nothing
+          // could be sent at all.
+          CHATCMS_MAIL_STARTTLS: "no",
+          CHATCMS_TEMPLATE_FEED: `${this.templatesUrl}/templates.json`,
+          ...(this.previewApart ? { CHATCMS_PREVIEW_URL: this.previewUrl } : {}),
+          ...assistant,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
 
-    await this.waitUntilAnswering();
+      this.log = "";
+      this.server.stdout.on("data", (chunk) => (this.log += chunk));
+      this.server.stderr.on("data", (chunk) => (this.log += chunk));
+
+      try {
+        await this.waitUntilAnswering();
+        return;
+      } catch (error) {
+        if (attempt >= 5 || !/address already in use/.test(this.log)) throw error;
+        this.port = await freePort();
+      }
+    }
   }
 
   // startTheInbox runs a Mailpit for this harness. A missing Mailpit is not

@@ -1,11 +1,11 @@
 ---
 # chatcms-x9uq
 title: form should scroll, not the whole chatcms interace
-status: todo
+status: in-progress
 type: task
 priority: normal
 created_at: 2026-11-19T11:37:44Z
-updated_at: 2026-11-19T11:43:16Z
+updated_at: 2026-11-19T12:50:47Z
 parent: chatcms-iqog
 ---
 

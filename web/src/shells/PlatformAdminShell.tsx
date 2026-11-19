@@ -29,10 +29,10 @@ export function PlatformAdminShell({
     }`;
 
   return (
-    <div className="flex min-h-dvh flex-col sm:flex-row">
+    <div className="flex min-h-dvh flex-col sm:h-dvh sm:min-h-0 sm:flex-row sm:overflow-hidden">
       <aside
         aria-label={say("platform.platform-admin")}
-        className="flex flex-col gap-4 bg-admin-area p-4 text-admin-area-foreground sm:min-h-dvh sm:w-[260px] sm:shrink-0"
+        className="flex flex-col gap-4 bg-admin-area p-4 text-admin-area-foreground sm:w-[260px] sm:shrink-0 sm:overflow-y-auto"
       >
         <NavLink to="/projects" className="flex min-h-11 items-center gap-2">
           <img src="/quiqr-logo.svg" alt={say("organisation-shell.quiqr-chatcms")} className="h-6 w-auto" />
@@ -69,7 +69,7 @@ export function PlatformAdminShell({
         </nav>
       </aside>
 
-      <div className="contents sm:flex sm:min-w-0 sm:flex-1 sm:flex-col">
+      <div className="contents sm:flex sm:min-h-0 sm:min-w-0 sm:flex-1 sm:flex-col">
         <TopBar viewer={viewer && { name: viewer.name, role: say("platform.platform-admin") }} className="order-first sm:order-none">
           <NavLink
             to="/projects"
@@ -79,7 +79,9 @@ export function PlatformAdminShell({
           </NavLink>
         </TopBar>
 
-        <main className="w-full max-w-[1100px] p-6">{children}</main>
+        <div data-scrolls="main" className="sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
+          <main className="w-full max-w-[1100px] p-6">{children}</main>
+        </div>
       </div>
     </div>
   );

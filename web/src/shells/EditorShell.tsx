@@ -10,6 +10,7 @@ import { Button } from "../components/ui/button";
 import { Segmented } from "../components/ui/segmented";
 import { AssistantSlot } from "./ProjectShell";
 import { TopBar } from "./TopBar";
+import { arrange, useEditorRoom } from "./useEditorRoom";
 import { useHere } from "../lib/whoami";
 import { SyncIndicator } from "./SyncIndicator";
 import type { Project } from "../lib/tenancy";
@@ -50,6 +51,7 @@ export function EditorShell({
 }: EditorShellProps) {
   const { organisation } = useHere();
   const [talking, setTalking] = useState(false);
+  const measured = useEditorRoom();
   const [opened, setOpened] = useState(false);
   useEffect(() => {
     if (openAssistant > 0) {
@@ -57,14 +59,15 @@ export function EditorShell({
       setTalking(true);
     }
   }, [openAssistant]);
+  const room = { ...arrange(measured.width, layout, talking), ref: measured.ref };
   return (
-    <div data-testid="editor-shell" className="flex min-h-dvh flex-wrap">
+    <div data-testid="editor-shell" className="flex h-dvh overflow-hidden">
       <SitePanel project={project} role={project.yourRole} />
       <ContentPanel project={project.slug} />
       <QuickFind project={project.slug} />
 
-      <div className="flex min-w-0 shrink grow-[999] basis-[560px] flex-col">
-        <TopBar viewer={viewer}>
+      <div className="flex min-h-0 min-w-0 shrink grow-[999] basis-[560px] flex-col">
+        <TopBar viewer={viewer} className="shrink-0">
           <Button
             variant="ghost"
             size="iconCompact"
@@ -83,14 +86,13 @@ export function EditorShell({
           <SyncIndicator />
           <Segmented
             label={say("editor-shell.how-to-show-this-page")}
-            value={layout}
+            value={room.shown}
             onValueChange={(next) => onLayoutChange(next as EditorLayout)}
             options={[
               { value: "form", label: "Form" },
-              { value: "split", label: say("editor-shell.side-by-side") },
+              ...(room.splitFits ? [{ value: "split", label: say("editor-shell.side-by-side") }] : []),
               { value: "preview", label: "Preview" },
             ]}
-            className="hidden md:inline-flex"
           />
           <AssistantSlot
             open={talking}
@@ -108,22 +110,23 @@ export function EditorShell({
           </Button>
         </TopBar>
 
-        <main data-testid="editor-slots" className="flex min-w-0 flex-1 flex-wrap items-stretch">
-          {layout !== "preview" && (
+        <main ref={room.ref} data-testid="editor-slots" className="flex min-h-0 min-w-0 flex-1">
+          {room.shown !== "preview" && room.assistant !== "alone" && (
             <section
               data-testid="editor-slot-form"
+              data-scrolls="form"
               aria-label={say("editor-shell.page-fields")}
-              className="min-w-0 shrink grow basis-[420px] p-6"
+              className="min-h-0 min-w-0 flex-1 basis-0 overflow-y-auto overscroll-contain p-6"
             >
               <div className="mx-auto w-full max-w-[760px]">{form}</div>
             </section>
           )}
 
-          {layout !== "form" && (
+          {room.shown !== "form" && room.assistant !== "alone" && (
             <section
               data-testid="editor-slot-preview"
               aria-label={say("editor-shell.preview")}
-              className="min-w-0 shrink grow basis-[420px] border-l border-border bg-background p-6"
+              className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col border-l border-border bg-background p-6"
             >
               {preview}
             </section>
@@ -131,9 +134,13 @@ export function EditorShell({
 
           <aside
             data-testid="editor-slot-assistant"
+            data-room={room.assistant}
             aria-label={say("editor-shell.assistant")}
             hidden={!talking}
-            className="w-[340px] shrink-0 border-l border-border bg-card"
+            className={
+              "min-h-0 border-l border-border bg-card " +
+              (room.assistant === "column" ? "w-[340px] shrink-0" : "min-w-0 flex-1 basis-0")
+            }
           >
             {opened && assistant?.(() => setTalking(false))}
           </aside>

@@ -31,13 +31,23 @@ what is unpublished.
 
 ### Requirement: The frame reflows rather than breaking
 
-The frame SHALL reflow as the window narrows: the navigation gives way to the
-content, and below the phone threshold the phone frame is used instead.
+The frame SHALL reflow as the window narrows: when it is too narrow for the
+panels beside the content, the navigation and the content menu show folded,
+as their rail and strip, rather than moving above the content; below the
+phone threshold the phone frame is used instead. Showing a panel folded
+because the window is narrow SHALL NOT change the fold the person chose.
 
 #### Scenario: A narrow window
 
 - **WHEN** the window is too narrow for navigation beside content
-- **THEN** the navigation moves above the content rather than squeezing it
+- **THEN** the navigation shows as its rail and the content keeps the room
+- **AND** unfolding it shows it over the content until something is picked
+
+#### Scenario: The person's own fold is kept
+
+- **WHEN** a person who keeps the navigation unfolded narrows the window and
+  widens it again
+- **THEN** the navigation is unfolded again
 
 #### Scenario: A phone
 

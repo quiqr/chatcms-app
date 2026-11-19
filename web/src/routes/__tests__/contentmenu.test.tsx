@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fill } from "./fill";
 import { Inside } from "./here";
+import { setWidth } from "./width";
 import { CollectionView } from "../content/CollectionView";
 import { ContentColumn } from "../content/ContentColumn";
 import { ContentBeside, ContentScreen } from "../content/ContentScreen";
@@ -40,23 +41,6 @@ function serve(byPath: Record<string, Answer | ((url: string) => Answer)>, calls
   return calls;
 }
 
-function setWidth(px: number) {
-  window.matchMedia = ((query: string) => {
-    const max = /max-width:\s*(\d+)px/.exec(query);
-    const min = /min-width:\s*(\d+)px/.exec(query);
-    const matches = max ? px <= Number(max[1]) : min ? px >= Number(min[1]) : false;
-    return {
-      matches,
-      media: query,
-      onchange: null,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      addListener: () => {},
-      removeListener: () => {},
-      dispatchEvent: () => false,
-    };
-  }) as unknown as typeof window.matchMedia;
-}
 
 function Where() {
   const location = useLocation();

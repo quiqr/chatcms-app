@@ -48,6 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The page no longer scrolls: the header stays and each panel scrolls on its
+  own, so the preview's end and the assistant's message box stay in view.
+- A narrow editor shows form or preview instead of stacking them; the open
+  assistant takes the form's place beside the preview.
 - `CHATCMS_WORKSPACE_IDLE` and `CHATCMS_WORKSPACES_AT_ONCE` replace the preview
   names, which are still read for one release.
 - Publishing first brings the publisher's own saves in, and waits while a

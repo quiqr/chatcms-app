@@ -12,6 +12,7 @@ import { PhoneShell } from "../PhoneShell";
 import { PlatformAdminShell } from "../PlatformAdminShell";
 import { ProjectShell } from "../ProjectShell";
 import { Inside } from "../../routes/__tests__/here";
+import { setWidth } from "../../routes/__tests__/width";
 import { canSeeSetup, canSeeTechnicalDetail } from "../roles";
 import { phoneWidth, useIsPhone } from "../useIsPhone";
 
@@ -37,8 +38,15 @@ function at(path: string, element: ReactNode) {
 
 const sitePanel = () => document.querySelector("[data-panel='site']")!;
 
+const unstubbed = window.matchMedia;
+
 beforeEach(() => {
   window.localStorage.clear();
+  setWidth(1440);
+});
+
+afterEach(() => {
+  window.matchMedia = unstubbed;
 });
 
 describe("the site panel", () => {
@@ -115,18 +123,21 @@ describe("ProjectShell", () => {
     expect(screen.queryByText(/Setup/)).toBeNull();
   });
 
-  it("gives the content the room and lets the navigation yield", () => {
+  it("is as tall as the window, and only the main area scrolls", () => {
     const { container } = at(
       "/o/technative/p/korenaar/content",
       <ProjectShell project={project} viewer={theViewer} title="Content">body</ProjectShell>,
     );
 
     const shell = container.querySelector("[data-testid='project-shell']")!;
-    expect(shell.className).toContain("flex-wrap");
+    expect(shell.className).toContain("h-dvh");
+    expect(shell.className).toContain("overflow-hidden");
+    expect(shell.className).not.toContain("flex-wrap");
 
     const content = shell.querySelector("[class*='grow-[999]']");
     expect(content).not.toBeNull();
     expect(content!.className).toContain("min-w-0");
+    expect(shell.querySelector("[data-scrolls='main']")!.className).toContain("overflow-y-auto");
   });
 
   it("is hidden at phone widths", () => {
@@ -538,5 +549,100 @@ describe("artifacts in the site navigation", () => {
   it("are not there for a project without any", () => {
     at("/o/technative/p/korenaar/content", <ProjectShell project={project} viewer={theViewer} title="Content">body</ProjectShell>);
     expect(screen.queryByRole("link", { name: "Artifacts" })).toBeNull();
+  });
+});
+
+describe("a narrow window", () => {
+  const shell = () =>
+    at(
+      "/o/technative/p/korenaar/content",
+      <ProjectShell project={project} viewer={{ name: "Joris", role: "implementer" }} title="Content">
+        body
+      </ProjectShell>,
+    );
+
+  it("shows the navigation as its rail, and opens it over the content until something is picked", async () => {
+    setWidth(900);
+    const user = userEvent.setup();
+    shell();
+    expect(sitePanel()).toHaveAttribute("data-folded", "true");
+
+    await user.click(within(sitePanel() as HTMLElement).getByRole("button", { name: "Show the navigation" }));
+    const drawer = screen.getByRole("dialog", { name: "Project navigation" });
+    await user.click(within(drawer).getByRole("link", { name: "History" }));
+    expect(screen.queryByRole("dialog", { name: "Project navigation" })).toBeNull();
+    expect(window.localStorage.length).toBe(0);
+  });
+
+  it("leaves the person's own fold as it was", () => {
+    setWidth(1440);
+    const wide = shell();
+    expect(sitePanel()).toHaveAttribute("data-folded", "false");
+    wide.unmount();
+
+    setWidth(900);
+    const narrow = shell();
+    expect(sitePanel()).toHaveAttribute("data-folded", "true");
+    narrow.unmount();
+
+    setWidth(1440);
+    shell();
+    expect(sitePanel()).toHaveAttribute("data-folded", "false");
+  });
+});
+
+describe("the editor in the room it has", () => {
+  function measuredAt(width: number) {
+    class Measured {
+      constructor(private seen: (entries: { contentRect: { width: number } }[]) => void) {}
+      observe() {
+        this.seen([{ contentRect: { width } }]);
+      }
+      disconnect() {}
+    }
+    vi.stubGlobal("ResizeObserver", Measured);
+  }
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  function editor(onLayoutChange = () => {}) {
+    return at(
+      "/o/technative/p/korenaar/content/about",
+      <EditorShell
+        project={project}
+        viewer={theViewer}
+        title="Home page"
+        layout="split"
+        onLayoutChange={onLayoutChange}
+        form={<p>Fields</p>}
+        preview={<p>Preview</p>}
+        assistant={() => <p>Chat</p>}
+      />,
+    );
+  }
+
+  it("shows the form first where form and preview do not fit side by side, and offers the preview", async () => {
+    measuredAt(700);
+    editor();
+    expect(await screen.findByTestId("editor-slot-form")).toBeInTheDocument();
+    expect(screen.queryByTestId("editor-slot-preview")).toBeNull();
+    const views = screen.getByRole("radiogroup", { name: "How to show this page" });
+    expect(within(views).getByRole("radio", { name: "Preview" })).toBeInTheDocument();
+    expect(within(views).queryByRole("radio", { name: "Side by side" })).toBeNull();
+  });
+
+  it("puts the assistant in the form's place beside the preview, and brings the form back when it closes", async () => {
+    measuredAt(1000);
+    const user = userEvent.setup();
+    editor();
+    expect(await screen.findByTestId("editor-slot-form")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Open the assistant" }));
+    expect(screen.queryByTestId("editor-slot-form")).toBeNull();
+    expect(screen.getByTestId("editor-slot-assistant")).toHaveAttribute("data-room", "instead-of-form");
+    expect(screen.getByTestId("editor-slot-preview")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Open the assistant" }));
+    expect(screen.getByTestId("editor-slot-form")).toBeInTheDocument();
   });
 });

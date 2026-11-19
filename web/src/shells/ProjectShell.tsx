@@ -33,12 +33,12 @@ export function ProjectShell({
 }: ProjectShellProps) {
   const { organisation } = useHere();
   return (
-    <div data-testid="project-shell" className="hidden min-h-dvh flex-wrap sm:flex">
+    <div data-testid="project-shell" className="hidden h-dvh overflow-hidden sm:flex">
       <SitePanel project={project} role={viewer.role} />
       {beside}
 
-      <div className="flex min-w-0 shrink grow-[999] basis-[560px] flex-col">
-        <TopBar viewer={{ name: viewer.name, role: named(viewer.role) }} className="px-8">
+      <div className="flex min-h-0 min-w-0 shrink grow-[999] basis-[560px] flex-col">
+        <TopBar viewer={{ name: viewer.name, role: named(viewer.role) }} className="shrink-0 px-8">
           <h1 className="flex-1 text-lg font-semibold">{title}</h1>
           <SyncIndicator state={syncState} />
           {actions}
@@ -47,7 +47,7 @@ export function ProjectShell({
           </Button>
         </TopBar>
 
-        <main className="min-w-0 flex-1 p-8">{children}</main>
+        <main data-scrolls="main" className="min-h-0 min-w-0 flex-1 overflow-y-auto p-8">{children}</main>
         <QuickFind project={project.slug} />
       </div>
     </div>

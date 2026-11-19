@@ -1,4 +1,5 @@
 import { ChevronsUpDown, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { useState } from "react";
 import { NavLink } from "react-router";
 
 import { Tile } from "../components/ui/avatar";
@@ -13,6 +14,7 @@ import { useHere } from "../lib/whoami";
 import { setupNavigation, siteNavigation, type NavEntry } from "./navigation";
 import { ProjectSwitcher } from "./ProjectSwitcher";
 import { canSeeSetup } from "./roles";
+import { useIsWide } from "./useIsWide";
 
 function NavGroup({ label, entries, unpublished }: { label: string; entries: NavEntry[]; unpublished: number }) {
   return (
@@ -67,19 +69,26 @@ function RailGroup({ label, entries, unpublished }: { label: string; entries: Na
 export function SitePanel({ project, role }: { project: Project; role: string }) {
   const { organisation, who } = useHere();
   const [folded, setFolded] = useFold("site", who.person.id);
+  const wide = useIsWide();
+  const [drawer, setDrawer] = useState(false);
   const site = siteNavigation(organisation, project.slug, project.hasArtifacts);
   const setup = canSeeSetup(role) ? setupNavigation(organisation, project.slug) : [];
 
-  if (folded) {
+  function unfold() {
+    if (wide) setFolded(false);
+    else setDrawer(true);
+  }
+
+  if (folded || !wide) {
     return (
       <aside
         aria-label={say("project-shell.project-navigation")}
         data-panel="site"
         data-folded="true"
-        className="flex shrink-0 grow-0 basis-16 flex-col items-center gap-3 border-r border-border bg-card py-3"
+        className="flex min-h-0 shrink-0 grow-0 basis-16 flex-col items-center gap-3 overflow-y-auto border-r border-border bg-card py-3"
       >
         <Tooltip side="right" content={say("site-panel.show")}>
-          <Button variant="ghost" size="icon" aria-label={say("site-panel.show")} onClick={() => setFolded(false)}>
+          <Button variant="ghost" size="icon" aria-label={say("site-panel.show")} onClick={unfold}>
             <PanelLeftOpen aria-hidden="true" className="size-5" />
           </Button>
         </Tooltip>
@@ -95,6 +104,24 @@ export function SitePanel({ project, role }: { project: Project; role: string })
             <RailGroup label={say("project-shell.setup")} entries={setup} unpublished={0} />
           </>
         )}
+        {drawer && (
+          <div className="fixed inset-0 z-40 flex" role="dialog" aria-modal="true" aria-label={say("project-shell.project-navigation")}>
+            <div
+              className="flex w-[min(15rem,85vw)] flex-col gap-4 overflow-y-auto border-r border-border bg-card p-3 shadow-lg"
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest("a")) setDrawer(false);
+              }}
+            >
+              <PanelContent project={project} site={site} setup={setup} onHide={() => setDrawer(false)} />
+            </div>
+            <button
+              type="button"
+              aria-label={say("site-panel.hide")}
+              className="flex-1 bg-foreground/30"
+              onClick={() => setDrawer(false)}
+            />
+          </div>
+        )}
       </aside>
     );
   }
@@ -104,12 +131,30 @@ export function SitePanel({ project, role }: { project: Project; role: string })
       aria-label={say("project-shell.project-navigation")}
       data-panel="site"
       data-folded="false"
-      className="flex shrink grow basis-60 flex-col gap-4 border-r border-border bg-card p-3"
+      className="flex min-h-0 shrink grow basis-60 flex-col gap-4 overflow-y-auto border-r border-border bg-card p-3"
     >
+      <PanelContent project={project} site={site} setup={setup} onHide={() => setFolded(true)} />
+    </aside>
+  );
+}
+
+function PanelContent({
+  project,
+  site,
+  setup,
+  onHide,
+}: {
+  project: Project;
+  site: NavEntry[];
+  setup: NavEntry[];
+  onHide: () => void;
+}) {
+  return (
+    <>
       <div className="flex items-center gap-2 pl-2 pt-1">
         <img src="/quiqr-logo.svg" alt={say("common.quiqr")} className="h-6 w-auto" />
         <span className="flex-1 text-[15px] text-muted-foreground">{say("common.chatcms")}</span>
-        <Button variant="ghost" size="icon" aria-label={say("site-panel.hide")} onClick={() => setFolded(true)}>
+        <Button variant="ghost" size="icon" aria-label={say("site-panel.hide")} onClick={onHide}>
           <PanelLeftClose aria-hidden="true" className="size-4" />
         </Button>
       </div>
@@ -130,6 +175,6 @@ export function SitePanel({ project, role }: { project: Project; role: string })
 
       <NavGroup label={say("project-shell.site")} entries={site} unpublished={project.unpublished} />
       {setup.length > 0 && <NavGroup label={say("project-shell.setup")} entries={setup} unpublished={0} />}
-    </aside>
+    </>
   );
 }
