@@ -673,6 +673,8 @@ export type PreviewSelection = {
   path: string;
 };
 
+export type PreviewRequest = PreviewSelection & { prompt: string };
+
 export function askAssistant(organisation: string, name: string, text: string, selection?: PreviewSelection | null) {
   return post<void>(`${project(organisation, name)}/chat`, selection ? { text, selection } : { text });
 }

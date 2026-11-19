@@ -172,39 +172,57 @@ describe("a preview from its own origin", () => {
 describe("selecting in the preview", () => {
   const address = "https://preview.example/v/k1/";
 
-  async function framed(onSelect = vi.fn(), highlight: { before: string; after: string; id: number } | null = null) {
+  async function framed(onAsk = vi.fn(), highlight: { before: string; after: string; id: number } | null = null, chatOn = true) {
     vi.stubGlobal("fetch", server([{ body: { state: "warm", address, type: "web", open: "/" } }]));
-    const view = render(<Preview organisation="technative" project="korenaar" page="posts/one" onSelect={onSelect} highlight={highlight} />);
+    const view = render(<Preview organisation="technative" project="korenaar" page="posts/one" onAsk={onAsk} chatOn={chatOn} highlight={highlight} />);
     const frame = (await screen.findByTitle("Your site")) as HTMLIFrameElement;
     const sent = vi.fn();
     Object.defineProperty(frame, "contentWindow", { value: { postMessage: sent }, configurable: true });
-    return { frame, sent, onSelect, view };
+    return { frame, sent, onAsk, view };
   }
 
   function fromFrame(frame: HTMLIFrameElement, data: unknown, origin = "https://preview.example") {
     window.dispatchEvent(new MessageEvent("message", { data, origin, source: frame.contentWindow as MessageEventSource }));
   }
 
-  it("answers the frame's hello with the button's label", async () => {
+  const asked = { text: "Fresh bread", before: "Korenaar ", after: ".", path: "/v/k1/posts/one/", prompt: "Make it shorter" };
+
+  it("answers the frame's hello with the overlay's words and whether chat is on", async () => {
     const { frame, sent } = await framed();
     fromFrame(frame, { chatcms: "ready" });
-    expect(sent).toHaveBeenCalledWith({ chatcms: "setup", label: "Ask the assistant about this" }, "https://preview.example");
+    const setup = sent.mock.calls.map(([data]) => data).filter((data) => data.chatcms === "setup").at(-1);
+    expect(setup).toMatchObject({ chatcms: "setup", on: true, words: { chip: "Chat", chipLabel: "Chat about the selected text", placeholder: "What should change?" } });
+    expect(setup.words.quick).toEqual(["Make it shorter", "Simpler words", "Fix spelling"]);
   });
 
-  it("passes a selection on, with the address inside the preview", async () => {
-    const { frame, onSelect } = await framed();
-    fromFrame(frame, { chatcms: "selection", text: "Fresh bread", before: "Korenaar ", after: ".", path: "/v/k1/posts/one/" });
-    expect(onSelect).toHaveBeenCalledWith({ text: "Fresh bread", before: "Korenaar ", after: ".", path: "/posts/one/" });
+  it("tells the overlay again when chat is switched off", async () => {
+    const { sent, view } = await framed();
+    view.rerender(<Preview organisation="technative" project="korenaar" page="posts/one" onAsk={vi.fn()} chatOn={false} />);
+    const setup = sent.mock.calls.map(([data]) => data).filter((data) => data.chatcms === "setup").at(-1);
+    expect(setup).toMatchObject({ on: false });
   });
 
-  it("ignores a message from another origin or another window", async () => {
-    const { frame, onSelect } = await framed();
-    fromFrame(frame, { chatcms: "selection", text: "x", before: "", after: "", path: "/" }, "https://elsewhere.example");
-    window.dispatchEvent(
-      new MessageEvent("message", { data: { chatcms: "selection", text: "x", before: "", after: "", path: "/" }, origin: "https://preview.example", source: window }),
-    );
-    fromFrame(frame, { chatcms: "selection", text: 3 });
-    expect(onSelect).not.toHaveBeenCalled();
+  it("passes a request and a draft on, with the address inside the preview", async () => {
+    const { frame, onAsk } = await framed();
+    fromFrame(frame, { chatcms: "send", ...asked });
+    fromFrame(frame, { chatcms: "draft", ...asked });
+    const request = { text: "Fresh bread", before: "Korenaar ", after: ".", path: "/posts/one/", prompt: "Make it shorter" };
+    expect(onAsk.mock.calls).toEqual([
+      [request, "send"],
+      [request, "draft"],
+    ]);
+  });
+
+  it("ignores a message from another origin, another window, or while chat is off", async () => {
+    const { frame, onAsk } = await framed();
+    fromFrame(frame, { chatcms: "send", ...asked }, "https://elsewhere.example");
+    window.dispatchEvent(new MessageEvent("message", { data: { chatcms: "send", ...asked }, origin: "https://preview.example", source: window }));
+    fromFrame(frame, { chatcms: "send", ...asked, text: 3 });
+    expect(onAsk).not.toHaveBeenCalled();
+
+    const off = await framed(vi.fn(), null, false);
+    fromFrame(off.frame, { chatcms: "send", ...asked });
+    expect(off.onAsk).not.toHaveBeenCalled();
   });
 
   it("asks each reload shortly after the change to highlight it", async () => {

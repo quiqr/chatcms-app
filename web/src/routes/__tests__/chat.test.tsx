@@ -189,6 +189,43 @@ describe("a quote from the preview", () => {
     expect(shown).toHaveBeenCalledTimes(2);
   });
 
+  it("sends a request from the overlay with its selection, and queues one that comes while busy", async () => {
+    const sent: { method: string; path: string; body: unknown }[] = [];
+    vi.stubGlobal("fetch", server(true, sent));
+    const view = render(
+      <MemoryRouter>
+        <ChatPanel organisation="technative" project="korenaar" onChanged={() => undefined} request={{ about: quote, text: "Make it shorter", id: 1 }} pageTitle="One" />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(FakeSource.last).not.toBeNull());
+    FakeSource.last!.say({ type: "ready" });
+    await waitFor(() => expect(sent.filter((one) => one.method === "POST")).toHaveLength(1));
+    expect(sent.find((one) => one.method === "POST")!.body).toEqual({ text: "Make it shorter", selection: quote });
+    expect(await screen.findByRole("button", { name: /^Show in the preview: Fresh bread/ })).toBeInTheDocument();
+
+    view.rerender(
+      <MemoryRouter>
+        <ChatPanel organisation="technative" project="korenaar" onChanged={() => undefined} request={{ about: quote, text: "Fix spelling", id: 2 }} pageTitle="One" />
+      </MemoryRouter>,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(sent.filter((one) => one.method === "POST")).toHaveLength(1);
+    FakeSource.last!.say({ type: "done" });
+    await waitFor(() => expect(sent.filter((one) => one.method === "POST")).toHaveLength(2));
+    expect(sent.filter((one) => one.method === "POST")[1]!.body).toEqual({ text: "Fix spelling", selection: quote });
+  });
+
+  it("puts a draft from the overlay in the message box", async () => {
+    vi.stubGlobal("fetch", server(true));
+    render(
+      <MemoryRouter>
+        <ChatPanel organisation="technative" project="korenaar" onChanged={() => undefined} quote={quote} drafted={{ text: "Half a thought", id: 1 }} />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole("textbox", { name: "Your message" })).toHaveValue("Half a thought");
+    expect(screen.getByLabelText("About this part of the page")).toHaveTextContent("Fresh bread every morning");
+  });
+
   it("can be left out", async () => {
     vi.stubGlobal("fetch", server(true));
     const dropped = vi.fn();

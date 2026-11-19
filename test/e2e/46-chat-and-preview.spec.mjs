@@ -39,10 +39,10 @@ test("Chat + preview shows the chat beside the preview, with a request card that
       selection.removeAllRanges();
       selection.addRange(range);
     });
-    await preview.getByRole("button", { name: "Ask the assistant about this" }).click();
+    await preview.getByRole("button", { name: "Chat about the selected text" }).click();
+    await preview.getByRole("textbox", { name: "What should change?" }).fill("Change it to Korenaar by night");
+    await preview.getByRole("textbox", { name: "What should change?" }).press("Enter");
     const panel = page.getByRole("region", { name: "Assistant" });
-    await panel.getByRole("textbox", { name: "Your message" }).fill("Change it to Korenaar by night");
-    await panel.getByRole("textbox", { name: "Your message" }).press("Enter");
     const card = panel.getByRole("button", { name: /^Show in the preview: Korenaar Bakery/ });
     await expect(card).toBeVisible();
     await expect(card.locator("mark")).toHaveText("Korenaar Bakery");

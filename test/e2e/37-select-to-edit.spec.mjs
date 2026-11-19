@@ -9,6 +9,7 @@ test("a sentence selected in the preview is changed on its own page, and the cha
   const phone = onAPhone(testInfo);
   const showThePreview = async () => {
     if (phone) await page.getByRole("radio", { name: "Preview" }).click();
+    else await page.getByRole("radio", { name: /^Chat \+ preview/ }).click();
   };
 
   await page.goto(`${chatcms.url}/o/technative/p/korenaar/content/home`);
@@ -17,7 +18,7 @@ test("a sentence selected in the preview is changed on its own page, and the cha
   const heading = preview.getByText("Korenaar Bakery").first();
   await expect(heading).toBeVisible({ timeout: 90_000 });
 
-  await test.step("selecting the text offers to ask about it", async () => {
+  await test.step("selecting the text offers a chip, and the chip an input at the selection", async () => {
     await heading.evaluate((element) => {
       const range = element.ownerDocument.createRange();
       range.selectNodeContents(element);
@@ -25,18 +26,17 @@ test("a sentence selected in the preview is changed on its own page, and the cha
       selection.removeAllRanges();
       selection.addRange(range);
     });
-    await preview.getByRole("button", { name: "Ask the assistant about this" }).click();
+    await preview.getByRole("button", { name: "Chat about the selected text" }).click();
+    const card = preview.getByRole("dialog", { name: "Chat about the selected text" });
+    await card.getByRole("textbox", { name: "What should change?" }).fill("Change it to Korenaar by night");
+    await card.getByRole("textbox", { name: "What should change?" }).press("Enter");
+    await expect(card).toBeHidden();
   });
 
   const panel = page.getByRole("region", { name: "Assistant" });
-  await test.step("the assistant opens with the selection quoted", async () => {
-    await expect(panel.getByLabel("About this part of the page")).toContainText("Korenaar Bakery");
-  });
-
-  await test.step("asking for a change changes that page", async () => {
-    const message = panel.getByRole("textbox", { name: "Your message" });
-    await message.fill("Change it to Korenaar by night");
-    await message.press("Enter");
+  await test.step("the request is in the chat with its selection, and changes that page", async () => {
+    if (phone) await page.getByRole("button", { name: "Open the assistant" }).click();
+    await expect(panel.getByRole("button", { name: /^Show in the preview: Korenaar Bakery/ })).toBeVisible();
     if (!realAI) await expect(panel.getByText("Done. The home page has its new title.")).toBeVisible({ timeout: 150_000 });
     await expect(panel.getByText(/^Changed /)).toBeVisible({ timeout: 150_000 });
     if (realAI) return;

@@ -1,7 +1,7 @@
 ---
 # chatcms-7hfz
 title: A small input over the preview for a selection
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-11-19T09:20:46Z

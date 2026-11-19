@@ -54,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A Quarto site's `{{< >}}` shortcodes are locked in the page text.
 - The editor has a Chat + preview view; a request from the preview shows as a
   card that finds its place, and running requests are counted on the switch.
+- Selecting text in the preview shows a Chat chip that opens an input right
+  there, with quick actions; Esc keeps what was typed in the chat.
 
 ### Changed
 

@@ -38,6 +38,8 @@ export function ChatPanel({
   onRunning,
   onShowPlace,
   pageTitle,
+  request = null,
+  drafted = null,
 }: {
   organisation: string;
   project: string;
@@ -48,6 +50,8 @@ export function ChatPanel({
   onRunning?: (count: number) => void;
   onShowPlace?: (about: PreviewSelection) => void;
   pageTitle?: string;
+  request?: { about: PreviewSelection; text: string; id: number } | null;
+  drafted?: { text: string; id: number } | null;
 }) {
   const [available, setAvailable] = useState<boolean | null>(null);
   const [said, setSaid] = useState<Said[]>([]);
@@ -113,6 +117,7 @@ export function ChatPanel({
       });
       if (event.type === "change") changed.current(asking.current ?? undefined);
       if (event.type === "done" || event.type === "error") {
+        working.current = false;
         setBusy(false);
         asking.current = null;
       }
@@ -123,15 +128,48 @@ export function ChatPanel({
     };
   }, [available, organisation, project]);
 
+  const working = useRef(false);
+  const queued = useRef<{ text: string; selection: PreviewSelection }[]>([]);
+  const title = useRef(pageTitle);
+  title.current = pageTitle;
+
+  useEffect(() => {
+    if (!request) return;
+    void ask(request.text, request.about);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request?.id]);
+
+  useEffect(() => {
+    if (!drafted) return;
+    setDraft(drafted.text);
+    message.current?.focus();
+  }, [drafted?.id]);
+
+  useEffect(() => {
+    if (busy || queued.current.length === 0) return;
+    const next = queued.current.shift()!;
+    void ask(next.text, next.selection);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy]);
+
   async function send() {
     const text = draft.trim();
     if (!text || busy) return;
-    const about: Asked | null = quote ? { ...quote, page: pageTitle } : null;
     setDraft("");
+    onQuoteDropped?.();
+    await ask(text, quote);
+  }
+
+  async function ask(text: string, selection: PreviewSelection | null) {
+    if (working.current) {
+      if (selection) queued.current.push({ text, selection });
+      return;
+    }
+    working.current = true;
+    const about: Asked | null = selection ? { ...selection, page: title.current } : null;
     setTrouble("");
     setBusy(true);
-    asking.current = quote;
-    onQuoteDropped?.();
+    asking.current = selection;
     setSaid((before) => [
       ...before,
       { who: "person", text, about: about ?? undefined, changes: [] },
@@ -139,9 +177,10 @@ export function ChatPanel({
     ]);
     try {
       await untilListening();
-      await askAssistant(organisation, project, text, quote);
+      await askAssistant(organisation, project, text, selection);
     } catch (error: unknown) {
       setTrouble(whatWentWrong(error, "assistant.did-not-answer"));
+      working.current = false;
       setBusy(false);
       asking.current = null;
       setSaid((before) => before.slice(0, -1));

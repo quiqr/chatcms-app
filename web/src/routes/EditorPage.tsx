@@ -5,7 +5,7 @@ import { NavLink, useParams } from "react-router";
 
 import { Button } from "../components/ui/button";
 import { Segmented } from "../components/ui/segmented";
-import { readProject, type PreviewSelection } from "../lib/tenancy";
+import { readAssistant, readProject, type PreviewRequest, type PreviewSelection } from "../lib/tenancy";
 import { useAsync } from "../lib/useAsync";
 import { EditorShell, type EditorLayout } from "../shells/EditorShell";
 import { PhoneShell } from "../shells/PhoneShell";
@@ -39,7 +39,9 @@ export function EditorPage() {
   const [opened, setOpened] = useState<{ title: string; section: string } | null>(null);
   const [quote, setQuote] = useState<PreviewSelection | null>(null);
   const [highlight, setHighlight] = useState<{ before: string; after: string; id: number } | null>(null);
-  const [asked, setAsked] = useState(0);
+  const [request, setRequest] = useState<{ about: PreviewSelection; text: string; id: number } | null>(null);
+  const [drafted, setDrafted] = useState<{ text: string; id: number } | null>(null);
+  const [assistant] = useAsync(() => readAssistant(organisation, slug ?? ""), [organisation, slug]);
   const onAPhone = useIsPhone();
   const place = usePlace(organisation, slug ?? "", page);
   useStartWorkspace(organisation, slug ?? "");
@@ -55,13 +57,17 @@ export function EditorPage() {
     if (about) setHighlight({ before: about.before, after: about.after, id: Date.now() });
   };
 
-  const select = (selection: PreviewSelection) => {
-    setQuote(selection);
-    setAsked((count) => count + 1);
+  const asking = (asked: PreviewRequest, how: "send" | "draft") => {
+    const { prompt, ...about } = asked;
     setChatted(true);
-    setTalking(true);
+    if (how === "send") {
+      setRequest({ about, text: prompt, id: Date.now() });
+      return;
+    }
+    setQuote(about);
+    setDrafted({ text: prompt, id: Date.now() });
   };
-
+  const mayAsk = project.yourRole !== "viewer" && assistant.state === "ready" && assistant.value.available;
   if (!onAPhone) {
     return (
       <div>
@@ -76,7 +82,6 @@ export function EditorPage() {
           stepper={<Stepper place={place} />}
           layout={layout}
           onLayoutChange={setLayout}
-          openChat={asked}
           chatCount={running}
           form={
             <PageEditor
@@ -87,7 +92,17 @@ export function EditorPage() {
               onSaved={() => setSaves((count) => count + 1)}
             />
           }
-          preview={<Preview organisation={organisation} project={slug ?? ""} page={page} showAgain={saves + changes} onSelect={select} highlight={highlight} />}
+          preview={
+            <Preview
+              organisation={organisation}
+              project={slug ?? ""}
+              page={page}
+              showAgain={saves + changes}
+              onAsk={asking}
+              chatOn={mayAsk && (layout === "preview" || layout === "chat")}
+              highlight={highlight}
+            />
+          }
           chat={
             <ChatPanel
               organisation={organisation}
@@ -98,6 +113,8 @@ export function EditorPage() {
               onRunning={setRunning}
               onShowPlace={(about) => setHighlight({ before: about.before, after: about.after, id: Date.now() })}
               pageTitle={opened?.title ?? page}
+              request={request}
+              drafted={drafted}
             />
           }
         />
@@ -158,6 +175,9 @@ export function EditorPage() {
               quote={quote}
               onQuoteDropped={() => setQuote(null)}
               onClose={() => setTalking(false)}
+              pageTitle={opened?.title ?? page}
+              request={request}
+              drafted={drafted}
             />
           </div>
         )}
@@ -176,7 +196,8 @@ export function EditorPage() {
               project={slug ?? ""}
               page={page}
               showAgain={saves + changes}
-              onSelect={select}
+              onAsk={asking}
+              chatOn={mayAsk}
               highlight={highlight}
             />
           </div>

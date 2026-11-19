@@ -5,7 +5,8 @@ import { Segmented } from "../components/ui/segmented";
 import { useIsPhone } from "../shells/useIsPhone";
 import { whatWentWrong } from "../lib/api";
 import { maybe, say, spokenNow, type Key } from "../lib/say";
-import { openWorkspace, readWorkspace, type PreviewSelection, type Workspace, type WorkspaceStep } from "../lib/tenancy";
+import { openWorkspace, readWorkspace, type PreviewRequest, type Workspace, type WorkspaceStep } from "../lib/tenancy";
+import type { Words } from "../preview/select";
 
 /**
  * Preview shows the site as a reader will see it. It is served through the
@@ -19,7 +20,8 @@ export function Preview({
   project,
   page,
   showAgain = 0,
-  onSelect,
+  onAsk,
+  chatOn = false,
   highlight,
 }: {
   organisation: string;
@@ -32,7 +34,8 @@ export function Preview({
    * on purpose.
    */
   showAgain?: number;
-  onSelect?: (selection: PreviewSelection) => void;
+  onAsk?: (request: PreviewRequest, how: "send" | "draft") => void;
+  chatOn?: boolean;
   highlight?: { before: string; after: string; id: number } | null;
 }) {
   const [device, setDevice] = useState<"desktop" | "phone">("desktop");
@@ -47,7 +50,7 @@ export function Preview({
   const at =
     kind === "web" ? base + (workspace?.ownPages ? opened : pathOf(page)) : kind === "pdf" ? `${base}__chatcms/pdf/?file=${encodeURIComponent(opened)}${onAPhone ? "&fit=width" : ""}&lang=${spokenNow()}` : base + opened;
   const frame = useRef<HTMLIFrameElement>(null);
-  useFrameMessages(frame, base, onSelect, highlight);
+  useFrameMessages(frame, base, chatOn && Boolean(onAsk), onAsk, highlight);
 
   return (
     <div className="flex h-full flex-col gap-2">
@@ -115,11 +118,12 @@ export function Preview({
 function useFrameMessages(
   frame: RefObject<HTMLIFrameElement | null>,
   base: string,
-  onSelect?: (selection: PreviewSelection) => void,
+  on: boolean,
+  onAsk?: (request: PreviewRequest, how: "send" | "draft") => void,
   highlight?: { before: string; after: string; id: number } | null,
 ) {
-  const latest = useRef({ onSelect, highlight, base });
-  latest.current = { onSelect, highlight, base };
+  const latest = useRef({ onAsk, highlight, base, on });
+  latest.current = { onAsk, highlight, base, on };
 
   useEffect(() => {
     const heard = (event: MessageEvent) => {
@@ -128,23 +132,33 @@ function useFrameMessages(
       const origin = new URL(here.src, window.location.href).origin;
       if (event.origin !== origin) return;
       const said = event.data as Record<string, unknown> | null;
-      const { onSelect, highlight, base } = latest.current;
-      if (!said || !onSelect) return;
+      const { onAsk, highlight, base, on } = latest.current;
+      if (!said) return;
       if (said.chatcms === "ready") {
-        here.contentWindow?.postMessage({ chatcms: "setup", label: say("preview.ask-about-this") }, origin);
+        here.contentWindow?.postMessage({ chatcms: "setup", words: overlayWords(), on }, origin);
         if (highlight && Date.now() - highlight.id < highlightWhile) {
           here.contentWindow?.postMessage({ chatcms: "highlight", before: highlight.before, after: highlight.after }, origin);
         }
         return;
       }
-      if (said.chatcms !== "selection") return;
-      const { text, before, after, path } = said;
-      if (typeof text !== "string" || typeof before !== "string" || typeof after !== "string" || typeof path !== "string") return;
-      onSelect({ text: text.slice(0, 2000), before: before.slice(-200), after: after.slice(0, 200), path: within(base, path) });
+      if ((said.chatcms !== "send" && said.chatcms !== "draft") || !onAsk || !on) return;
+      const { text, before, after, path, prompt } = said;
+      if (typeof text !== "string" || typeof before !== "string" || typeof after !== "string" || typeof path !== "string" || typeof prompt !== "string") return;
+      onAsk(
+        { text: text.slice(0, 2000), before: before.slice(-200), after: after.slice(0, 200), path: within(base, path), prompt: prompt.slice(0, 4000) },
+        said.chatcms,
+      );
     };
     window.addEventListener("message", heard);
     return () => window.removeEventListener("message", heard);
   }, [frame]);
+
+  useEffect(() => {
+    const here = frame.current;
+    if (!here?.contentWindow || !here.src) return;
+    const origin = new URL(here.src, window.location.href).origin;
+    here.contentWindow.postMessage({ chatcms: "setup", words: overlayWords(), on }, origin);
+  }, [frame, on]);
 
   useEffect(() => {
     const here = frame.current;
@@ -155,6 +169,19 @@ function useFrameMessages(
 }
 
 const highlightWhile = 15_000;
+
+function overlayWords(): Words {
+  return {
+    chip: say("preview.chat"),
+    chipLabel: say("preview.chat-about-the-selection"),
+    card: say("preview.chat-about-the-selection"),
+    placeholder: say("preview.what-should-change"),
+    send: say("preview.send-to-the-assistant"),
+    quick: [say("preview.make-it-shorter"), say("preview.simpler-words"), say("preview.fix-spelling")],
+    goesTo: say("preview.goes-to-your-chat"),
+    keys: say("preview.enter-to-send"),
+  };
+}
 
 function within(base: string, path: string) {
   const prefix = new URL(base, window.location.href).pathname;
