@@ -23,8 +23,7 @@ test("the folded column names where you are, and the picker goes anywhere", asyn
     await expect(panel).toHaveAttribute("data-folded", "true");
     const strip = page.getByRole("button", { name: /^Show the content menu \(News/ });
     await expect(strip).toBeVisible();
-    const box = await panel.boundingBox();
-    expect(Math.round(box.width)).toBe(48);
+    await expect.poll(async () => Math.round((await panel.boundingBox()).width)).toBe(48);
     await expect(where).toContainText("News");
     await shoot(page, "folded");
   });
@@ -51,6 +50,26 @@ test("the folded column names where you are, and the picker goes anywhere", asyn
     await page.keyboard.press("Escape");
     await expect(picker).toHaveCount(0);
     await expect(opener).toBeFocused();
+  });
+
+  await test.step("switching between a collection and a page does not blank the screen", async () => {
+    await page.goto(`${content}/c/news`);
+    await expect(where).toContainText("News");
+    await page.evaluate(() => {
+      window.__blanked = false;
+      new MutationObserver(() => {
+        if (!document.querySelector("[data-testid='project-shell'], [data-testid='editor-shell']")) window.__blanked = true;
+      }).observe(document.body, { childList: true, subtree: true });
+    });
+    await where.getByRole("button", { name: /^Choose another place/ }).click();
+    await page.getByRole("dialog", { name: "Go to" }).getByRole("button", { name: /Home/ }).first().click();
+    await page.waitForURL(/\/content\/home$/);
+    await expect(page.getByTestId("editor-shell")).toBeVisible();
+    await where.getByRole("button", { name: /^Choose another place/ }).click();
+    await page.getByRole("dialog", { name: "Go to" }).getByRole("button", { name: /News/ }).first().click();
+    await page.waitForURL(/\/content\/c\/news$/);
+    await expect(page.getByTestId("project-shell")).toBeVisible();
+    expect(await page.evaluate(() => window.__blanked)).toBe(false);
   });
 
   await test.step("an item keeps its position beside the breadcrumb", async () => {

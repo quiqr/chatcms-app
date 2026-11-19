@@ -1,3 +1,4 @@
+import { forgetKept } from "./useAsync";
 import { get, post, put, remove, sendForm } from "./api";
 
 export type Person = {
@@ -11,6 +12,7 @@ export function signIn(email: string, password: string, remember: boolean) {
 }
 
 export function signOut() {
+  forgetKept();
   return post<void>("/api/sign-out");
 }
 

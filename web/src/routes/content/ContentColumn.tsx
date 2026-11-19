@@ -68,7 +68,7 @@ export function ContentColumn({
 }) {
   const { organisation, who } = useHere();
   const { pathname } = useLocation();
-  const [menu] = useAsync(() => readContentMenu(organisation, project), [organisation, project]);
+  const [menu] = useAsync(() => readContentMenu(organisation, project), [organisation, project], `menu:${organisation}/${project}`);
   const key = foldedKey(who.person.id, project);
   const [folded, setFolded] = useState<string[]>(() => recall<string[]>(key, []));
   const base = `/o/${organisation}/p/${project}/content`;

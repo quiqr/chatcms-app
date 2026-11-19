@@ -19,7 +19,7 @@ export function ContentBreadcrumb({ project: given, position }: { project?: stri
   const project = given ?? routed;
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
-  const [menu] = useAsync(() => readContentMenu(organisation, project), [organisation, project]);
+  const [menu] = useAsync(() => readContentMenu(organisation, project), [organisation, project], `menu:${organisation}/${project}`);
   const ready = menu.state === "ready" ? menu.value : null;
   const base = `/o/${organisation}/p/${project}/content`;
   const here = ready ? currentEntry(ready, pathname, base) : null;

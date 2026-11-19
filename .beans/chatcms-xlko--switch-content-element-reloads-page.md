@@ -1,11 +1,12 @@
 ---
 # chatcms-xlko
 title: switch content element reloads page which makes the app flickering
-status: draft
+status: completed
 type: task
 priority: normal
 created_at: 2026-11-19T14:23:16Z
-updated_at: 2026-11-19T14:24:35Z
+updated_at: 2026-11-19T16:00:00Z
+openspec-link: openspec/changes/archive/2026-11-19-content-switch-without-flicker
 parent: chatcms-iqog
 ---
 

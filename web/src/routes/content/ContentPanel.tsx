@@ -70,7 +70,7 @@ export function ContentPanel({ project, className }: { project: string; classNam
 function Strip({ project, onUnfold }: { project: string; onUnfold: () => void }) {
   const { organisation } = useHere();
   const { pathname } = useLocation();
-  const [menu] = useAsync(() => readContentMenu(organisation, project), [organisation, project]);
+  const [menu] = useAsync(() => readContentMenu(organisation, project), [organisation, project], `menu:${organisation}/${project}`);
   const ready = menu.state === "ready" ? menu.value : null;
   const here = ready ? currentEntry(ready, pathname, `/o/${organisation}/p/${project}/content`) : null;
   const waiting = ready ? ready.groups.some((group) => group.items.some((entry) => entry.hasChanges)) : false;

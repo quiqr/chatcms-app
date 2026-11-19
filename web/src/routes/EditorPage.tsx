@@ -22,7 +22,7 @@ import { Stepper, usePlace } from "./content/usePlace";
 export function EditorPage() {
   const { organisation, who } = useHere();
   const { project: slug, "*": page = "" } = useParams();
-  const [loaded] = useAsync(() => readProject(organisation, slug ?? ""), [organisation, slug]);
+  const [loaded] = useAsync(() => readProject(organisation, slug ?? ""), [organisation, slug], `project:${organisation}/${slug}`);
   const [layout, setLayout] = useState<EditorLayout>("split");
   const [saves, setSaves] = useState(0);
   const [changes, setChanges] = useState(0);

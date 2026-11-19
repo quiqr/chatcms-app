@@ -33,7 +33,7 @@ export function ProjectPage({
   // The project comes from the server. It used to come from the demo
   // scaffold, which is how the count on the Publish button came to disagree
   // with the publish screen beside it.
-  const [loaded] = useAsync(() => readProject(organisation, slug), [organisation, slug]);
+  const [loaded] = useAsync(() => readProject(organisation, slug), [organisation, slug], `project:${organisation}/${slug}`);
 
   if (loaded.state === "loading") {
     return <p className="p-6 text-[15px] text-muted-foreground">{say("common.looking")}</p>;

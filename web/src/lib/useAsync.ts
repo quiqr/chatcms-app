@@ -15,8 +15,16 @@ export type Loading<T> =
  * was in the middle of typing: a half-filled form disappears because
  * something else was saved.
  */
-export function useAsync<T>(load: () => Promise<T>, keys: unknown[]): [Loading<T>, () => void] {
-  const [result, setResult] = useState<Loading<T>>({ state: "loading" });
+const kept = new Map<string, unknown>();
+
+export function forgetKept() {
+  kept.clear();
+}
+
+export function useAsync<T>(load: () => Promise<T>, keys: unknown[], keep?: string): [Loading<T>, () => void] {
+  const [result, setResult] = useState<Loading<T>>(() =>
+    keep !== undefined && kept.has(keep) ? { state: "ready", value: kept.get(keep) as T } : { state: "loading" },
+  );
   const [attempt, setAttempt] = useState(0);
   const asking = useRef(false);
 
@@ -28,12 +36,15 @@ export function useAsync<T>(load: () => Promise<T>, keys: unknown[]): [Loading<T
   useEffect(() => {
     let cancelled = false;
     if (!asking.current) {
-      setResult({ state: "loading" });
+      setResult(
+        keep !== undefined && kept.has(keep) ? { state: "ready", value: kept.get(keep) as T } : { state: "loading" },
+      );
     }
     asking.current = false;
 
     load()
       .then((value) => {
+        if (keep !== undefined) kept.set(keep, value);
         if (!cancelled) setResult({ state: "ready", value });
       })
       .catch((error: unknown) => {

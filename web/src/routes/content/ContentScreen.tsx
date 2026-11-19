@@ -11,7 +11,7 @@ import { ContentPanel } from "./ContentPanel";
 
 function FirstView({ project }: { project: string }) {
   const { organisation } = useHere();
-  const [menu] = useAsync(() => readContentMenu(organisation, project), [organisation, project]);
+  const [menu] = useAsync(() => readContentMenu(organisation, project), [organisation, project], `menu:${organisation}/${project}`);
 
   if (menu.state === "loading") {
     return <p className="text-[15px] text-subtle-foreground">{say("common.looking")}</p>;
@@ -32,7 +32,7 @@ export function ContentScreen() {
   const { organisation } = useHere();
   const { project = "", collection } = useParams();
   const onAPhone = useIsPhone();
-  const [loaded] = useAsync(() => readProject(organisation, project), [organisation, project]);
+  const [loaded] = useAsync(() => readProject(organisation, project), [organisation, project], `project:${organisation}/${project}`);
   const mayEdit = loaded.state === "ready" && loaded.value.youMay.includes("edit-content");
 
   if (onAPhone) {
