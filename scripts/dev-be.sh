@@ -126,6 +126,7 @@ export CHATCMS_DATABASE_URL="$url"
 export CHATCMS_SECRET_KEY_FILE="$key"
 export CHATCMS_STATE_DIR="$state"
 export CHATCMS_LISTEN="$host:$port"
+ai_listen="${CHATCMS_AI_LISTEN:-127.0.0.1:$ai_port}"
 export CHATCMS_BASE_URL="http://$reachable:$port"
 
 backend_said="local: previews and the assistant run as processes on this machine"
@@ -146,9 +147,22 @@ if [ "${CHATCMS_DEV_BACKEND:-local}" = "microvm" ]; then
     export CHATCMS_WORKSPACE_TAPS="$taps"
     export CHATCMS_WORKSPACES_AT_ONCE="$taps"
     export CHATCMS_WORKSPACE_RUN_DIR="/tmp/chatcms-w${instance:+-$instance}"
-    export CHATCMS_AI_LISTEN="${CHATCMS_AI_LISTEN:-0.0.0.0:8091}"
+    ai_listen="${CHATCMS_AI_LISTEN:-0.0.0.0:$ai_port}"
     backend_said="microvm: one micro VM per person per project, $taps at once (chv0..chv$((taps - 1)))"
 fi
+
+quarto_said="off (CHATCMS_DEV_QUARTO=0)"
+if [ "${CHATCMS_DEV_QUARTO:-1}" != "0" ] && [ -z "${CHATCMS_PACKAGES:-}" ]; then
+    echo "==> finding Quarto for the recipes book (the first time this downloads it)"
+    if quarto="$(nix build --no-link --print-out-paths --inputs-from . nixpkgs#quarto 2>/dev/null)"; then
+        export CHATCMS_PACKAGES="quarto=$quarto"
+        quarto_said="$quarto"
+    else
+        quarto_said="could not be built, so the recipes book does not preview"
+    fi
+fi
+
+export CHATCMS_AI_LISTEN="$ai_listen"
 
 ai_env="${CHATCMS_AI_ENV:-$HOME/.config/chatcms/ai.env}"
 ai_said="none; see docs/TESTING.md, Real AI inference"
@@ -168,7 +182,7 @@ fi
 
 if [ ! -d "$state/sites" ]; then
     echo "==> seeding"
-    go run ./cmd/seed "$url"
+    CHATCMS_SEED_QUARTO_BOOK="$root/test/fixtures/quarto-book" go run ./cmd/seed "$url"
 fi
 
 cat <<NOTICE
@@ -181,9 +195,11 @@ cat <<NOTICE
 
     korenaar      has a site, unpublished work, and somewhere to publish to
     studio-noord  has no site, so the setup screen has something to do
+    recipes       a Quarto book: publishing builds its website and keeps its PDF
 
     Mail this instance sends: http://$reachable:$inbox_port
     Workspaces: $backend_said
+    Quarto: $quarto_said
     The assistant's model: $ai_said
 
     The frontend in another terminal, with live reloading, on :$web_port:

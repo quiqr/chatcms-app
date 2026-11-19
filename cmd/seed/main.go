@@ -52,6 +52,9 @@ func main() {
 	fmt.Println("        noor@korenaar.example is invited to korenaar and has not accepted")
 	fmt.Println("korenaar has a site with a remote under " + stateDir() + "/dev-remotes")
 	fmt.Println("studio-noord has none, so the onboarding screen has something to do")
+	if os.Getenv("CHATCMS_SEED_QUARTO_BOOK") != "" {
+		fmt.Println("recipes is a Quarto book that publishes its website and keeps its PDF")
+	}
 }
 
 const passphrase = "a long enough passphrase"
@@ -106,6 +109,20 @@ func seed(ctx context.Context, db *store.DB, logger *slog.Logger) error {
 		}
 	}
 
+	book := os.Getenv("CHATCMS_SEED_QUARTO_BOOK")
+	if book != "" {
+		project, err := tenancyStore.CreateProject(ctx, organisation.ID, "recipes", "Korenaar Recipes", "recipes.korenaar.example")
+		if err != nil {
+			return err
+		}
+		if err := tenancyStore.SetProjectRole(ctx, project.ID, owner.ID, policy.RoleImplementer); err != nil {
+			return err
+		}
+		if err := bringABookIn(ctx, db, project.ID, owner, book); err != nil {
+			return err
+		}
+	}
+
 	who := httpActor(owner)
 	for _, invited := range []struct {
 		email    string
@@ -120,6 +137,11 @@ func seed(ctx context.Context, db *store.DB, logger *slog.Logger) error {
 			invited.email, string(invited.role))
 		if err != nil {
 			return err
+		}
+		if book != "" && invited.accepted {
+			if _, err := service.InvitePerson(ctx, who, "technative", "recipes", invited.email, string(invited.role)); err != nil {
+				return err
+			}
 		}
 		if !invited.accepted {
 			continue
@@ -214,6 +236,37 @@ func bringASiteIn(ctx context.Context, db *store.DB, projectID uuid.UUID, owner 
 
 	_, err = db.Pool().Exec(ctx,
 		`UPDATE projects SET remote = $2, source_kind = 'repository', source_address = $2 WHERE id = $1`,
+		pgtype.UUID{Bytes: projectID, Valid: true}, remote)
+	return err
+}
+
+func bringABookIn(ctx context.Context, db *store.DB, projectID uuid.UUID, owner auth.Person, book string) error {
+	cfg := gitsync.Config{
+		GitBin: gitBin(),
+		System: gitsync.Identity{Name: "Quiqr ChatCMS", Email: "chatcms@localhost"},
+	}
+	sites := gitsync.NewSites(cfg, filepath.Join(stateDir(), "sites"), nil)
+	remote, err := filepath.Abs(filepath.Join(stateDir(), "dev-remotes", projectID.String()+".git"))
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(remote), 0o700); err != nil {
+		return err
+	}
+	if err := gitsync.InitBareForDevelopment(ctx, cfg, remote); err != nil {
+		return err
+	}
+	repository, err := sites.Create(ctx, projectID.String(), remote, os.DirFS(book), gitsync.Identity{Name: owner.DisplayName, Email: owner.Email}, "Bring the book in")
+	if err != nil {
+		return err
+	}
+	defer repository.Close()
+	if _, err := repository.Publish(ctx); err != nil {
+		return err
+	}
+	_, err = db.Pool().Exec(ctx,
+		`UPDATE projects SET remote = $2, source_kind = 'repository', source_address = $2,
+		 publish_to = 'its-own-line', publish_branch = 'quiqr/publish', publish_form = 'built' WHERE id = $1`,
 		pgtype.UUID{Bytes: projectID, Valid: true}, remote)
 	return err
 }

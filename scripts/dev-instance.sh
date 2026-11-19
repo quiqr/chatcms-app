@@ -13,6 +13,7 @@ if [ -n "$instance" ]; then
     web_port="${CHATCMS_WEB_PORT:-5174}"
     smtp_port="${CHATCMS_SMTP_PORT:-1026}"
     inbox_port="${CHATCMS_INBOX_PORT:-8026}"
+    ai_port="${CHATCMS_AI_PORT:-8092}"
 else
     state="$root/.chatcms-state"
     database="chatcms_dev"
@@ -20,6 +21,7 @@ else
     web_port="${CHATCMS_WEB_PORT:-5173}"
     smtp_port="${CHATCMS_SMTP_PORT:-1025}"
     inbox_port="${CHATCMS_INBOX_PORT:-8025}"
+    ai_port="${CHATCMS_AI_PORT:-8091}"
 fi
 
 host="${CHATCMS_HOST:-127.0.0.1}"

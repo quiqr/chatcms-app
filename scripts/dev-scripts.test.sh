@@ -62,6 +62,7 @@ expect_eq "usual instance" "$(instance_values)" "8080 5173 1025 8025 /r/.chatcms
 expect_eq "named instance" "$(instance_values CHATCMS_INSTANCE=test)" "8081 5174 1026 8026 /r/.chatcms-state-test chatcms_dev_test 127.0.0.1"
 expect_eq "overridden ports" "$(instance_values CHATCMS_PORT=9000 CHATCMS_WEB_PORT=6000)" "9000 6000 1025 8025 /r/.chatcms-state chatcms_dev 127.0.0.1"
 expect_eq "host" "$(instance_values CHATCMS_HOST=0.0.0.0 | awk '{print $7}')" "0.0.0.0"
+expect_eq "AI gateway ports" "$(env -i "$bash_bin" -c 'set -eu; root=/r; source "$0"; echo "$ai_port"' "$here/dev-instance.sh") $(env -i CHATCMS_INSTANCE=test "$bash_bin" -c 'set -eu; root=/r; source "$0"; echo "$ai_port"' "$here/dev-instance.sh")" "8091 8092"
 
 setup
 out="$(run_fe)"
