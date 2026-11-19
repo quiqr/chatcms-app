@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { findBetween, install, placeCard } from "../select";
+import { findAnchor, findBetween, install, placeCard, stack } from "../select";
 
 const app = "https://app.example";
 
@@ -31,6 +31,13 @@ const words = {
   quick: ["Make it shorter", "Simpler words", "Fix spelling"],
   goesTo: "Chat · goes to your chat",
   keys: "Enter to send · Esc to close",
+  working: "Working on it…",
+  stop: "Stop",
+  changed: "Changed",
+  undo: "Undo",
+  showInChat: "Show in chat",
+  question: "The assistant has a question",
+  answerInChat: "Answer in chat",
 };
 
 let posted: ReturnType<typeof vi.spyOn>;
@@ -232,6 +239,68 @@ describe("the selection overlay", () => {
   });
 });
 
+describe("progress at the selection", () => {
+  const text = "<p>Come in and smell the new rye. Open daily.</p>";
+  const anchor = { before: "Come in and smell ", after: " Open daily.", text: "the new rye." };
+
+  function buttonsOf(pill: HTMLElement) {
+    return Array.from(pill.querySelectorAll("button")).map((one) => one.textContent);
+  }
+
+  it("draws a pill per request, in the state the app says", () => {
+    page(text);
+    const script = ready();
+    fromApp({ chatcms: "pills", pills: [{ id: 1, state: "working", ...anchor }] });
+    expect(script.pills()).toHaveLength(1);
+    const [pill] = script.pills();
+    expect(pill!.textContent).toContain("Working on it…");
+    expect(buttonsOf(pill!)).toEqual(["Stop"]);
+
+    fromApp({ chatcms: "pills", pills: [{ id: 1, state: "done", ...anchor }, { id: 2, state: "question", ...anchor }] });
+    expect(script.pills()).toHaveLength(2);
+    expect(buttonsOf(script.pills()[0]!)).toEqual(["Undo", "Show in chat"]);
+    expect(script.pills()[1]!.textContent).toContain("The assistant has a question");
+    expect(buttonsOf(script.pills()[1]!)).toEqual(["Answer in chat"]);
+
+    const layer = script.chip.parentElement!;
+    expect(Array.from(layer.children).indexOf(script.pills()[0]!)).toBeLessThan(Array.from(layer.children).indexOf(script.chip));
+    fromApp({ chatcms: "pills", pills: [] });
+    expect(script.pills()).toHaveLength(0);
+  });
+
+  it("tells the app what was pressed", () => {
+    page(text);
+    const script = ready();
+    fromApp({ chatcms: "pills", pills: [{ id: 7, state: "done", ...anchor }] });
+    script.pills()[0]!.querySelectorAll("button")[0]!.click();
+    expect(posted).toHaveBeenLastCalledWith({ chatcms: "undo", id: 7 }, app);
+    script.pills()[0]!.querySelectorAll("button")[1]!.click();
+    expect(posted).toHaveBeenLastCalledWith({ chatcms: "open-chat", id: 7 }, app);
+    fromApp({ chatcms: "pills", pills: [{ id: 8, state: "working", ...anchor }] });
+    script.pills()[0]!.querySelector("button")!.click();
+    expect(posted).toHaveBeenLastCalledWith({ chatcms: "stop", id: 8 }, app);
+  });
+
+  it("tints the changed text, and keeps a done pill 8 seconds and until the next touch", () => {
+    page(text);
+    const set = vi.fn();
+    Object.assign(window, { Highlight: class { constructor(readonly range: Range) {} } });
+    Object.defineProperty(window, "CSS", { value: { highlights: { set, delete: vi.fn() } }, configurable: true });
+    const script = ready();
+    fromApp({ chatcms: "pills", pills: [{ id: 3, state: "done", ...anchor }] });
+    expect(set).toHaveBeenCalledWith("chatcms-changed", expect.anything());
+
+    vi.advanceTimersByTime(5000);
+    pointer("pointerdown");
+    expect(script.pills()).toHaveLength(1);
+    vi.advanceTimersByTime(3000);
+    expect(script.pills()).toHaveLength(1);
+    pointer("pointerdown");
+    expect(script.pills()).toHaveLength(0);
+    expect(posted).toHaveBeenCalledWith({ chatcms: "seen", id: 3 }, app);
+  });
+});
+
 describe("placing the card", () => {
   const view = { width: 1000, height: 700 };
   const card = { width: 380, height: 150 };
@@ -267,5 +336,21 @@ describe("finding the changed text", () => {
   it("takes the whole page when there is no context", () => {
     page("<p>Only this</p>");
     expect(findBetween(document, "", "")?.toString()).toBe("Only this");
+  });
+});
+
+describe("finding a pill's place", () => {
+  it("falls back to the selected text when its context changed", () => {
+    page("<h1>Korenaar by night</h1><p>Come in and smell it.</p>");
+    expect(findAnchor(document, { before: "Korenaar Bakery", after: "", text: "Come in and smell it." })?.toString()).toBe("Come in and smell it.");
+    expect(findAnchor(document, { before: "nothing like it", after: "", text: "not there" })).toBeNull();
+  });
+
+  it("stacks pills that would overlap, and leaves apart ones alone", () => {
+    expect(stack([
+      { top: 100, left: 10, width: 200, height: 34 },
+      { top: 110, left: 50, width: 200, height: 34 },
+      { top: 400, left: 10, width: 200, height: 34 },
+    ])).toEqual([100, 140, 400]);
   });
 });

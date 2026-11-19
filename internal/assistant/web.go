@@ -108,6 +108,14 @@ func (w *Web) Ask(ctx context.Context, who httpapi.Actor, organisation, project,
 	return refusal(w.chat.Send(ctx, key, w.under(organisation, project), text))
 }
 
+func (w *Web) Stop(ctx context.Context, who httpapi.Actor, organisation, project string) error {
+	key, err := w.key(ctx, who, organisation, project)
+	if err != nil {
+		return err
+	}
+	return refusal(w.chat.Stop(ctx, key, w.under(organisation, project)))
+}
+
 func AboutASelection(text string, about httpapi.ChatSelection, page string) string {
 	var b strings.Builder
 	b.WriteString(strings.TrimSpace(text))

@@ -6,7 +6,7 @@ import { useIsPhone } from "../shells/useIsPhone";
 import { whatWentWrong } from "../lib/api";
 import { maybe, say, spokenNow, type Key } from "../lib/say";
 import { openWorkspace, readWorkspace, type PreviewRequest, type Workspace, type WorkspaceStep } from "../lib/tenancy";
-import type { Words } from "../preview/select";
+import type { Pill, Words } from "../preview/select";
 
 /**
  * Preview shows the site as a reader will see it. It is served through the
@@ -23,6 +23,8 @@ export function Preview({
   onAsk,
   chatOn = false,
   highlight,
+  pills = [],
+  onPill,
 }: {
   organisation: string;
   project: string;
@@ -36,6 +38,8 @@ export function Preview({
   showAgain?: number;
   onAsk?: (request: PreviewRequest, how: "send" | "draft") => void;
   chatOn?: boolean;
+  pills?: Pill[];
+  onPill?: (action: "undo" | "stop" | "open-chat" | "seen", id: number) => void;
   highlight?: { before: string; after: string; id: number } | null;
 }) {
   const [device, setDevice] = useState<"desktop" | "phone">("desktop");
@@ -50,7 +54,7 @@ export function Preview({
   const at =
     kind === "web" ? base + (workspace?.ownPages ? opened : pathOf(page)) : kind === "pdf" ? `${base}__chatcms/pdf/?file=${encodeURIComponent(opened)}${onAPhone ? "&fit=width" : ""}&lang=${spokenNow()}` : base + opened;
   const frame = useRef<HTMLIFrameElement>(null);
-  useFrameMessages(frame, base, chatOn && Boolean(onAsk), onAsk, highlight);
+  useFrameMessages(frame, base, chatOn && Boolean(onAsk), onAsk, highlight, pills, onPill);
 
   return (
     <div className="flex h-full flex-col gap-2">
@@ -121,9 +125,11 @@ function useFrameMessages(
   on: boolean,
   onAsk?: (request: PreviewRequest, how: "send" | "draft") => void,
   highlight?: { before: string; after: string; id: number } | null,
+  pills: Pill[] = [],
+  onPill?: (action: "undo" | "stop" | "open-chat" | "seen", id: number) => void,
 ) {
-  const latest = useRef({ onAsk, highlight, base, on });
-  latest.current = { onAsk, highlight, base, on };
+  const latest = useRef({ onAsk, highlight, base, on, pills, onPill });
+  latest.current = { onAsk, highlight, base, on, pills, onPill };
 
   useEffect(() => {
     const heard = (event: MessageEvent) => {
@@ -132,13 +138,18 @@ function useFrameMessages(
       const origin = new URL(here.src, window.location.href).origin;
       if (event.origin !== origin) return;
       const said = event.data as Record<string, unknown> | null;
-      const { onAsk, highlight, base, on } = latest.current;
+      const { onAsk, highlight, base, on, pills, onPill } = latest.current;
       if (!said) return;
       if (said.chatcms === "ready") {
         here.contentWindow?.postMessage({ chatcms: "setup", words: overlayWords(), on }, origin);
+        here.contentWindow?.postMessage({ chatcms: "pills", pills }, origin);
         if (highlight && Date.now() - highlight.id < highlightWhile) {
           here.contentWindow?.postMessage({ chatcms: "highlight", before: highlight.before, after: highlight.after }, origin);
         }
+        return;
+      }
+      if (said.chatcms === "undo" || said.chatcms === "stop" || said.chatcms === "open-chat" || said.chatcms === "seen") {
+        if (typeof said.id === "number") onPill?.(said.chatcms, said.id);
         return;
       }
       if ((said.chatcms !== "send" && said.chatcms !== "draft") || !onAsk || !on) return;
@@ -160,6 +171,14 @@ function useFrameMessages(
     here.contentWindow.postMessage({ chatcms: "setup", words: overlayWords(), on }, origin);
   }, [frame, on]);
 
+  const pillsKey = JSON.stringify(pills);
+  useEffect(() => {
+    const here = frame.current;
+    if (!here?.contentWindow || !here.src) return;
+    const origin = new URL(here.src, window.location.href).origin;
+    here.contentWindow.postMessage({ chatcms: "pills", pills: JSON.parse(pillsKey) as Pill[] }, origin);
+  }, [frame, pillsKey]);
+
   useEffect(() => {
     const here = frame.current;
     if (!highlight || !here?.contentWindow || !here.src) return;
@@ -180,6 +199,13 @@ function overlayWords(): Words {
     quick: [say("preview.make-it-shorter"), say("preview.simpler-words"), say("preview.fix-spelling")],
     goesTo: say("preview.goes-to-your-chat"),
     keys: say("preview.enter-to-send"),
+    working: say("preview.working"),
+    stop: say("preview.stop"),
+    changed: say("preview.changed"),
+    undo: say("preview.undo"),
+    showInChat: say("preview.show-in-chat"),
+    question: say("preview.question"),
+    answerInChat: say("preview.answer-in-chat"),
   };
 }
 

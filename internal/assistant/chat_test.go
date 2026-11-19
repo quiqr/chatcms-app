@@ -27,6 +27,7 @@ type fakeOpenCode struct {
 	auth     []string
 	events   chan string
 	refuse   bool
+	aborts   int
 }
 
 func (f *fakeOpenCode) server(t *testing.T) *httptest.Server {
@@ -60,6 +61,11 @@ func (f *fakeOpenCode) server(t *testing.T) *httptest.Server {
 			f.prompts = append(f.prompts, body.Parts[0].Text)
 			f.mu.Unlock()
 			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodPost && r.URL.Path == "/session/ses_one/abort":
+			f.mu.Lock()
+			f.aborts++
+			f.mu.Unlock()
+			fmt.Fprint(w, "true")
 		case r.Method == http.MethodGet && r.URL.Path == "/event":
 			w.Header().Set("Content-Type", "text/event-stream")
 			w.WriteHeader(http.StatusOK)
@@ -262,5 +268,25 @@ func TestAnEmitThatFailsEndsTheStream(t *testing.T) {
 	gone := errors.New("browser gone")
 	if err := chat.Events(t.Context(), aKey(), "u", func(Event) error { return gone }); !errors.Is(err, gone) {
 		t.Errorf("Events() error = %v", err)
+	}
+}
+
+func TestStoppingAbortsTheSessionAndNothingWithoutOne(t *testing.T) {
+	fake := &fakeOpenCode{}
+	chat := NewChat(agentsFor(t, fake.server(t)))
+	key := aKey()
+	if err := chat.Stop(t.Context(), key, "u"); err != nil {
+		t.Fatalf("Stop() without a session error = %v", err)
+	}
+	if err := chat.Send(t.Context(), key, "u", "change it"); err != nil {
+		t.Fatal(err)
+	}
+	if err := chat.Stop(t.Context(), key, "u"); err != nil {
+		t.Fatalf("Stop() error = %v", err)
+	}
+	fake.mu.Lock()
+	defer fake.mu.Unlock()
+	if fake.aborts != 1 {
+		t.Fatalf("aborts = %d, want 1", fake.aborts)
 	}
 }

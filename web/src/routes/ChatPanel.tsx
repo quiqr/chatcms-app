@@ -1,5 +1,5 @@
 import { Check, Eye, Quote, Send, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { useNavigate } from "react-router";
 
 import { Button } from "../components/ui/button";
@@ -10,6 +10,7 @@ import {
   assistantEvents,
   goBackTo,
   readAssistant,
+  stopAssistant,
   type AssistantChange,
   type AssistantEvent,
   type PreviewSelection,
@@ -19,10 +20,21 @@ const listenWithin = 120_000;
 
 type Asked = PreviewSelection & { page?: string };
 
+export type RequestState = { id: number; state: "working" | "done" | "question"; before: string; after: string; text: string };
+
+export type ChatControl = {
+  undo: (id: number) => void;
+  stop: (id: number) => void;
+  seen: (id: number) => void;
+  focus: () => void;
+};
+
 type Said = {
   who: "person" | "assistant";
+  id?: number;
   text: string;
   about?: Asked;
+  stopped?: boolean;
   changes: (AssistantChange & { undone?: boolean })[];
   working?: boolean;
   trouble?: string;
@@ -40,6 +52,8 @@ export function ChatPanel({
   pageTitle,
   request = null,
   drafted = null,
+  onRequests,
+  control,
 }: {
   organisation: string;
   project: string;
@@ -52,6 +66,8 @@ export function ChatPanel({
   pageTitle?: string;
   request?: { about: PreviewSelection; text: string; id: number } | null;
   drafted?: { text: string; id: number } | null;
+  onRequests?: (requests: RequestState[]) => void;
+  control?: Ref<ChatControl>;
 }) {
   const [available, setAvailable] = useState<boolean | null>(null);
   const [said, setSaid] = useState<Said[]>([]);
@@ -69,12 +85,21 @@ export function ChatPanel({
     if (quote) message.current?.focus();
   }, [quote]);
 
-  const running = said.filter((entry) => entry.who === "assistant" && entry.working).length;
+  const [seen, setSeen] = useState<number[]>([]);
+  const [waitingTurn, setWaitingTurn] = useState<{ id: number; text: string; selection: PreviewSelection }[]>([]);
+  const requests = requestStates(said, waitingTurn, seen);
+  const running = requests.filter((one) => one.state !== "done").length + said.filter((entry) => entry.who === "assistant" && entry.working && !entry.about).length;
   const reportRunning = useRef(onRunning);
   reportRunning.current = onRunning;
   useEffect(() => {
     reportRunning.current?.(running);
   }, [running]);
+  const reportRequests = useRef(onRequests);
+  reportRequests.current = onRequests;
+  const requestsKey = JSON.stringify(requests);
+  useEffect(() => {
+    reportRequests.current?.(JSON.parse(requestsKey) as RequestState[]);
+  }, [requestsKey]);
 
   useEffect(() => {
     let live = true;
@@ -118,6 +143,7 @@ export function ChatPanel({
       if (event.type === "change") changed.current(asking.current ?? undefined);
       if (event.type === "done" || event.type === "error") {
         working.current = false;
+        current.current = null;
         setBusy(false);
         asking.current = null;
       }
@@ -129,15 +155,26 @@ export function ChatPanel({
   }, [available, organisation, project]);
 
   const working = useRef(false);
-  const queued = useRef<{ text: string; selection: PreviewSelection }[]>([]);
+  const queued = useRef<{ id: number; text: string; selection: PreviewSelection }[]>([]);
+  const current = useRef<number | null>(null);
   const title = useRef(pageTitle);
   title.current = pageTitle;
 
   useEffect(() => {
     if (!request) return;
-    void ask(request.text, request.about);
+    void ask(request.text, request.about, request.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request?.id]);
+
+  useImperativeHandle(control, () => ({
+    undo: (id) => {
+      const index = said.findIndex((entry) => entry.who === "assistant" && entry.id === id);
+      if (index >= 0) void undoAll(index);
+    },
+    stop: (id) => void stop(id),
+    seen: (id) => setSeen((now) => (now.includes(id) ? now : [...now, id])),
+    focus: () => message.current?.focus(),
+  }));
 
   useEffect(() => {
     if (!drafted) return;
@@ -148,7 +185,8 @@ export function ChatPanel({
   useEffect(() => {
     if (busy || queued.current.length === 0) return;
     const next = queued.current.shift()!;
-    void ask(next.text, next.selection);
+    setWaitingTurn([...queued.current]);
+    void ask(next.text, next.selection, next.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busy]);
 
@@ -157,23 +195,27 @@ export function ChatPanel({
     if (!text || busy) return;
     setDraft("");
     onQuoteDropped?.();
-    await ask(text, quote);
+    await ask(text, quote, Date.now());
   }
 
-  async function ask(text: string, selection: PreviewSelection | null) {
+  async function ask(text: string, selection: PreviewSelection | null, id: number) {
     if (working.current) {
-      if (selection) queued.current.push({ text, selection });
+      if (selection) {
+        queued.current.push({ id, text, selection });
+        setWaitingTurn([...queued.current]);
+      }
       return;
     }
     working.current = true;
+    current.current = id;
     const about: Asked | null = selection ? { ...selection, page: title.current } : null;
     setTrouble("");
     setBusy(true);
     asking.current = selection;
     setSaid((before) => [
       ...before,
-      { who: "person", text, about: about ?? undefined, changes: [] },
-      { who: "assistant", text: "", changes: [], working: true, about: about ?? undefined },
+      { who: "person", id, text, about: about ?? undefined, changes: [] },
+      { who: "assistant", id, text: "", changes: [], working: true, about: about ?? undefined },
     ]);
     try {
       await untilListening();
@@ -200,6 +242,40 @@ export function ChatPanel({
       };
       waiting.current.push(go);
     });
+  }
+
+  async function stop(id: number) {
+    if (queued.current.some((one) => one.id === id)) {
+      queued.current = queued.current.filter((one) => one.id !== id);
+      setWaitingTurn([...queued.current]);
+      return;
+    }
+    if (current.current !== id) return;
+    try {
+      await stopAssistant(organisation, project);
+      setSaid((before) => before.map((entry) => (entry.who === "assistant" && entry.id === id ? { ...entry, working: false, stopped: true } : entry)));
+      working.current = false;
+      current.current = null;
+      setBusy(false);
+      asking.current = null;
+    } catch (error: unknown) {
+      setTrouble(whatWentWrong(error));
+    }
+  }
+
+  async function undoAll(index: number) {
+    const entry = said[index];
+    const first = entry?.changes.find((change) => !change.undone && change.before);
+    if (!entry || !first) return;
+    try {
+      await goBackTo(organisation, project, first.before, false);
+      setSaid((before) =>
+        before.map((one, at) => (at === index ? { ...one, changes: one.changes.map((change) => ({ ...change, undone: true })) } : one)),
+      );
+      changed.current();
+    } catch (error: unknown) {
+      setTrouble(whatWentWrong(error));
+    }
   }
 
   async function undo(index: number, change: AssistantChange) {
@@ -260,6 +336,7 @@ export function ChatPanel({
                 {entry.who === "assistant" && entry.working && !entry.text && (
                   <p className="text-subtle-foreground">{say("assistant.working")}</p>
                 )}
+                {entry.stopped && <p className="text-subtle-foreground">{say("assistant.stopped")}</p>}
                 {entry.trouble && (
                   <p role="alert" className="text-destructive-foreground">
                     {entry.trouble}
@@ -391,4 +468,25 @@ function Chip({
       </div>
     </div>
   );
+}
+
+function requestStates(said: Said[], waiting: { id: number; selection: PreviewSelection }[], seen: number[]): RequestState[] {
+  const states: RequestState[] = [];
+  said.forEach((entry, index) => {
+    if (entry.who !== "assistant" || entry.id === undefined || !entry.about || entry.stopped) return;
+    const anchor = { id: entry.id, before: entry.about.before, after: entry.about.after, text: entry.about.text };
+    if (entry.working) return states.push({ ...anchor, state: "working" });
+    if (entry.trouble) return;
+    const live = entry.changes.filter((change) => !change.undone);
+    if (live.length > 0) {
+      if (!seen.includes(entry.id)) states.push({ ...anchor, state: "done" });
+      return;
+    }
+    const answeredLater = said.slice(index + 1).some((later) => later.who === "person");
+    if (entry.changes.length === 0 && entry.text.trim().endsWith("?") && !answeredLater) states.push({ ...anchor, state: "question" });
+  });
+  for (const one of waiting) {
+    states.push({ id: one.id, before: one.selection.before, after: one.selection.after, text: one.selection.text, state: "working" });
+  }
+  return states;
 }

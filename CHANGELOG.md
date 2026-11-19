@@ -56,6 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   card that finds its place, and running requests are counted on the switch.
 - Selecting text in the preview shows a Chat chip that opens an input right
   there, with quick actions; Esc keeps what was typed in the chat.
+- A request shows its progress at the selection: working with Stop, changed
+  with Undo, or a question to answer in the chat.
 
 ### Changed
 

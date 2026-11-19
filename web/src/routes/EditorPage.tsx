@@ -1,6 +1,6 @@
 import { ChevronLeft } from "lucide-react";
 import { ContentBreadcrumb } from "./content/ContentBreadcrumb";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { NavLink, useParams } from "react-router";
 
 import { Button } from "../components/ui/button";
@@ -16,7 +16,7 @@ import { useIsPhone } from "../shells/useIsPhone";
 import { useStartWorkspace } from "../lib/workspace";
 import { PageEditor } from "./PageEditor";
 import { Preview } from "./Preview";
-import { ChatPanel } from "./ChatPanel";
+import { ChatPanel, type ChatControl, type RequestState } from "./ChatPanel";
 import { say } from "../lib/say";
 import { Stepper, usePlace } from "./content/usePlace";
 
@@ -31,6 +31,8 @@ export function EditorPage() {
     remember(viewKey, next);
   };
   const [running, setRunning] = useState(0);
+  const [pills, setPills] = useState<RequestState[]>([]);
+  const chat = useRef<ChatControl>(null);
   const [saves, setSaves] = useState(0);
   const [changes, setChanges] = useState(0);
   const [talking, setTalking] = useState(false);
@@ -67,6 +69,15 @@ export function EditorPage() {
     setQuote(about);
     setDrafted({ text: prompt, id: Date.now() });
   };
+  const pillAction = (action: "undo" | "stop" | "open-chat" | "seen", id: number) => {
+    if (action === "undo") chat.current?.undo(id);
+    if (action === "stop") chat.current?.stop(id);
+    if (action === "seen") chat.current?.seen(id);
+    if (action === "open-chat") {
+      setLayout("chat");
+      setTimeout(() => chat.current?.focus(), 0);
+    }
+  };
   const mayAsk = project.yourRole !== "viewer" && assistant.state === "ready" && assistant.value.available;
   if (!onAPhone) {
     return (
@@ -101,6 +112,8 @@ export function EditorPage() {
               onAsk={asking}
               chatOn={mayAsk && (layout === "preview" || layout === "chat")}
               highlight={highlight}
+              pills={pills}
+              onPill={pillAction}
             />
           }
           chat={
@@ -115,6 +128,8 @@ export function EditorPage() {
               pageTitle={opened?.title ?? page}
               request={request}
               drafted={drafted}
+              onRequests={setPills}
+              control={chat}
             />
           }
         />

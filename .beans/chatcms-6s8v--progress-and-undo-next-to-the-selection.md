@@ -1,7 +1,7 @@
 ---
 # chatcms-6s8v
 title: Progress and Undo next to the selection
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-11-19T09:20:47Z

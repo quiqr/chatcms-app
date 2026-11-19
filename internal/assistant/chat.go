@@ -157,6 +157,28 @@ func (c *Chat) Send(ctx context.Context, key workspace.Key, under, text string) 
 	return nil
 }
 
+func (c *Chat) Stop(ctx context.Context, key workspace.Key, under string) error {
+	c.mu.Lock()
+	session, known := c.sessions[key]
+	c.mu.Unlock()
+	if !known {
+		return nil
+	}
+	base, secret, err := c.agent(ctx, key, under)
+	if err != nil {
+		return err
+	}
+	answer, err := c.call(ctx, http.MethodPost, base+"/session/"+session+"/abort", secret, nil)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrNoAgent, err)
+	}
+	answer.Body.Close()
+	if answer.StatusCode >= 300 {
+		return fmt.Errorf("%w: it answered %d", ErrNoAgent, answer.StatusCode)
+	}
+	return nil
+}
+
 func (c *Chat) forget(key workspace.Key) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

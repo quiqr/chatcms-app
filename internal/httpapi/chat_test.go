@@ -16,6 +16,12 @@ type stubChat struct {
 	asked  []string
 	about  []*ChatSelection
 	events []any
+	stops  int
+}
+
+func (s *stubChat) Stop(context.Context, Actor, string, string) error {
+	s.stops++
+	return s.err
 }
 
 func (s *stubChat) Chat(context.Context, Actor, string, string) (ChatView, error) {
@@ -119,5 +125,16 @@ func TestASelectionComesWithTheQuestionBounded(t *testing.T) {
 	signedInCall(t, handler, http.MethodPost, chatPath, map[string]any{"text": "No quote", "selection": map[string]any{"text": ""}})
 	if chat.about[1] != nil {
 		t.Errorf("an empty selection came through as %+v", chat.about[1])
+	}
+}
+
+func TestARunningAnswerCanBeStopped(t *testing.T) {
+	service := &stubChat{view: ChatView{Available: true}}
+	handler := withChat(service, true)
+	if got := signedInCall(t, handler, http.MethodPost, chatPath+"/stop", nil); got.Code != http.StatusAccepted || service.stops != 1 {
+		t.Fatalf("stop = %d, stops %d", got.Code, service.stops)
+	}
+	if got := signedInCall(t, withChat(service, false), http.MethodPost, chatPath+"/stop", nil); got.Code != http.StatusUnauthorized {
+		t.Fatalf("stop without a person = %d", got.Code)
 	}
 }

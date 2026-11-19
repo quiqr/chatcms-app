@@ -225,6 +225,26 @@ describe("selecting in the preview", () => {
     expect(off.onAsk).not.toHaveBeenCalled();
   });
 
+  it("gives the frame the pills on every hello, and passes their buttons on", async () => {
+    vi.stubGlobal("fetch", server([{ body: { state: "warm", address, type: "web", open: "/" } }]));
+    const pill = { id: 4, state: "working" as const, before: "Korenaar ", after: ".", text: "Fresh bread" };
+    const pressed = vi.fn();
+    render(<Preview organisation="technative" project="korenaar" page="posts/one" onAsk={vi.fn()} chatOn pills={[pill]} onPill={pressed} />);
+    const frame = (await screen.findByTitle("Your site")) as HTMLIFrameElement;
+    const sent = vi.fn();
+    Object.defineProperty(frame, "contentWindow", { value: { postMessage: sent }, configurable: true });
+    fromFrame(frame, { chatcms: "ready" });
+    expect(sent).toHaveBeenCalledWith({ chatcms: "pills", pills: [pill] }, "https://preview.example");
+
+    fromFrame(frame, { chatcms: "undo", id: 4 });
+    fromFrame(frame, { chatcms: "open-chat", id: 4 });
+    fromFrame(frame, { chatcms: "seen", id: "4" });
+    expect(pressed.mock.calls).toEqual([
+      ["undo", 4],
+      ["open-chat", 4],
+    ]);
+  });
+
   it("asks each reload shortly after the change to highlight it", async () => {
     const { frame, sent } = await framed(vi.fn(), { before: "Korenaar ", after: ".", id: Date.now() });
     fromFrame(frame, { chatcms: "ready" });

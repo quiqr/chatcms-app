@@ -15,6 +15,7 @@ type ChatService interface {
 	Chat(ctx context.Context, actor Actor, organisation, project string) (ChatView, error)
 	Ask(ctx context.Context, actor Actor, organisation, project, text string, about *ChatSelection) error
 	Listen(ctx context.Context, actor Actor, organisation, project string, emit func(any) error) error
+	Stop(ctx context.Context, actor Actor, organisation, project string) error
 }
 
 type ChatSelection struct {
@@ -88,6 +89,15 @@ func chatHandlers(mux *http.ServeMux, service ChatService) {
 		w.WriteHeader(http.StatusAccepted)
 	})))
 	mux.HandleFunc(base, MethodNotAllowed)
+
+	mux.Handle("POST "+base+"/stop", RequireActor(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := service.Stop(r.Context(), ActorFrom(r.Context()), r.PathValue("organisation"), r.PathValue("project")); err != nil {
+			writeTenancyError(w, err)
+			return
+		}
+		w.WriteHeader(http.StatusAccepted)
+	})))
+	mux.HandleFunc(base+"/stop", MethodNotAllowed)
 
 	mux.Handle("GET "+base+"/events", RequireActor(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		controller := http.NewResponseController(w)

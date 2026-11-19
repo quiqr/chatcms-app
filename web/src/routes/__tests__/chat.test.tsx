@@ -1,9 +1,10 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createRef } from "react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ChatPanel } from "../ChatPanel";
+import { ChatPanel, type ChatControl, type RequestState } from "../ChatPanel";
 
 const base = "/api/organisations/technative/projects/korenaar";
 
@@ -224,6 +225,85 @@ describe("a quote from the preview", () => {
     );
     expect(await screen.findByRole("textbox", { name: "Your message" })).toHaveValue("Half a thought");
     expect(screen.getByLabelText("About this part of the page")).toHaveTextContent("Fresh bread every morning");
+  });
+
+  it("reports each request's state, undoes it in one step, and counts a question", async () => {
+    const sent: { method: string; path: string; body: unknown }[] = [];
+    vi.stubGlobal("fetch", server(true, sent));
+    const states: RequestState[][] = [];
+    const running: number[] = [];
+    const control = createRef<ChatControl>();
+    const view = render(
+      <MemoryRouter>
+        <ChatPanel
+          organisation="technative"
+          project="korenaar"
+          onChanged={() => undefined}
+          request={{ about: quote, text: "Make it shorter", id: 11 }}
+          onRequests={(now) => states.push(now)}
+          onRunning={(count) => running.push(count)}
+          control={control}
+        />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(FakeSource.last).not.toBeNull());
+    FakeSource.last!.say({ type: "ready" });
+    await waitFor(() => expect(states.at(-1)).toEqual([{ id: 11, state: "working", before: quote.before, after: quote.after, text: quote.text }]));
+
+    FakeSource.last!.say({ type: "change", change: { page: "posts/one", title: "One", before: "v1", after: "v2" } });
+    FakeSource.last!.say({ type: "change", change: { page: "posts/one", title: "One", before: "v2", after: "v3" } });
+    FakeSource.last!.say({ type: "done" });
+    await waitFor(() => expect(states.at(-1)?.[0]?.state).toBe("done"));
+    expect(running.at(-1)).toBe(0);
+
+    control.current!.undo(11);
+    await waitFor(() => expect(states.at(-1)).toEqual([]));
+    expect(sent.filter((one) => one.path.includes("/go-back")).map((one) => one.path)).toEqual([`${base}/versions/v1/go-back`]);
+
+    view.rerender(
+      <MemoryRouter>
+        <ChatPanel
+          organisation="technative"
+          project="korenaar"
+          onChanged={() => undefined}
+          request={{ about: quote, text: "Which bread?", id: 12 }}
+          onRequests={(now) => states.push(now)}
+          onRunning={(count) => running.push(count)}
+          control={control}
+        />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(states.at(-1)?.some((one) => one.id === 12)).toBe(true));
+    FakeSource.last!.say({ type: "text", text: "Do you mean the rye or the spelt?" });
+    FakeSource.last!.say({ type: "done" });
+    await waitFor(() => expect(states.at(-1)?.find((one) => one.id === 12)?.state).toBe("question"));
+    expect(running.at(-1)).toBe(1);
+  });
+
+  it("stops the request being answered, and drops one still waiting", async () => {
+    const sent: { method: string; path: string; body: unknown }[] = [];
+    vi.stubGlobal("fetch", server(true, sent));
+    const states: RequestState[][] = [];
+    const control = createRef<ChatControl>();
+    const panelWith = (id: number, text: string) => (
+      <MemoryRouter>
+        <ChatPanel organisation="technative" project="korenaar" onChanged={() => undefined} request={{ about: quote, text, id }} onRequests={(now) => states.push(now)} control={control} />
+      </MemoryRouter>
+    );
+    const view = render(panelWith(21, "First"));
+    await waitFor(() => expect(FakeSource.last).not.toBeNull());
+    FakeSource.last!.say({ type: "ready" });
+    await waitFor(() => expect(states.at(-1)?.map((one) => one.id)).toEqual([21]));
+    view.rerender(panelWith(22, "Second"));
+    await waitFor(() => expect(states.at(-1)?.map((one) => one.id)).toEqual([21, 22]));
+
+    control.current!.stop(22);
+    await waitFor(() => expect(states.at(-1)?.map((one) => one.id)).toEqual([21]));
+    control.current!.stop(21);
+    await waitFor(() => expect(sent.some((one) => one.method === "POST" && one.path === `${base}/chat/stop`)).toBe(true));
+    await waitFor(() => expect(states.at(-1)).toEqual([]));
+    expect(await screen.findByText("Stopped.")).toBeInTheDocument();
+    expect(sent.filter((one) => one.method === "POST" && one.path === `${base}/chat`)).toHaveLength(1);
   });
 
   it("can be left out", async () => {

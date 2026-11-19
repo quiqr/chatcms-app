@@ -662,6 +662,10 @@ export type AssistantEvent =
   | { type: "done" }
   | { type: "error"; message?: string };
 
+export function stopAssistant(organisation: string, name: string) {
+  return post<void>(`${project(organisation, name)}/chat/stop`);
+}
+
 export function readAssistant(organisation: string, name: string) {
   return get<{ available: boolean }>(`${project(organisation, name)}/chat`);
 }
