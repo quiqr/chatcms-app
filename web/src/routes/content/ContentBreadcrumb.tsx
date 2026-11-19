@@ -30,11 +30,11 @@ export function ContentBreadcrumb({ project: given, position }: { project?: stri
       {here && (
         <>
           <span className="shrink-0">{say("content-menu.content")}</span>
-          <span aria-hidden="true">/</span>
+          <span aria-hidden="true" className="shrink-0">/</span>
           {ready && groupTitle(ready, here.group) && (
             <>
-              <span className="min-w-0 truncate">{groupTitle(ready, here.group)}</span>
-              <span aria-hidden="true">/</span>
+              <span className="min-w-8 shrink-[10] truncate">{groupTitle(ready, here.group)}</span>
+              <span aria-hidden="true" className="shrink-0">/</span>
             </>
           )}
         </>
@@ -42,7 +42,7 @@ export function ContentBreadcrumb({ project: given, position }: { project?: stri
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           aria-label={say("breadcrumb.choose", { item: last })}
-          className="flex min-w-0 items-center gap-1 rounded-md px-1 font-semibold text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary-soft"
+          className="flex min-w-16 items-center gap-1 rounded-md px-1 font-semibold text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary-soft"
         >
           <span className="truncate">{last}</span>
           <ChevronDown aria-hidden="true" className="size-3.5 shrink-0" />
