@@ -86,6 +86,9 @@ function Picker({
   const [q, setQ] = useState("");
   const [found, setFound] = useState<SearchResults | null>(null);
   const [opened, setOpened] = useState<string[]>(currentGroup ? [currentGroup] : []);
+  const [menuHidden] = useState(
+    () => document.querySelector("[data-panel='content']")?.getAttribute("data-folded") === "true",
+  );
 
   useEffect(() => {
     if (q.trim() === "") {
@@ -233,17 +236,19 @@ function Picker({
         )}
       </div>
 
-      <button
-        type="button"
-        data-picker-entry
-        onClick={() => {
-          onDone();
-          showContentMenu();
-        }}
-        className="min-h-11 border-t border-border px-4 text-left text-[13px] font-medium text-primary hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
-      >
-        {say("breadcrumb.show-menu")}
-      </button>
+      {menuHidden && (
+        <button
+          type="button"
+          data-picker-entry
+          onClick={() => {
+            onDone();
+            showContentMenu();
+          }}
+          className="min-h-11 border-t border-border px-4 text-left text-[13px] font-medium text-primary hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+        >
+          {say("breadcrumb.show-menu")}
+        </button>
+      )}
     </div>
   );
 }

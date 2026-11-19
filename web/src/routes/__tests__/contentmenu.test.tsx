@@ -664,6 +664,16 @@ describe("the location picker", () => {
     expect(screen.queryByRole("dialog", { name: "Go to" })).toBeNull();
   });
 
+  it("offers the full content menu only while it is hidden", async () => {
+    serve({ [`${base}/content-menu`]: { body: theMenu } });
+    const user = userEvent.setup();
+    picker();
+    act(() => showContentMenu());
+    await user.click(await trigger());
+    await screen.findByRole("dialog", { name: "Go to" });
+    expect(screen.queryByRole("button", { name: "Show the full content menu" })).toBeNull();
+  });
+
   it("works by keyboard alone", async () => {
     serve({ [`${base}/content-menu`]: { body: theMenu } });
     const user = userEvent.setup();
