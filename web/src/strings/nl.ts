@@ -990,6 +990,20 @@ export const nl: Strings = {
   // sync-indicator
   "sync-indicator.all-changes-saved": "Alles is opgeslagen",
   "sync-indicator.offline-saved-on-this-device": "Geen verbinding, opgeslagen op dit apparaat",
+  "workspace-indicator.your-preview": "Je voorbeeld: {state}",
+  "workspace-indicator.ready": "Voorbeeld klaar",
+  "workspace-indicator.starting": "Voorbeeld wordt klaargezet",
+  "workspace-indicator.sleeping": "Voorbeeld slaapt",
+  "workspace-indicator.did-not-start": "Voorbeeld is niet gestart",
+  "workspace-indicator.started": "Gestart {when}",
+  "workspace-indicator.wakes-when-opened": "Het start weer als je het voorbeeld opent.",
+  "workspace-indicator.assistant-available": "Je kunt de assistent iets vragen.",
+  "workspace-indicator.assistant-unavailable": "De assistent is niet beschikbaar.",
+  "workspace-indicator.runs-on": "Draait op {backend}",
+  "workspace-indicator.backend-local": "deze server",
+  "workspace-indicator.backend-microvm": "een micro-VM",
+  "workspace-indicator.backend-gvisor": "een gVisor-sandbox",
+  "workspace-indicator.start-again": "Opnieuw starten",
 
   // undo
   "undo.can-redo": "kan opnieuw",

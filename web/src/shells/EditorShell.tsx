@@ -12,6 +12,7 @@ import { TopBar } from "./TopBar";
 import { arrange, useEditorRoom } from "./useEditorRoom";
 import { useHere } from "../lib/whoami";
 import { SyncIndicator } from "./SyncIndicator";
+import { WorkspaceIndicator } from "./WorkspaceIndicator";
 import type { Project } from "../lib/tenancy";
 import { say } from "../lib/say";
 
@@ -84,6 +85,7 @@ export function EditorShell({
           </div>
           {stepper}
           <SyncIndicator />
+          <WorkspaceIndicator organisation={organisation} project={project.slug} />
           <Segmented
             label={say("editor-shell.how-to-show-this-page")}
             value={room.shown}

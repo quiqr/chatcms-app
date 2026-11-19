@@ -987,6 +987,20 @@ export const en = {
   // sync-indicator
   "sync-indicator.all-changes-saved": "All changes saved",
   "sync-indicator.offline-saved-on-this-device": "Offline, saved on this device",
+  "workspace-indicator.your-preview": "Your preview: {state}",
+  "workspace-indicator.ready": "Preview ready",
+  "workspace-indicator.starting": "Preview being prepared",
+  "workspace-indicator.sleeping": "Preview asleep",
+  "workspace-indicator.did-not-start": "Preview did not start",
+  "workspace-indicator.started": "Started {when}",
+  "workspace-indicator.wakes-when-opened": "It starts again when you open the preview.",
+  "workspace-indicator.assistant-available": "The assistant can be asked.",
+  "workspace-indicator.assistant-unavailable": "The assistant is not available.",
+  "workspace-indicator.runs-on": "Runs on {backend}",
+  "workspace-indicator.backend-local": "this server",
+  "workspace-indicator.backend-microvm": "a micro VM",
+  "workspace-indicator.backend-gvisor": "a gVisor sandbox",
+  "workspace-indicator.start-again": "Start again",
 
   // undo
   "undo.can-redo": "can be done again",

@@ -157,6 +157,32 @@ func TestOpenStartsWithoutWaiting(t *testing.T) {
 	}
 }
 
+func TestAReportSaysOnWhatAndSinceWhen(t *testing.T) {
+	h := newHarness(t, 8)
+	key := aKey()
+	if report, _ := h.w.Report(key); report.Backend == "" || !report.Since.IsZero() {
+		t.Errorf("asleep Report() = %+v, want the backend and no since", report)
+	}
+	endpoint(t, h.w, key)
+	report, _ := h.w.Report(key)
+	if !report.Since.Equal(h.now()) || report.Backend != h.w.Backend() {
+		t.Errorf("Report() = %+v, want since %v on %s", report, h.now(), h.w.Backend())
+	}
+}
+
+func TestRestartStopsAndStartsAgain(t *testing.T) {
+	h := newHarness(t, 8)
+	key := aKey()
+	endpoint(t, h.w, key)
+	if _, err := h.w.Restart(t.Context(), key, "http://chatcms.test/preview/o/p/"); err != nil {
+		t.Fatal(err)
+	}
+	endpoint(t, h.w, key)
+	if h.backend.StartCount() != 2 || h.backend.Running() != 1 {
+		t.Errorf("started %d, running %d, want 2 and 1", h.backend.StartCount(), h.backend.Running())
+	}
+}
+
 func TestAFailedStartIsSleepingWithAReason(t *testing.T) {
 	h := newHarness(t, 8)
 	h.backend.Fail = workspace.ErrNotReady

@@ -25,6 +25,11 @@ func (s *stubWorkspace) WorkspaceStanding(_ context.Context, _ Actor, organisati
 	return s.view, s.err
 }
 
+func (s *stubWorkspace) RestartWorkspace(_ context.Context, _ Actor, organisation, project string) (WorkspaceView, error) {
+	s.called = append(s.called, "restart "+organisation+"/"+project)
+	return s.view, s.err
+}
+
 func withWorkspace(service WorkspaceService, signedIn bool) http.Handler {
 	known := map[string]Actor{}
 	if signedIn {
@@ -93,5 +98,35 @@ func TestOtherMethodsOnAWorkspaceAreRefused(t *testing.T) {
 	handler := withWorkspace(&stubWorkspace{}, true)
 	if recorder := signedInCall(t, handler, http.MethodDelete, workspacePath, nil); recorder.Code != http.StatusMethodNotAllowed {
 		t.Errorf("DELETE = %d, want 405", recorder.Code)
+	}
+}
+
+func TestRestartingAWorkspaceAnswersHowItStands(t *testing.T) {
+	service := &stubWorkspace{view: WorkspaceView{State: "starting", Backend: "gvisor", Since: "2026-11-20T09:00:00Z"}}
+	handler := withWorkspace(service, true)
+
+	recorder := signedInCall(t, handler, http.MethodPost, workspacePath+"/restart", nil)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("POST restart = %d: %s", recorder.Code, recorder.Body)
+	}
+	var view WorkspaceView
+	if err := json.NewDecoder(recorder.Body).Decode(&view); err != nil {
+		t.Fatal(err)
+	}
+	if view.State != "starting" || view.Backend != "gvisor" || view.Since != "2026-11-20T09:00:00Z" {
+		t.Errorf("view = %+v", view)
+	}
+	if len(service.called) != 1 || service.called[0] != "restart technative/korenaar" {
+		t.Errorf("called = %v", service.called)
+	}
+	if recorder := signedInCall(t, handler, http.MethodGet, workspacePath+"/restart", nil); recorder.Code != http.StatusMethodNotAllowed {
+		t.Errorf("GET restart = %d, want 405", recorder.Code)
+	}
+}
+
+func TestRestartingSomebodyElsesKindOfWorkspaceIsRefused(t *testing.T) {
+	handler := withWorkspace(&stubWorkspace{err: ErrNotAllowed}, true)
+	if recorder := signedInCall(t, handler, http.MethodPost, workspacePath+"/restart", nil); recorder.Code != http.StatusForbidden {
+		t.Errorf("POST restart = %d, want 403", recorder.Code)
 	}
 }

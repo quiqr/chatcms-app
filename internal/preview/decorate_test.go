@@ -22,9 +22,10 @@ type idle struct{}
 func (idle) Endpoint(context.Context, workspace.Key, string) (workspace.Endpoint, error) {
 	return workspace.Endpoint{}, workspace.ErrNotReady
 }
-func (idle) Open(context.Context, workspace.Key, string) (workspace.State, error) { return "", nil }
-func (idle) Report(workspace.Key) (workspace.Report, bool)                        { return workspace.Report{}, false }
-func (idle) SleepProject(context.Context, string)                                 {}
+func (idle) Open(context.Context, workspace.Key, string) (workspace.State, error)    { return "", nil }
+func (idle) Report(workspace.Key) (workspace.Report, bool)                           { return workspace.Report{}, false }
+func (idle) Restart(context.Context, workspace.Key, string) (workspace.State, error) { return "", nil }
+func (idle) SleepProject(context.Context, string)                                    {}
 
 func decorated(t *testing.T, site http.HandlerFunc) (http.Handler, *[]http.Header) {
 	t.Helper()

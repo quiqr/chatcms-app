@@ -372,6 +372,37 @@ func TestOpeningStartsTheWorkspaceAndAnImplementerSeesTheSteps(t *testing.T) {
 	}
 }
 
+func TestAnImplementerSeesTheBackendAndCanStartAgain(t *testing.T) {
+	h := newHarness(t, 8)
+	implementer := h.implementer()
+	if _, err := h.service.Open(t.Context(), implementer, h.project, under); err != nil {
+		t.Fatal(err)
+	}
+	standing, err := h.service.Standing(t.Context(), implementer, h.project)
+	if err != nil || standing.Backend == "" || standing.Since.IsZero() {
+		t.Fatalf("Standing() = %+v, %v, want the backend and since when", standing, err)
+	}
+	again, err := h.service.Restart(t.Context(), implementer, h.project, under)
+	if err != nil || again.State == workspace.Sleeping || again.Since.Before(standing.Since) {
+		t.Errorf("Restart() = %+v, %v, want it started again", again, err)
+	}
+}
+
+func TestOnlyAnImplementerMayStartAgain(t *testing.T) {
+	h := newHarness(t, 8)
+	editor := h.editor()
+	if _, err := h.service.Open(t.Context(), editor, h.project, under); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.service.Restart(t.Context(), editor, h.project, under); !errors.Is(err, httpapi.ErrNotAllowed) {
+		t.Errorf("Restart() error = %v, want ErrNotAllowed", err)
+	}
+	standing, err := h.service.Standing(t.Context(), editor, h.project)
+	if err != nil || standing.Backend != "" || standing.Since.IsZero() {
+		t.Errorf("an editor was given %+v, %v, want since when but no backend", standing, err)
+	}
+}
+
 func TestAContentCreatorIsNotGivenTheSteps(t *testing.T) {
 	h := newHarness(t, 8)
 	for name, actor := range map[string]policy.Actor{"somebody who edits": h.editor(), "somebody who looks": h.viewer()} {

@@ -298,6 +298,8 @@ func New(opts Options) http.Handler {
 		mux.Handle("GET "+base, RequireActor(workspaceStandingHandler(opts.Workspace)))
 		mux.Handle("POST "+base, RequireActor(openWorkspaceHandler(opts.Workspace)))
 		mux.HandleFunc(base, MethodNotAllowed)
+		mux.Handle("POST "+base+"/restart", RequireActor(restartWorkspaceHandler(opts.Workspace)))
+		mux.HandleFunc(base+"/restart", MethodNotAllowed)
 	}
 
 	mux.HandleFunc("/api/", NotFound)

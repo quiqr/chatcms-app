@@ -637,7 +637,13 @@ export type Workspace = {
   type?: "web" | "pdf" | "other";
   open?: string;
   ownPages?: boolean;
+  backend?: string;
+  since?: string;
 };
+
+export function restartWorkspace(organisation: string, name: string) {
+  return post<Workspace>(`${project(organisation, name)}/workspace/restart`);
+}
 
 export function openWorkspace(organisation: string, name: string) {
   return post<Workspace>(`${project(organisation, name)}/workspace`);

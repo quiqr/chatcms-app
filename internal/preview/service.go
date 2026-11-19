@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -23,6 +24,7 @@ type Workspaces interface {
 	Endpoint(ctx context.Context, key workspace.Key, under string) (workspace.Endpoint, error)
 	Open(ctx context.Context, key workspace.Key, under string) (workspace.State, error)
 	Report(key workspace.Key) (workspace.Report, bool)
+	Restart(ctx context.Context, key workspace.Key, under string) (workspace.State, error)
 	SleepProject(ctx context.Context, project string)
 }
 
@@ -118,6 +120,8 @@ type Standing struct {
 	Reason   string
 	Steps    []workspace.StepReport
 	Log      []string
+	Backend  string
+	Since    time.Time
 }
 
 func (s *Service) Open(ctx context.Context, actor policy.Actor, projectID uuid.UUID, under string) (Standing, error) {
@@ -126,6 +130,20 @@ func (s *Service) Open(ctx context.Context, actor policy.Actor, projectID uuid.U
 		return Standing{}, err
 	}
 	if _, err := s.workspaces.Open(ctx, key, s.Under(under)); err != nil {
+		return Standing{}, Refusal(err)
+	}
+	return s.standing(key, technical), nil
+}
+
+func (s *Service) Restart(ctx context.Context, actor policy.Actor, projectID uuid.UUID, under string) (Standing, error) {
+	key, technical, err := s.keyFor(ctx, actor, projectID)
+	if err != nil {
+		return Standing{}, err
+	}
+	if !technical {
+		return Standing{}, httpapi.ErrNotAllowed
+	}
+	if _, err := s.workspaces.Restart(ctx, key, s.Under(under)); err != nil {
 		return Standing{}, Refusal(err)
 	}
 	return s.standing(key, technical), nil
@@ -157,7 +175,7 @@ func (s *Service) keyFor(ctx context.Context, actor policy.Actor, projectID uuid
 
 func (s *Service) standing(key workspace.Key, technical bool) Standing {
 	report, _ := s.workspaces.Report(key)
-	standing := Standing{State: report.State, Address: s.addressOf(report.Address), Type: report.Type, Open: report.Open, OwnPages: report.OwnPages}
+	standing := Standing{State: report.State, Address: s.addressOf(report.Address), Type: report.Type, Open: report.Open, OwnPages: report.OwnPages, Since: report.Since}
 	if report.Reason != "" {
 		standing.Reason = refusedNotReady.Key
 		var refused *httpapi.RefusedError
@@ -168,6 +186,7 @@ func (s *Service) standing(key workspace.Key, technical bool) Standing {
 	if technical {
 		standing.Steps = report.Steps
 		standing.Log = report.Log
+		standing.Backend = report.Backend
 	}
 	return standing
 }

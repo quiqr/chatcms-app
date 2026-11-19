@@ -70,6 +70,8 @@ type Report struct {
 	Err      error        `json:"-"`
 	Steps    []StepReport `json:"steps,omitempty"`
 	Log      []string     `json:"log,omitempty"`
+	Backend  string       `json:"backend,omitempty"`
+	Since    time.Time    `json:"since,omitempty"`
 }
 
 type live struct {
@@ -416,10 +418,13 @@ func (w *Workspaces) Report(key Key) (Report, bool) {
 	held, found := w.live[key]
 	if !found {
 		w.mu.Unlock()
-		return Report{State: Sleeping}, false
+		return Report{State: Sleeping, Backend: w.backend.Name()}, false
 	}
 	program := held.spec.Run.Preview.Program
-	report := Report{State: held.state, Err: held.err, Type: held.spec.Run.Type, Open: held.spec.Run.Open, OwnPages: program != "" && filepath.Base(program) != "hugo"}
+	report := Report{State: held.state, Err: held.err, Type: held.spec.Run.Type, Open: held.spec.Run.Open, OwnPages: program != "" && filepath.Base(program) != "hugo", Backend: w.backend.Name()}
+	if held.state != Sleeping {
+		report.Since = held.began
+	}
 	if held.state == Warm {
 		report.Address = held.spec.Under
 		if held.spec.Run.Rooted {
@@ -458,6 +463,11 @@ func (w *Workspaces) Sleep(ctx context.Context, key Key) {
 		<-held.done
 		w.stopOne(ctx, held)
 	}
+}
+
+func (w *Workspaces) Restart(ctx context.Context, key Key, under string) (State, error) {
+	w.Sleep(ctx, key)
+	return w.Open(ctx, key, under)
 }
 
 func (w *Workspaces) SleepProject(ctx context.Context, project string) {

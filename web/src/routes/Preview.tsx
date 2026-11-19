@@ -4,8 +4,9 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { Segmented } from "../components/ui/segmented";
 import { useIsPhone } from "../shells/useIsPhone";
 import { whatWentWrong } from "../lib/api";
-import { maybe, say, spokenNow, type Key } from "../lib/say";
-import { openWorkspace, readWorkspace, type PreviewRequest, type Workspace, type WorkspaceStep } from "../lib/tenancy";
+import { maybe, say, spokenNow } from "../lib/say";
+import { openWorkspace, readWorkspace, type PreviewRequest, type Workspace } from "../lib/tenancy";
+import { stepNames, stepStates, useRestarted } from "../lib/workspace";
 import type { Pill, Words } from "../preview/select";
 
 /**
@@ -235,22 +236,11 @@ function pathOf(page?: string) {
   return page.endsWith("/") ? page : page + "/";
 }
 
-const stepNames: Record<WorkspaceStep["step"], Key> = {
-  "starting-workspace": "preview.step-starting-workspace",
-  "fetching-site": "preview.step-fetching-site",
-  "building-preview": "preview.step-building-preview",
-};
-
-const stepStates: Record<WorkspaceStep["state"], Key> = {
-  waiting: "preview.step-waiting",
-  running: "preview.step-running",
-  done: "preview.step-done",
-  failed: "preview.step-failed",
-};
 
 function useWorkspace(organisation: string, project: string) {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [refused, setRefused] = useState("");
+  const restarted = useRestarted();
 
   useEffect(() => {
     let live = true;
@@ -274,7 +264,7 @@ function useWorkspace(organisation: string, project: string) {
       live = false;
       clearTimeout(timer);
     };
-  }, [organisation, project]);
+  }, [organisation, project, restarted]);
 
   return { workspace, refused };
 }

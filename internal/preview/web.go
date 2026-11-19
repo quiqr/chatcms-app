@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -84,6 +85,18 @@ func (w *Web) OpenWorkspace(ctx context.Context, who httpapi.Actor, organisation
 	return viewOf(standing), nil
 }
 
+func (w *Web) RestartWorkspace(ctx context.Context, who httpapi.Actor, organisation, project string) (httpapi.WorkspaceView, error) {
+	actor, projectID, err := w.project(ctx, who, organisation, project)
+	if err != nil {
+		return httpapi.WorkspaceView{}, err
+	}
+	standing, err := w.service.Restart(ctx, actor, projectID, httpapi.PreviewPrefix+organisation+"/"+project+"/")
+	if err != nil {
+		return httpapi.WorkspaceView{}, err
+	}
+	return viewOf(standing), nil
+}
+
 func (w *Web) WorkspaceStanding(ctx context.Context, who httpapi.Actor, organisation, project string) (httpapi.WorkspaceView, error) {
 	actor, projectID, err := w.project(ctx, who, organisation, project)
 	if err != nil {
@@ -97,7 +110,10 @@ func (w *Web) WorkspaceStanding(ctx context.Context, who httpapi.Actor, organisa
 }
 
 func viewOf(standing Standing) httpapi.WorkspaceView {
-	view := httpapi.WorkspaceView{State: string(standing.State), Reason: standing.Reason, Log: standing.Log, Address: standing.Address, Type: standing.Type, Open: standing.Open, OwnPages: standing.OwnPages}
+	view := httpapi.WorkspaceView{State: string(standing.State), Reason: standing.Reason, Log: standing.Log, Address: standing.Address, Type: standing.Type, Open: standing.Open, OwnPages: standing.OwnPages, Backend: standing.Backend}
+	if !standing.Since.IsZero() {
+		view.Since = standing.Since.UTC().Format(time.RFC3339)
+	}
 	for _, step := range standing.Steps {
 		view.Steps = append(view.Steps, httpapi.WorkspaceStepView{Step: string(step.Step), State: string(step.State)})
 	}

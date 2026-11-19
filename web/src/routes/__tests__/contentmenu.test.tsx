@@ -363,8 +363,10 @@ describe("an open item's place", () => {
     expect(calls[0]?.path).toContain("q=s");
     expect(screen.getByTestId("back")).toHaveTextContent("/content/c/posts?q=s&sort=title");
 
-    fireEvent.keyDown(window, { key: "ArrowDown", altKey: true });
-    await waitFor(() => expect(screen.getByTestId("where")).toHaveTextContent("/content/posts/winter?q=s&sort=title"));
+    await waitFor(() => {
+      fireEvent.keyDown(window, { key: "ArrowDown", altKey: true });
+      expect(screen.getByTestId("where")).toHaveTextContent("/content/posts/winter?q=s&sort=title");
+    });
   });
 
   it("cannot step past the ends", async () => {

@@ -64,6 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rootless and without network, on any host without KVM.
 - Platform admins see what workspaces run, start, fail and use on disk
   (Workspaces); history is kept `workspaceHistoryDays`, 90 by default.
+- A symbol beside the save status says how your preview stands and whether
+  the assistant is there; implementers see more and can start it again.
 
 ### Changed
 

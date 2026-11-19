@@ -7,6 +7,7 @@ import { useHere } from "../lib/whoami";
 import { named } from "./roles";
 import { SitePanel } from "./SitePanel";
 import { SyncIndicator, type SyncState } from "./SyncIndicator";
+import { WorkspaceIndicator } from "./WorkspaceIndicator";
 import { TopBar } from "./TopBar";
 import type { Project } from "../lib/tenancy";
 import { say } from "../lib/say";
@@ -47,6 +48,7 @@ export function ProjectShell({
             <h1 className="flex-1 text-lg font-semibold">{title}</h1>
           )}
           <SyncIndicator state={syncState} />
+          <WorkspaceIndicator organisation={organisation} project={project.slug} />
           {actions}
           <Button asChild count={project.unpublished}>
             <NavLink to={`/o/${organisation}/p/${project.slug}/publish`}>{say("common.publish")}</NavLink>
