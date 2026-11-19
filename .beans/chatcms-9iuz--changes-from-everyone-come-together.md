@@ -1,11 +1,12 @@
 ---
 # chatcms-9iuz
 title: Changes from everyone come together
-status: todo
+status: completed
 type: epic
 priority: normal
 created_at: 2026-11-18T12:51:48Z
-updated_at: 2026-11-18T12:51:48Z
+updated_at: 2026-11-19T10:07:29Z
+openspec-link: openspec/changes/archive/2026-11-19-add-ai-combine
 parent: chatcms-z0p7
 blocked_by:
     - chatcms-gkdd
@@ -41,3 +42,13 @@ seeing a merge conflict. Publishing stays idiot proof.
 
 `docs/BRIEFING-M07.md`, "Collaboration / merging". Copy rules in
 `docs/design/DESIGN.md` section 7.
+
+## Summary of Changes
+
+- Saves come together in the background (chatcms-yr88, delivered by the
+  per-person workspace change); the same field changed twice is a plain
+  question with no git words, at both widths (e2e 34).
+- The AI can combine two versions of a field (chatcms-izhr, `openspec/changes/archive/2026-11-19-add-ai-combine`).
+- Two people editing different pages are published together: proven by the
+  per-person workspace e2e specs.
+- Soft page locking, optional here, is left out and filed as chatcms-na8c.
