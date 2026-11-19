@@ -1,11 +1,12 @@
 ---
 # chatcms-vqsf
 title: 'Folded content menu: a vertical label strip and a location picker'
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-11-18T15:04:32Z
-updated_at: 2026-11-19T14:28:51Z
+updated_at: 2026-11-19T15:30:00Z
+openspec-link: openspec/changes/archive/2026-11-19-folded-menu-and-location-picker
 parent: chatcms-iqog
 ---
 
@@ -43,3 +44,13 @@ to the references.
 - `docs/design/folded-menu/FOLDED-MENU.md`, `PROMPT.md`
 - Builds on the content column from chatcms-1hg1 and the fold icons of
   chatcms-tpop.
+
+## Summary of Changes
+
+- The folded column is one 48 px button with a vertical label naming the open
+  page or collection, its count, and a dot for what waits to be published.
+- A breadcrumb on the collection view and in the editor opens a location
+  picker: quick find, the compact menu (large groups closed), and a footer that
+  unfolds the column. It works by keyboard alone.
+- Proven by Vitest and e2e `43-the-folded-menu`; screenshots in
+  `docs/design/folded-menu/built/`.
