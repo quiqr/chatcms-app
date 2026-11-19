@@ -609,3 +609,17 @@ func TestThePreviewOriginMustBeAnotherAddress(t *testing.T) {
 		}
 	}
 }
+
+func TestProvidedPackagesAreNamesAndStorePaths(t *testing.T) {
+	cfg, err := workspaceConfig(t, map[string]string{"CHATCMS_PACKAGES": "quarto=/nix/store/a-quarto-1.10.18, typst=/nix/store/b-typst-0.15.1"})
+	if err != nil || cfg.Packages["quarto"] != "/nix/store/a-quarto-1.10.18" || cfg.Packages["typst"] != "/nix/store/b-typst-0.15.1" {
+		t.Errorf("Packages = %v, %v", cfg.Packages, err)
+	}
+	for _, bad := range []string{"quarto", "quarto=relative/path", "=/nix/store/x", "quarto=/nix/store/../etc"} {
+		_, err := workspaceConfig(t, map[string]string{"CHATCMS_PACKAGES": bad})
+		var configErr *ConfigError
+		if !errors.As(err, &configErr) || configErr.Variable != "CHATCMS_PACKAGES" {
+			t.Errorf("%q error = %v", bad, err)
+		}
+	}
+}

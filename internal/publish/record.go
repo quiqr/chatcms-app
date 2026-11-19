@@ -40,6 +40,7 @@ type Record struct {
 	Detail      string                  `json:"-"`
 	StartedAt   time.Time               `json:"startedAt"`
 	FinishedAt  *time.Time              `json:"finishedAt,omitempty"`
+	Artifacts   []workflows.Kept        `json:"artifacts,omitempty"`
 }
 
 var (

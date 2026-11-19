@@ -117,6 +117,9 @@ func (b *Builder) Build(ctx context.Context, site fs.FS, opts Options) (*runner.
 		Timeout:     b.limits.Timeout,
 		MemoryBytes: b.limits.MemoryBytes,
 	}
+	for name, value := range resolved.Env {
+		task.Environment[name] = value
+	}
 	root := Output
 
 	if resolved.Build != nil {

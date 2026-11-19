@@ -31,6 +31,7 @@ projection: a cached, rebuildable view in Postgres of something git owns.
 | `internal/redact`      | Removing credential-shaped text before it is logged, stored or shown          |
 | `internal/preview`     | A person's preview, reached through the app or a preview origin, proxied to their workspace |
 | `internal/runtime`     | Reading `quiqr/runtime.yaml`, and turning it into programs and a path          |
+| `internal/artifacts`   | Files a publish keeps: on disk under the state directory, recorded in Postgres |
 | `internal/workspace`   | A workspace per person per project: lifecycle, limits, and the backend seam   |
 | `internal/workspace/microvm` | A workspace in a Cloud Hypervisor micro VM of its own                  |
 | `internal/nixpin`      | A package at a given version, found through Nixhub and built with Nix         |
@@ -244,7 +245,19 @@ packages with versions, a preview command with its type (`web`, `pdf`,
 come from `internal/nixpin`; without a declaration a site runs Hugo exactly as
 before. Placeholders such as `{port}` and `{source}` are filled in by the
 backend that runs the command. A changed declaration takes effect when the
-person next opens the preview. See `docs/RUNTIME.md`.
+person next opens the preview. A package may name its nixpkgs revision, an
+installation may provide packages itself (`CHATCMS_PACKAGES`), and Python and
+R packages for code cells are built as one environment each and handed to
+Quarto. A preview command without `{url}` is served at its root: the proxy
+takes the prefix off. In a micro VM the site is overlaid with a tmpfs, so a
+preview may write and the person's copy is never touched. See
+`docs/RUNTIME.md`.
+
+**`internal/artifacts`** keeps what a publish workflow's `outputs` send to
+`artifact`: the engine hands the files over after the last step succeeded,
+the store copies each under `<state>/artifacts/<project>/<id>` and records it
+with its publish. `/artifacts` lists and downloads them for anybody who may
+read the project; the project view says whether there are any.
 
 Nothing tells a preview to rebuild. Hugo watches the person's copy that saving
 writes to, so a change appears by itself; the test waits for it rather than

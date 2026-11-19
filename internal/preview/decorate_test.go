@@ -28,6 +28,11 @@ func (idle) SleepProject(context.Context, string)                               
 
 func decorated(t *testing.T, site http.HandlerFunc) (http.Handler, *[]http.Header) {
 	t.Helper()
+	return decoratedAs(t, false, site)
+}
+
+func decoratedAs(t *testing.T, rooted bool, site http.HandlerFunc) (http.Handler, *[]http.Header) {
+	t.Helper()
 	var asked []http.Header
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		asked = append(asked, r.Header.Clone())
@@ -46,7 +51,7 @@ func decorated(t *testing.T, site http.HandlerFunc) (http.Handler, *[]http.Heade
 		"pdf/index.html":     {Data: []byte("<!doctype html><head><title>viewer</title>")},
 		"pdf/assets/view.js": {Data: []byte("view()")},
 	})
-	known := viewed{view: "k", key: workspace.Key{Person: uuid.New(), Project: uuid.New()}, endpoint: workspace.Endpoint{Host: host, Port: number}}
+	known := viewed{view: "k", key: workspace.Key{Person: uuid.New(), Project: uuid.New()}, endpoint: workspace.Endpoint{Host: host, Port: number, Rooted: rooted}}
 	return preview.NewOrigin(service, known, func(context.Context, workspace.Key) (bool, error) { return true, nil }), &asked
 }
 
@@ -118,5 +123,31 @@ func TestTheAssetsAreServedNotProxied(t *testing.T) {
 	}
 	if len(*asked) != 0 {
 		t.Errorf("the workspace was asked %d times", len(*asked))
+	}
+}
+
+func TestARootedPreviewIsAskedWithoutThePrefix(t *testing.T) {
+	var paths []string
+	origin, _ := decoratedAs(t, true, func(w http.ResponseWriter, r *http.Request) {
+		paths = append(paths, r.URL.Path)
+		io.WriteString(w, "ok")
+	})
+	ask(origin, "/v/k/")
+	ask(origin, "/v/k/chapters/bread.html")
+	ask(origin, "/v/k/a%20b.html")
+	if len(paths) != 3 || paths[0] != "/" || paths[1] != "/chapters/bread.html" || paths[2] != "/a b.html" {
+		t.Errorf("the preview was asked %v", paths)
+	}
+	if body := ask(origin, "/v/k/__chatcms/select.js").Body.String(); body != "console.log('select')" {
+		t.Errorf("the assets moved: %q", body)
+	}
+}
+
+func TestAPreviewToldItsAddressKeepsThePrefix(t *testing.T) {
+	var asked string
+	origin, _ := decoratedAs(t, false, func(w http.ResponseWriter, r *http.Request) { asked = r.URL.Path })
+	ask(origin, "/v/k/posts/one/")
+	if asked != "/v/k/posts/one/" {
+		t.Errorf("the preview was asked %q", asked)
 	}
 }

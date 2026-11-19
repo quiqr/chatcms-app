@@ -56,14 +56,15 @@ func (s Settings) withDefaults() Settings {
 }
 
 type Report struct {
-	State   State        `json:"state"`
-	Reason  string       `json:"reason,omitempty"`
-	Address string       `json:"address,omitempty"`
-	Type    string       `json:"type,omitempty"`
-	Open    string       `json:"open,omitempty"`
-	Err     error        `json:"-"`
-	Steps   []StepReport `json:"steps,omitempty"`
-	Log     []string     `json:"log,omitempty"`
+	State    State        `json:"state"`
+	Reason   string       `json:"reason,omitempty"`
+	Address  string       `json:"address,omitempty"`
+	Type     string       `json:"type,omitempty"`
+	Open     string       `json:"open,omitempty"`
+	OwnPages bool         `json:"ownPages,omitempty"`
+	Err      error        `json:"-"`
+	Steps    []StepReport `json:"steps,omitempty"`
+	Log      []string     `json:"log,omitempty"`
 }
 
 type live struct {
@@ -347,6 +348,7 @@ func (w *Workspaces) start(held *live) {
 	} else {
 		held.state = Warm
 		held.endpoint = endpoint
+		held.endpoint.Rooted = held.spec.Run.Rooted
 		held.record.Handle = handle
 		held.record.State = Warm
 	}
@@ -394,7 +396,8 @@ func (w *Workspaces) Report(key Key) (Report, bool) {
 		w.mu.Unlock()
 		return Report{State: Sleeping}, false
 	}
-	report := Report{State: held.state, Err: held.err, Type: held.spec.Run.Type, Open: held.spec.Run.Open}
+	program := held.spec.Run.Preview.Program
+	report := Report{State: held.state, Err: held.err, Type: held.spec.Run.Type, Open: held.spec.Run.Open, OwnPages: program != "" && filepath.Base(program) != "hugo"}
 	if held.state == Warm {
 		report.Address = held.spec.Under
 	}

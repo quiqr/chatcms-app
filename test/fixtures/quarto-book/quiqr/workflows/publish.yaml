@@ -1,0 +1,9 @@
+on: publish
+steps:
+  - action: build
+  - action: publish
+outputs:
+  - path: .
+    to: publish
+  - path: "*.pdf"
+    to: both

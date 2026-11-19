@@ -196,6 +196,13 @@ must differ from `baseUrl`'s, and the URL may not have a path. Previews are
 then reached only through it, at an unguessable address per workspace, and
 no cookie is ever set for the preview host.
 
+## Packages the installation provides
+
+`services.chatcms.packages = { quarto = pkgs.quarto; };` gives every site that
+asks for that name at that version the installation's own build, without Nix
+building anything when a project starts. It is also the only way to have such
+a package without `nix` on the machine.
+
 ## Workspaces in micro VMs
 
 `services.chatcms.workspaceBackend = "microvm"` runs every preview in a Cloud

@@ -1,0 +1,32 @@
+singles:
+  - key: preface
+    title: Preface
+    file: index.qmd
+    dataformat: yaml
+    fields:
+      - key: title
+        type: string
+        title: Chapter title
+      - key: mainContent
+        type: markdown
+        title: Text
+collections:
+  - key: chapters
+    title: Chapters
+    itemtitle: chapter
+    folder: chapters/
+    extension: qmd
+    dataformat: yaml
+    fields:
+      - key: title
+        type: string
+        title: Chapter title
+      - key: mainContent
+        type: markdown
+        title: Text
+menu:
+  - key: book
+    title: Book
+    menuItems:
+      - key: preface
+      - key: chapters

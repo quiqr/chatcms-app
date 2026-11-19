@@ -520,3 +520,23 @@ describe("the project switcher", () => {
     );
   });
 });
+
+describe("artifacts in the site navigation", () => {
+  it("appear after History once the project has any", () => {
+    at(
+      "/o/technative/p/korenaar/content",
+      <ProjectShell project={{ ...project, hasArtifacts: true }} viewer={theViewer} title="Content">
+        body
+      </ProjectShell>,
+    );
+    const site = screen.getByRole("group", { name: "Site" });
+    const names = within(site).getAllByRole("link").map((link) => link.textContent);
+    expect(names.indexOf("Artifacts")).toBe(names.findIndex((name) => name?.includes("History")) + 1);
+    expect(within(site).getByRole("link", { name: "Artifacts" })).toHaveAttribute("href", "/o/technative/p/korenaar/artifacts");
+  });
+
+  it("are not there for a project without any", () => {
+    at("/o/technative/p/korenaar/content", <ProjectShell project={project} viewer={theViewer} title="Content">body</ProjectShell>);
+    expect(screen.queryByRole("link", { name: "Artifacts" })).toBeNull();
+  });
+});

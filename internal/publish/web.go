@@ -182,6 +182,9 @@ func publishView(record Record) httpapi.PublishView {
 	for _, step := range record.Steps {
 		view.Steps = append(view.Steps, httpapi.StepView{Title: step.Title, State: string(step.State)})
 	}
+	for _, kept := range record.Artifacts {
+		view.Artifacts = append(view.Artifacts, httpapi.ArtifactView{ID: kept.ID.String(), Name: kept.Name, Size: kept.Size, PublishID: view.ID})
+	}
 	return view
 }
 

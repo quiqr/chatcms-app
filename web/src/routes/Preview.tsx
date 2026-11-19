@@ -43,7 +43,7 @@ export function Preview({
   const base = baseOf(workspace?.address, `/preview/${organisation}/${project}/`);
   const opened = (workspace?.open ?? "/").replace(/^\//, "");
   const at =
-    kind === "web" ? base + pathOf(page) : kind === "pdf" ? `${base}__chatcms/pdf/?file=${encodeURIComponent(opened)}` : base + opened;
+    kind === "web" ? base + (workspace?.ownPages ? opened : pathOf(page)) : kind === "pdf" ? `${base}__chatcms/pdf/?file=${encodeURIComponent(opened)}` : base + opened;
   const frame = useRef<HTMLIFrameElement>(null);
   useFrameMessages(frame, base, onSelect, highlight);
 

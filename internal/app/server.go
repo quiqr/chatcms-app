@@ -18,6 +18,7 @@ import (
 
 	"github.com/quiqr/chatcms-app/internal/admin"
 	"github.com/quiqr/chatcms-app/internal/aigateway"
+	"github.com/quiqr/chatcms-app/internal/artifacts"
 	"github.com/quiqr/chatcms-app/internal/assistant"
 	"github.com/quiqr/chatcms-app/internal/auth"
 	"github.com/quiqr/chatcms-app/internal/builds"
@@ -81,6 +82,7 @@ type Server struct {
 	aiMux         *http.ServeMux
 	chat          *assistant.Chat
 	chatWeb       *assistant.Web
+	artifacts     *artifacts.Web
 	sandbox       runner.Runner
 	previewOrigin *preview.Origin
 }
@@ -223,6 +225,7 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 		Preview:        server.appPreview(),
 		Workspace:      server.preview,
 		Chat:           server.chatWeb,
+		Artifacts:      server.artifactsWeb(),
 		Secure:         strings.HasPrefix(strings.ToLower(cfg.BaseURL), "https://"),
 	})
 
@@ -555,6 +558,15 @@ func (s *Server) startPublishing(ctx context.Context, tenancyStore *tenancy.Stor
 		return err
 	}
 
+	kept, err := artifacts.New(artifacts.NewPostgres(s.db.Queries), filepath.Join(s.cfg.StateDir, "artifacts"), 0)
+	if err != nil {
+		return err
+	}
+	s.workflows.Keeping(kept)
+	service.Keeping(artifacts.OfPublish{Store: kept})
+	s.tenancy.KnowsWhatIsKept(kept)
+	s.artifacts = artifacts.NewWeb(kept, tenancyStore)
+
 	s.publish, err = publish.NewWeb(service, tenancyStore)
 	if err != nil {
 		return err
@@ -614,6 +626,13 @@ func appointTheFirstAdministrator(ctx context.Context, store *admin.Store, email
 	case changed:
 		logger.InfoContext(ctx, "the configured person now administers this installation", "email", email)
 	}
+}
+
+func (s *Server) artifactsWeb() httpapi.ArtifactService {
+	if s.artifacts == nil {
+		return nil
+	}
+	return s.artifacts
 }
 
 func (s *Server) appPreview() httpapi.PreviewService {

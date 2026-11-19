@@ -213,3 +213,11 @@ describe("selecting in the preview", () => {
     expect(sent.mock.calls.some(([data]) => (data as { chatcms: string }).chatcms === "highlight")).toBe(false);
   });
 });
+
+describe("a preview with pages of its own", () => {
+  it("opens its own start page rather than the page being edited", async () => {
+    vi.stubGlobal("fetch", server([{ body: { state: "warm", type: "web", open: "/", ownPages: true } }]));
+    render(<Preview organisation="technative" project="korenaar" page="preface" />);
+    expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "/preview/technative/korenaar/");
+  });
+});

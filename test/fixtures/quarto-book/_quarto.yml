@@ -1,0 +1,16 @@
+project:
+  type: book
+
+book:
+  title: "Korenaar Recipes"
+  author: "Korenaar Bakery"
+  chapters:
+    - index.qmd
+    - chapters/bread.qmd
+    - chapters/rye.qmd
+
+format:
+  html:
+    theme: cosmo
+  typst:
+    papersize: a5

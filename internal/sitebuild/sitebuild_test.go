@@ -194,7 +194,7 @@ func TestABuildThatTakesTooLongIsEnded(t *testing.T) {
 		}
 		t.Fatal(err)
 	}
-	builder, err := sitebuild.New(sandbox, hugoBin(t), sitebuild.Limits{Timeout: 50 * time.Millisecond})
+	builder, err := sitebuild.New(sandbox, hugoBin(t), sitebuild.Limits{Timeout: time.Millisecond})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -379,5 +379,22 @@ func TestADeclaredRuntimeWithNeitherBuildNorHugoCannotBuild(t *testing.T) {
 	})
 	if _, err := builder.Build(context.Background(), fstest.MapFS{}, sitebuild.Options{Project: uuid.New()}); !errors.Is(err, sitebuild.ErrNoBuild) {
 		t.Errorf("Build() error = %v, want ErrNoBuild", err)
+	}
+}
+
+func TestADeclaredBuildIsGivenItsCellEnvironment(t *testing.T) {
+	stub := &stubRunner{}
+	builder, _ := sitebuild.New(stub, "/usr/bin/hugo", sitebuild.Limits{})
+	builder.UseRuntimeOf(func(context.Context, uuid.UUID, fs.FS) (runtime.Resolved, error) {
+		return runtime.Resolved{
+			Path:   []string{"/nix/store/q-quarto/bin"},
+			Build:  &runtime.Command{Program: "/nix/store/q-quarto/bin/quarto", Args: []string{"render", "{source}"}},
+			Output: "_book",
+			Env:    map[string]string{"QUARTO_PYTHON": "/nix/store/py/bin/python3"},
+		}, nil
+	})
+	builder.Build(context.Background(), fstest.MapFS{"_quarto.yml": {Data: []byte("")}}, sitebuild.Options{Project: uuid.New()})
+	if stub.task.Environment["QUARTO_PYTHON"] != "/nix/store/py/bin/python3" || stub.task.Network {
+		t.Errorf("task = %+v", stub.task)
 	}
 }

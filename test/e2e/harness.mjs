@@ -3,7 +3,7 @@
 // takes nothing from the machine it runs on beyond the programs Nix pins, so
 // the suite says the same thing in the gate as on a developer's laptop.
 import { execFileSync, spawn } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { cpSync, mkdtempSync, rmSync, writeFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, normalize } from "node:path";
@@ -375,6 +375,29 @@ export class Harness {
     sh(git, ["-C", working, "-c", "user.name=Joris", "-c", "user.email=joris@example.org",
       "commit", "--message=" + message]);
     sh(git, ["-C", working, "push", "origin", "HEAD:refs/heads/main"]);
+  }
+
+  layOver(project, fixture, message) {
+    const working = mkdtempSync(join(this.root, "replaced-"));
+    const remote = join(this.state, "dev-remotes", `${project}.git`);
+    const git = process.env.CHATCMS_GIT_BIN ?? "git";
+    sh(git, ["clone", remote, working]);
+    cpSync(fixture, working, { recursive: true });
+    sh(git, ["-C", working, "add", "--all"]);
+    sh(git, ["-C", working, "-c", "user.name=Joris", "-c", "user.email=joris@example.org", "commit", "--message=" + message]);
+    sh(git, ["-C", working, "push", "origin", "HEAD:refs/heads/main"]);
+  }
+
+  remoteFrom(fixture, name) {
+    const git = process.env.CHATCMS_GIT_BIN ?? "git";
+    const work = mkdtempSync(join(this.root, "fixture-"));
+    cpSync(fixture, work, { recursive: true });
+    sh(git, ["-C", work, "init", "--initial-branch=main"]);
+    sh(git, ["-C", work, "add", "--all"]);
+    sh(git, ["-C", work, "-c", "user.name=Suite", "-c", "user.email=suite@example.org", "commit", "--message=The book"]);
+    const bare = join(this.state, "dev-remotes", `${name}.git`);
+    sh(git, ["clone", "--bare", work, bare]);
+    return bare;
   }
 
   async startTheModel() {

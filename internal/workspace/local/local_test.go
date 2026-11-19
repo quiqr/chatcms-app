@@ -312,3 +312,34 @@ func TestALocalWorkspaceRunsTheDeclaredPreviewCommand(t *testing.T) {
 		t.Errorf("served %q", body)
 	}
 }
+
+func TestALocalPreviewIsGivenItsCellEnvironment(t *testing.T) {
+	stubDir := t.TempDir()
+	told := filepath.Join(stubDir, "told")
+	stub := filepath.Join(stubDir, "quarto")
+	os.WriteFile(stub, []byte("#!/bin/sh\nexport -p > "+told+"\nexec sleep 30\n"), 0o755)
+
+	made, err := New(Settings{HugoBin: hugoBin(t), Ready: 2 * time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := aSite(t, "Korenaar", false)
+	run := runtime.Resolved{
+		Path:    []string{stubDir},
+		Preview: runtime.Command{Program: stub, Args: []string{"preview"}},
+		Env:     map[string]string{"QUARTO_PYTHON": "/nix/store/py/bin/python3"},
+	}
+	made.Start(t.Context(), workspace.Spec{Dir: dir, Under: "http://127.0.0.1/", Run: run}, io.Discard)
+
+	deadline := time.Now().Add(5 * time.Second)
+	var said []byte
+	for time.Now().Before(deadline) {
+		if said, _ = os.ReadFile(told); strings.Contains(string(said), "QUARTO_PYTHON") {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if !strings.Contains(string(said), `QUARTO_PYTHON="/nix/store/py/bin/python3"`) && !strings.Contains(string(said), "QUARTO_PYTHON='/nix/store/py/bin/python3'") {
+		t.Errorf("the preview was given %s", said)
+	}
+}

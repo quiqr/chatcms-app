@@ -85,12 +85,13 @@ func fakeHypervisor() {
 		if value, found := strings.CutPrefix(part, "chatcms.run="); found {
 			data, _ := base64.RawURLEncoding.DecodeString(value)
 			var run struct {
-				Cmd  []string `json:"cmd"`
-				Path []string `json:"path"`
+				Cmd  []string          `json:"cmd"`
+				Path []string          `json:"path"`
+				Env  map[string]string `json:"env"`
 			}
 			json.Unmarshal(data, &run)
 			if len(run.Cmd) > 0 {
-				hugo = run.Cmd[0] + " RUN=" + strings.Join(run.Cmd[1:], " ") + " PATH=" + strings.Join(run.Path, ":")
+				hugo = run.Cmd[0] + " RUN=" + strings.Join(run.Cmd[1:], " ") + " PATH=" + strings.Join(run.Path, ":") + " PYTHON=" + run.Env["QUARTO_PYTHON"]
 			}
 		}
 	}
@@ -521,11 +522,25 @@ func TestADeclaredPreviewReachesTheVMWithItsPackages(t *testing.T) {
 		Preview: runtime.Command{Program: quarto, Args: []string{"preview", "{source}", "--port", "{port}", "--host", "{host}"}},
 		Type:    runtime.PDF,
 		Open:    "/book.pdf",
+		Env:     map[string]string{"QUARTO_PYTHON": filepath.Join(filepath.Dir(quarto), "quarto")},
 	}
 	_, endpoint := r.start(t, spec)
 	body := get(t, endpoint)
-	if !strings.Contains(body, quarto+" RUN=preview /site --port") || !strings.Contains(body, "--host 0.0.0.0") || !strings.Contains(body, "PATH="+filepath.Dir(quarto)+":") {
+	if !strings.Contains(body, quarto+" RUN=preview /site --port") || !strings.Contains(body, "--host 0.0.0.0") || !strings.Contains(body, "PATH="+filepath.Dir(quarto)+":") || !strings.Contains(body, "PYTHON="+quarto) {
 		t.Errorf("the VM was told %s", body)
+	}
+}
+
+func TestACellEnvironmentOutsideTheStoreIsRefused(t *testing.T) {
+	r := newRig(t, 1)
+	spec := r.spec(t)
+	spec.Run = runtime.Resolved{
+		Path:    []string{filepath.Dir(r.hugo)},
+		Preview: runtime.Command{Program: r.hugo, Args: []string{"server"}},
+		Env:     map[string]string{"QUARTO_PYTHON": "/usr/bin/python3"},
+	}
+	if _, _, err := r.backend.Start(t.Context(), spec, io.Discard); err == nil {
+		t.Error("a Python outside the store was handed to the VM")
 	}
 }
 

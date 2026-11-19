@@ -222,9 +222,18 @@ func (b *Backend) run(spec workspace.Spec) (string, error) {
 	if port := browserPort(spec.Under); port > 0 {
 		values["{reload}"] = strconv.Itoa(port)
 	}
+	env := map[string]string{}
+	for name, value := range resolved.Env {
+		real, err := b.inStore(value)
+		if err != nil {
+			return "", err
+		}
+		env[name] = real
+	}
 	data, err := json.Marshal(map[string]any{
 		"cmd":  append([]string{program}, runtime.Fill(resolved.Preview.Args, values)...),
 		"path": path,
+		"env":  env,
 	})
 	if err != nil {
 		return "", err

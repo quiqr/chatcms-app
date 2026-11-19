@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -18,9 +19,13 @@ import (
 type hugos struct {
 	installed string
 	versionOf func(ctx context.Context, projectID uuid.UUID) (string, error)
-	pins      interface {
-		Path(ctx context.Context, name, version string) (string, error)
-	}
+	provided  map[string]string
+	pins      packagePins
+}
+
+type packagePins interface {
+	Path(ctx context.Context, name, version, revision string) (string, error)
+	Environment(ctx context.Context, kind, revision string, packages []string) (string, error)
 }
 
 func projectHugoVersion(queries *store.Queries) func(ctx context.Context, projectID uuid.UUID) (string, error) {
@@ -38,7 +43,7 @@ func (h hugos) For(ctx context.Context, projectID uuid.UUID) (string, error) {
 	if version == "" || h.pins == nil {
 		return h.installed, nil
 	}
-	path, err := h.pins.Path(ctx, "hugo", version)
+	path, err := h.pins.Path(ctx, "hugo", version, "")
 	switch {
 	case errors.Is(err, nixpin.ErrNotFound), errors.Is(err, nixpin.ErrUnusable):
 		return "", &httpapi.RefusedError{
@@ -57,13 +62,23 @@ func (h hugos) For(ctx context.Context, projectID uuid.UUID) (string, error) {
 }
 
 type namedPins struct {
-	pins interface {
-		Path(ctx context.Context, name, version string) (string, error)
-	}
+	pins packagePins
 }
 
-func (n namedPins) Path(ctx context.Context, name, version string) (string, error) {
-	path, err := n.pins.Path(ctx, name, version)
+func (n namedPins) Environment(ctx context.Context, kind, revision string, packages []string) (string, error) {
+	path, err := n.pins.Environment(ctx, kind, revision, packages)
+	if err == nil {
+		return path, nil
+	}
+	detail := map[string]any{"package": kind, "version": strings.Join(packages, ", ")}
+	if errors.Is(err, nixpin.ErrNotFound) || errors.Is(err, nixpin.ErrUnusable) {
+		return "", &httpapi.RefusedError{Key: "refused.package-not-found", Reason: fmt.Sprintf("the %s packages %s could not be found", kind, strings.Join(packages, ", ")), Detail: detail}
+	}
+	return "", &httpapi.RefusedError{Key: "refused.package-unavailable", Reason: fmt.Sprintf("the %s packages could not be made ready; try again in a few minutes", kind), Detail: detail}
+}
+
+func (n namedPins) Path(ctx context.Context, name, version, revision string) (string, error) {
+	path, err := n.pins.Path(ctx, name, version, revision)
 	if err == nil {
 		return path, nil
 	}
@@ -87,7 +102,7 @@ func (h hugos) Runtime(ctx context.Context, projectID uuid.UUID, site fs.FS) (ru
 	if err != nil {
 		return runtime.Resolved{}, &httpapi.RefusedError{Key: "refused.runtime-definition", Reason: err.Error(), Detail: map[string]any{"reason": err.Error()}}
 	}
-	resolver := runtime.Resolver{InstalledHugo: h.installed}
+	resolver := runtime.Resolver{InstalledHugo: h.installed, Provided: h.provided}
 	if h.pins != nil {
 		resolver.Pins = namedPins{pins: h.pins}
 	}

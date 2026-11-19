@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -61,6 +62,7 @@ type Config struct {
 	AIKey            string
 	OpenCodeBin      string
 	PreviewURL       string
+	Packages         map[string]string
 	TemplateFeed     string
 	Deprecated       []string
 }
@@ -264,6 +266,14 @@ func LoadConfig(lookup Lookup) (Config, error) {
 		return Config{}, &ConfigError{Variable: "CHATCMS_WORKSPACE_BACKEND", Reason: reasonInvalid}
 	}
 
+	provided, err := resolve(lookup, "CHATCMS_PACKAGES")
+	if err != nil {
+		return Config{}, err
+	}
+	if cfg.Packages, err = providedPackages(provided); err != nil {
+		return Config{}, err
+	}
+
 	tools, err := resolve(lookup, "CHATCMS_WORKFLOW_TOOLS")
 	if err != nil {
 		return Config{}, err
@@ -413,4 +423,18 @@ func isNo(value string) bool {
 		return true
 	}
 	return false
+}
+
+var providedName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._+-]*$`)
+
+func providedPackages(said string) (map[string]string, error) {
+	found := map[string]string{}
+	for _, entry := range strings.FieldsFunc(said, func(r rune) bool { return r == ',' || r == '\n' || r == ' ' }) {
+		name, path, ok := strings.Cut(entry, "=")
+		if !ok || !providedName.MatchString(name) || !filepath.IsAbs(path) || filepath.Clean(path) != path {
+			return nil, &ConfigError{Variable: "CHATCMS_PACKAGES", Reason: reasonInvalid}
+		}
+		found[name] = path
+	}
+	return found, nil
 }

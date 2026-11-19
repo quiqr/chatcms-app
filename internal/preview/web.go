@@ -97,7 +97,7 @@ func (w *Web) WorkspaceStanding(ctx context.Context, who httpapi.Actor, organisa
 }
 
 func viewOf(standing Standing) httpapi.WorkspaceView {
-	view := httpapi.WorkspaceView{State: string(standing.State), Reason: standing.Reason, Log: standing.Log, Address: standing.Address, Type: standing.Type, Open: standing.Open}
+	view := httpapi.WorkspaceView{State: string(standing.State), Reason: standing.Reason, Log: standing.Log, Address: standing.Address, Type: standing.Type, Open: standing.Open, OwnPages: standing.OwnPages}
 	for _, step := range standing.Steps {
 		view.Steps = append(view.Steps, httpapi.WorkspaceStepView{Step: string(step.Step), State: string(step.State)})
 	}

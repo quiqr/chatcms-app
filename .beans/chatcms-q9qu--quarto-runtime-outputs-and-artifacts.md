@@ -1,11 +1,11 @@
 ---
 # chatcms-q9qu
 title: Quarto runtime, outputs and artifacts
-status: todo
+status: in-progress
 type: epic
 priority: normal
 created_at: 2026-11-18T12:51:49Z
-updated_at: 2026-11-18T21:47:03Z
+updated_at: 2026-11-19T06:13:42Z
 parent: chatcms-z0p7
 blocked_by:
     - chatcms-5odk

@@ -200,6 +200,7 @@ func importView(kind SourceKind, remote string, inspection Inspection) httpapi.I
 		Kind:        string(kind),
 		Remote:      remote,
 		IsHugoSite:  inspection.IsHugoSite,
+		Runtime:     inspection.Runtime,
 		HasModel:    inspection.HasModel,
 		Ready:       inspection.Ready(),
 		Pages:       inspection.Pages,

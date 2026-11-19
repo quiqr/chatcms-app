@@ -3,10 +3,12 @@ package onboarding
 import (
 	"errors"
 	"io/fs"
+	"path"
 	"sort"
 	"strings"
 
 	"github.com/quiqr/chatcms-app/internal/model"
+	"github.com/quiqr/chatcms-app/internal/runtime"
 )
 
 // hugoConfigurations are the names and places Hugo accepts its configuration
@@ -27,6 +29,7 @@ type Inspection struct {
 	IsHugoSite bool `json:"isHugoSite"`
 	// HugoConfiguration is the file that said so.
 	HugoConfiguration string `json:"hugoConfiguration,omitempty"`
+	Runtime           string `json:"runtime,omitempty"`
 	// HasModel says a Quiqr model was found and could be read.
 	HasModel bool `json:"hasModel"`
 	// ModelBaseFile is the file the model starts from.
@@ -47,6 +50,15 @@ type Inspection struct {
 func Inspect(site fs.FS) Inspection {
 	inspection := Inspection{}
 
+	if declared, err := fs.ReadFile(site, runtime.File); err == nil {
+		definition, err := runtime.Parse(declared)
+		if err != nil {
+			inspection.Problem = "This site's runtime definition cannot be used: " + err.Error()
+			return inspection
+		}
+		inspection.Runtime = path.Base(definition.Preview.Command[0])
+	}
+
 	for _, candidate := range hugoConfigurations {
 		if exists(site, candidate) {
 			inspection.IsHugoSite = true
@@ -55,7 +67,7 @@ func Inspect(site fs.FS) Inspection {
 		}
 	}
 
-	if !inspection.IsHugoSite {
+	if !inspection.IsHugoSite && inspection.Runtime == "" {
 		inspection.Problem = "This does not look like a Hugo site: none of the files Hugo " +
 			"keeps its configuration in is here."
 		inspection.LookedFor = append([]string{}, hugoConfigurations...)
@@ -66,7 +78,7 @@ func Inspect(site fs.FS) Inspection {
 	parsed, err := model.Load(site)
 	switch {
 	case errors.Is(err, model.ErrNoModel):
-		inspection.Problem = "This is a Hugo site with no Quiqr model yet, so there are no " +
+		inspection.Problem = "This site has no Quiqr model yet, so there are no " +
 			"forms to edit it with. Add a model under quiqr/model to finish setting it up."
 		inspection.LookedFor = []string{"quiqr/model/base.yaml", "sukoh.yaml"}
 		return inspection
@@ -85,7 +97,7 @@ func Inspect(site fs.FS) Inspection {
 
 // Ready says the site can be edited now.
 func (i Inspection) Ready() bool {
-	return i.IsHugoSite && i.HasModel
+	return (i.IsHugoSite || i.Runtime != "") && i.HasModel
 }
 
 func exists(site fs.FS, name string) bool {

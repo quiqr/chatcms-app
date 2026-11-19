@@ -1,0 +1,10 @@
+---
+title: Bread
+---
+
+Fresh bread every morning, baked before the shop opens.
+
+```{python}
+loaves = [12, 18, 9]
+print(f"Loaves this week: {sum(loaves)}")
+```

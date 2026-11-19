@@ -57,7 +57,8 @@ type PublishView struct {
 	Trouble string `json:"trouble,omitempty"`
 	// Detail is the raw output. It is only ever filled in for somebody the
 	// policy function allows technical detail.
-	Detail string `json:"detail,omitempty"`
+	Detail    string         `json:"detail,omitempty"`
+	Artifacts []ArtifactView `json:"artifacts,omitempty"`
 }
 
 // StepView is one step of the publish, for the progress list.

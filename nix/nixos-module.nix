@@ -69,6 +69,13 @@ in
       description = "Public base URL, used in invitation links and previews.";
     };
 
+    packages = lib.mkOption {
+      type = lib.types.attrsOf lib.types.package;
+      default = { };
+      example = lib.literalExpression "{ quarto = pkgs.quarto; }";
+      description = "Packages this installation provides itself, by name. A site that asks for one at the same version gets it without a build.";
+    };
+
     previewUrl = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
@@ -414,6 +421,8 @@ in
       environment = {
         CHATCMS_LISTEN = "${cfg.listenAddress}:${toString cfg.port}";
         CHATCMS_BASE_URL = cfg.baseUrl;
+      } // lib.optionalAttrs (cfg.packages != { }) {
+        CHATCMS_PACKAGES = lib.concatStringsSep "," (lib.mapAttrsToList (name: pkg: "${name}=${pkg}") cfg.packages);
       } // lib.optionalAttrs (cfg.previewUrl != null) {
         CHATCMS_PREVIEW_URL = cfg.previewUrl;
       } // {

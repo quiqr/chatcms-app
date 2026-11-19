@@ -101,7 +101,7 @@ func (s *Server) projectHugo() hugos {
 	if absolute, err := filepath.Abs(installed); err == nil {
 		installed = absolute
 	}
-	found := hugos{installed: installed, versionOf: projectHugoVersion(s.db.Queries)}
+	found := hugos{installed: installed, versionOf: projectHugoVersion(s.db.Queries), provided: s.cfg.Packages}
 	s.hugo = &found
 	if s.cfg.NixBin == "" {
 		return found

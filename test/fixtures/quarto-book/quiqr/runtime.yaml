@@ -1,0 +1,8 @@
+packages:
+  quarto: { version: "1.10.18", nixpkgs: 02c087f3fe673c9e317f206a627cb6b910336dbe }
+preview:
+  type: web
+  command: [quarto, preview, "{source}", --host, "{host}", --port, "{port}", --no-browser, --to, html]
+build:
+  output: _book
+  command: [quarto, render, "{source}"]

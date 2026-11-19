@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 
@@ -138,6 +138,25 @@ describe("the publish screen", () => {
 
     expect(sent).toContainEqual({ note: "Spring prices" });
     expect(await screen.findByText("Your site is up to date")).toBeInTheDocument();
+  });
+
+  it("offers the files the publish made", async () => {
+    vi.stubGlobal(
+      "fetch",
+      server({
+        [`${base}/review`]: aReview,
+        [`POST ${base}/publishes`]: {
+          id: "a-publish", state: "succeeded", changeCount: 2,
+          startedAt: "2026-03-04T12:00:00Z",
+          artifacts: [{ id: "a1", name: "Korenaar-Recipes.pdf", size: 4096 }],
+        },
+      }),
+    );
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Publish 2 changes" }));
+    const made = await screen.findByRole("region", { name: "Files made by this publish" });
+    expect(within(made).getByRole("link", { name: "Download Korenaar-Recipes.pdf" })).toHaveAttribute("href", `${base}/artifacts/a1`);
   });
 
   it("says nothing is waiting when nothing is", async () => {

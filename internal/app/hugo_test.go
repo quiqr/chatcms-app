@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"testing/fstest"
 
@@ -20,7 +21,11 @@ type fakePins struct {
 	err  error
 }
 
-func (f fakePins) Path(ctx context.Context, name, version string) (string, error) {
+func (f fakePins) Path(ctx context.Context, name, version, revision string) (string, error) {
+	return f.path, f.err
+}
+
+func (f fakePins) Environment(ctx context.Context, kind, revision string, packages []string) (string, error) {
 	return f.path, f.err
 }
 
@@ -109,5 +114,37 @@ func TestAWrongRuntimeIsRefusedSayingWhy(t *testing.T) {
 		if !errors.As(err, &refused) || refused.Key != case_.key {
 			t.Errorf("%s: Runtime() error = %v, want %s", name, err, case_.key)
 		}
+	}
+}
+
+func TestCellPackagesThatCannotBeHadAreRefusedByName(t *testing.T) {
+	for _, tc := range []struct {
+		err  error
+		want string
+	}{{nixpin.ErrNotFound, "refused.package-not-found"}, {nixpin.ErrUnavailable, "refused.package-unavailable"}} {
+		_, err := namedPins{pins: fakePins{err: tc.err}}.Environment(t.Context(), "python", "x", []string{"pandas"})
+		var refused *httpapi.RefusedError
+		if !errors.As(err, &refused) || refused.Key != tc.want || !strings.Contains(refused.Reason, "python") {
+			t.Errorf("Environment() error = %v, want %s", err, tc.want)
+		}
+	}
+	if path, err := (namedPins{pins: fakePins{path: "/nix/store/env"}}).Environment(t.Context(), "r", "x", nil); err != nil || path != "/nix/store/env" {
+		t.Errorf("Environment() = %q, %v", path, err)
+	}
+}
+
+func TestAProvidedQuartoIsUsed(t *testing.T) {
+	site := fstest.MapFS{"quiqr/runtime.yaml": {Data: []byte("packages: {quarto: \"1.10.18\"}\npreview: {command: [quarto, preview, \"{source}\"]}\n")}}
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "x-quarto-1.10.18", "bin"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "x-quarto-1.10.18", "bin", "quarto"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	h := hugos{versionOf: versionIs(""), provided: map[string]string{"quarto": filepath.Join(dir, "x-quarto-1.10.18")}}
+	resolved, err := h.Runtime(t.Context(), uuid.New(), site)
+	if err != nil || resolved.Preview.Program != filepath.Join(dir, "x-quarto-1.10.18", "bin", "quarto") || !resolved.Rooted {
+		t.Errorf("Runtime() = %+v, %v", resolved, err)
 	}
 }

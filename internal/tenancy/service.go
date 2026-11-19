@@ -31,6 +31,7 @@ type Service struct {
 	// preferences answers what somebody chose about how the application
 	// behaves, which rides along in the one answer a screen asks for.
 	preferences Preferences
+	kept        Kept
 	forget      func(ctx context.Context, projectID uuid.UUID) error
 }
 
@@ -56,6 +57,20 @@ type Waiting interface {
 
 // KnowsWhatIsWaiting gives the service somewhere to ask.
 func (s *Service) KnowsWhatIsWaiting(waiting Waiting) { s.waiting = waiting }
+
+type Kept interface {
+	Any(ctx context.Context, projectID uuid.UUID) (bool, error)
+}
+
+func (s *Service) KnowsWhatIsKept(kept Kept) { s.kept = kept }
+
+func (s *Service) hasArtifacts(ctx context.Context, project Project) bool {
+	if s.kept == nil {
+		return false
+	}
+	any, err := s.kept.Any(ctx, project.ID)
+	return err == nil && any
+}
 
 func (s *Service) unpublishedIn(ctx context.Context, project Project) int {
 	if s.waiting == nil {
@@ -214,6 +229,7 @@ func (s *Service) GetProject(ctx context.Context, who httpapi.Actor, organisatio
 
 	view := projectView(project, actor, resource)
 	view.Unpublished = s.unpublishedIn(ctx, project)
+	view.HasArtifacts = s.hasArtifacts(ctx, project)
 	return view, nil
 }
 

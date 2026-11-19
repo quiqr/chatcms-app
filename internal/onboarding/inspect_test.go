@@ -1,6 +1,7 @@
 package onboarding
 
 import (
+	"os"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -129,5 +130,32 @@ func TestADirectoryNamedLikeAConfigurationIsNotOne(t *testing.T) {
 
 	if Inspect(fsys).IsHugoSite {
 		t.Error("a directory named like a configuration file was taken for one")
+	}
+}
+
+func TestASiteThatDeclaresItsRuntimeNeedsNoHugoConfiguration(t *testing.T) {
+	site := fstest.MapFS{
+		"_quarto.yml":           {Data: []byte("project:\n  type: book\n")},
+		"quiqr/runtime.yaml":    {Data: []byte("packages: {quarto: \"1.10.18\"}\npreview: {command: [quarto, preview, \"{source}\"]}\n")},
+		"quiqr/model/base.yaml": {Data: []byte("singles:\n  - key: preface\n    title: Preface\n    file: index.qmd\n    fields: []\ncollections:\n  - key: chapters\n    title: Chapters\n    folder: chapters/\n    extension: qmd\n    fields: []\n")},
+		"index.qmd":             {Data: []byte("---\ntitle: Preface\n---\n")},
+	}
+	inspection := Inspect(site)
+	if inspection.Runtime != "quarto" || inspection.IsHugoSite || !inspection.HasModel || !inspection.Ready() || inspection.Pages != 1 || inspection.Collections != 1 {
+		t.Errorf("Inspect() = %+v", inspection)
+	}
+}
+
+func TestARuntimeDefinitionThatCannotBeUsedIsTheProblem(t *testing.T) {
+	inspection := Inspect(fstest.MapFS{"quiqr/runtime.yaml": {Data: []byte("preview: {type: video}\n")}})
+	if inspection.Ready() || !strings.Contains(inspection.Problem, "runtime definition") {
+		t.Errorf("Inspect() = %+v", inspection)
+	}
+}
+
+func TestTheQuartoBookFixtureIsASiteWithAModel(t *testing.T) {
+	inspection := Inspect(os.DirFS("../../test/fixtures/quarto-book"))
+	if !inspection.Ready() || inspection.Runtime != "quarto" || inspection.Pages != 1 || inspection.Collections != 1 {
+		t.Errorf("Inspect() = %+v", inspection)
 	}
 }

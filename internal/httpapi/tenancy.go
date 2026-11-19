@@ -99,7 +99,8 @@ type ProjectView struct {
 	Unpublished int      `json:"unpublished"`
 	// Archived says it is out of the way and not counting against the
 	// organisation's limit of sites.
-	Archived bool `json:"archived,omitempty"`
+	Archived     bool `json:"archived,omitempty"`
+	HasArtifacts bool `json:"hasArtifacts,omitempty"`
 }
 
 // MemberView is one person on a project.

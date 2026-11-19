@@ -15,6 +15,7 @@ import { PeoplePage } from "./routes/PeoplePage";
 import { SyncPage } from "./routes/SyncPage";
 import { PublishPage } from "./routes/PublishPage";
 import { ProjectPage } from "./routes/ProjectPage";
+import { ArtifactsPage } from "./routes/ArtifactsPage";
 import { AccountPage } from "./routes/AccountPage";
 import { AdministeredOrganisationPage } from "./routes/AdministeredOrganisationPage";
 import { AdministeredPersonPage } from "./routes/AdministeredPersonPage";
@@ -139,6 +140,7 @@ export function App() {
           <Route path="p/:project/media" element={<ProjectPage title="app.media" body={<MediaPage />} />} />
           <Route path="p/:project/publish" element={<ProjectPage title="common.publish" body={<PublishPage />} />} />
           <Route path="p/:project/history" element={<ProjectPage title="app.history" body={<HistoryPage />} />} />
+          <Route path="p/:project/artifacts" element={<ProjectPage title="app.artifacts" body={<ArtifactsPage />} />} />
           <Route path="p/:project/sync" element={<ProjectPage title="app.sync-status" body={<SyncPage />} />} />
         </Route>
 

@@ -35,6 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   right page, and the new text lights up when the preview reloads.
 - PDF previews show through PDF.js, selectable and at the same page after a
   refresh.
+- Quarto sites: preview, build in the sandbox with Python and R cells, and a
+  book's website and PDF from one publish.
+- A workflow's `outputs` send each part of a build to publish, to Artifacts or
+  to both; Artifacts lists and downloads what each publish kept.
+- A runtime package may name its nixpkgs revision, and an installation may
+  provide packages itself (`services.chatcms.packages`).
 
 ### Changed
 
@@ -47,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The preview's live reload passes through the app again, and event streams
   are flushed as they are written.
+- Publishing the built site no longer fails when its settings name no author.
 - A person without a display name can save; their address is used as the
   author.
 - A question about what two people changed can be answered later, and

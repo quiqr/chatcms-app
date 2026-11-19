@@ -2,6 +2,10 @@
 let
   preview = pkgs.writeShellScript "chatcms-preview" ''
     export PATH=${lib.makeBinPath [ pkgs.iproute2 pkgs.coreutils pkgs.gnugrep pkgs.gnused pkgs.util-linux pkgs.jq ]}
+    owner=$(stat -c %u /site-lower)
+    group=$(stat -c %g /site-lower)
+    chown "$owner:$group" /site
+    chmod "$(stat -c %a /site-lower)" /site
     param() { tr ' ' '\n' < /proc/cmdline | grep "^chatcms.$1=" | head -n1 | sed "s/^chatcms.$1=//"; }
     address=$(param ip)
     gateway=$(param gateway)
@@ -22,16 +26,17 @@ let
 
     home=/run/preview
     mkdir -p $home/cache $home/resources
-    chown -R 65534:65534 $home
+    chown -R "$owner:$group" $home
 
     padded=$(printf '%s' "$run" | tr '_-' '/+')
     while [ $(( ''${#padded} % 4 )) -ne 0 ]; do padded="$padded="; done
     printf '%s' "$padded" | base64 -d > $home/run.json
     path=$(jq -r '.path | join(":")' $home/run.json)
     mapfile -d "" command < <(jq -j '.cmd[] | ., "\u0000"' $home/run.json)
+    mapfile -d "" cells < <(jq -j '(.env // {}) | to_entries[] | "\(.key)=\(.value)", "\u0000"' $home/run.json)
     cd /site
-    exec setpriv --reuid=65534 --regid=65534 --clear-groups \
-      env HOME=$home HUGO_RESOURCEDIR=$home/resources TZ=UTC PATH="$path:/run/current-system/sw/bin" "''${command[@]}"
+    exec setpriv --reuid="$owner" --regid="$group" --clear-groups \
+      env HOME=$home HUGO_RESOURCEDIR=$home/resources TZ=UTC PATH="$path:/run/current-system/sw/bin" "''${cells[@]}" "''${command[@]}"
   '';
   agent = pkgs.writeShellScript "chatcms-agent" ''
     export PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.curl pkgs.util-linux ]}
@@ -62,12 +67,25 @@ in
     mem = 1024;
     shares = [
       { proto = "virtiofs"; tag = "ro-store"; source = "/nix/store"; mountPoint = "/nix/.ro-store"; }
-      { proto = "virtiofs"; tag = "site"; source = "/var/empty"; mountPoint = "/site"; readOnly = true; }
+      { proto = "virtiofs"; tag = "site"; source = "/var/empty"; mountPoint = "/site-lower"; readOnly = true; }
     ];
     interfaces = [ { type = "tap"; id = "chv-guest"; mac = "02:00:00:00:00:02"; } ];
   };
 
-  fileSystems."/site".options = [ "ro" ];
+  fileSystems."/site-lower".options = [ "ro" ];
+  fileSystems."/run/site" = {
+    fsType = "tmpfs";
+    device = "tmpfs";
+    options = [ "size=512m" "mode=0755" ];
+  };
+  fileSystems."/site" = {
+    overlay = {
+      lowerdir = [ "/site-lower" ];
+      upperdir = "/run/site/upper";
+      workdir = "/run/site/work";
+    };
+    depends = [ "/site-lower" "/run/site" ];
+  };
 
   systemd.services.chatcms-preview = {
     description = "The preview of this workspace's site";

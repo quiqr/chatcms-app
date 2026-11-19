@@ -67,6 +67,8 @@ pkgs.runCommand "chatcms-acceptance-tests"
   export CHATCMS_HUGO_BIN=${pkgs.hugo}/bin/hugo
   export CHATCMS_OPENCODE_BIN=${self.packages.${system}.opencode}/bin/opencode
   export CHATCMS_MAILPIT_BIN=${pkgs.mailpit}/bin/mailpit
+  export CHATCMS_PACKAGES=quarto=${pkgs.quarto}
+  export CHATCMS_QUARTO_BOOK=${../test/fixtures/quarto-book}
   export CI=1
 
   cp -r $src/. .

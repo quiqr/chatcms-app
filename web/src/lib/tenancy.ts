@@ -14,6 +14,7 @@ export type Project = {
   youMay: string[];
   unpublished: number;
   archived?: boolean;
+  hasArtifacts?: boolean;
 };
 
 export type Member = {
@@ -80,6 +81,7 @@ export type SiteReport = {
   remote?: string;
   hosted?: boolean;
   isHugoSite: boolean;
+  runtime?: string;
   hasModel: boolean;
   ready: boolean;
   pages: number;
@@ -192,7 +194,24 @@ export type Publish = {
   steps?: PublishStep[];
   trouble?: string;
   detail?: string;
+  artifacts?: Artifact[];
 };
+
+export type Artifact = {
+  id: string;
+  name: string;
+  size: number;
+  createdAt?: string;
+  publishId?: string;
+};
+
+export function readArtifacts(organisation: string, name: string) {
+  return get<Artifact[]>(`${project(organisation, name)}/artifacts`);
+}
+
+export function artifactAddress(organisation: string, name: string, id: string) {
+  return `${project(organisation, name)}/artifacts/${encodeURIComponent(id)}`;
+}
 
 export function readReview(organisation: string, name: string) {
   return get<Review>(`${project(organisation, name)}/review`);
@@ -601,6 +620,7 @@ export type Workspace = {
   address?: string;
   type?: "web" | "pdf" | "other";
   open?: string;
+  ownPages?: boolean;
 };
 
 export function openWorkspace(organisation: string, name: string) {

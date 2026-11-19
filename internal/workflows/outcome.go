@@ -3,6 +3,8 @@ package workflows
 import (
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type State string
@@ -33,6 +35,14 @@ type Outcome struct {
 	// git word and no raw output, so it is safe to show to anybody who may
 	// see the project at all.
 	Trouble *Trouble
+
+	Kept []Kept
+}
+
+type Kept struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	Size int64     `json:"size"`
 }
 
 type Trouble struct {

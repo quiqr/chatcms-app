@@ -66,6 +66,7 @@ type Options struct {
 	Preview   PreviewService
 	Workspace WorkspaceService
 	Chat      ChatService
+	Artifacts ArtifactService
 }
 
 func New(opts Options) http.Handler {
@@ -282,6 +283,9 @@ func New(opts Options) http.Handler {
 
 	if opts.Chat != nil {
 		chatHandlers(mux, opts.Chat)
+	}
+	if opts.Artifacts != nil {
+		artifactHandlers(mux, opts.Artifacts)
 	}
 
 	if opts.Workspace != nil {

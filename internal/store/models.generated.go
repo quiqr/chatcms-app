@@ -40,6 +40,16 @@ type AiUsage struct {
 	Status         int32              `json:"status"`
 }
 
+type Artifact struct {
+	ID        pgtype.UUID        `json:"id"`
+	ProjectID pgtype.UUID        `json:"project_id"`
+	PublishID pgtype.UUID        `json:"publish_id"`
+	Name      string             `json:"name"`
+	Size      int64              `json:"size"`
+	Sha256    string             `json:"sha256"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type Build struct {
 	ID         pgtype.UUID        `json:"id"`
 	ProjectID  pgtype.UUID        `json:"project_id"`

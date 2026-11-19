@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -34,12 +35,23 @@ type Publisher interface {
 	Publish(ctx context.Context, projectID uuid.UUID, built fs.FS) error
 }
 
+type Keeper interface {
+	Keep(ctx context.Context, run Run, files fs.FS, names []string) ([]Kept, error)
+}
+
+var ErrTooBig = errors.New("workflows: an output is too big to keep")
+
 type Engine struct {
 	runner    runner.Runner
 	builder   SiteBuilder
 	publisher Publisher
+	keeper    Keeper
 	toolbox   []string
 	limits    Limits
+}
+
+func (e *Engine) Keeping(keeper Keeper) {
+	e.keeper = keeper
 }
 
 type Limits struct {
@@ -74,6 +86,7 @@ func NewEngine(r runner.Runner, builder SiteBuilder, publisher Publisher, toolbo
 
 type Run struct {
 	ProjectID uuid.UUID
+	PublishID uuid.UUID
 	Site      fs.FS
 	BaseURL   string
 }
@@ -101,7 +114,7 @@ func (e *Engine) Run(ctx context.Context, workflow Workflow, run Run) (*Outcome,
 		case Build:
 			built, done.Detail, trouble, err = e.build(ctx, run)
 		case Publish:
-			trouble, err = e.publish(ctx, run, built)
+			done.Detail, trouble, err = e.publish(ctx, run, workflow, built)
 		default:
 			err = fmt.Errorf("workflows: %q is not something this engine can do", step.Action)
 		}
@@ -120,7 +133,51 @@ func (e *Engine) Run(ctx context.Context, workflow Workflow, run Run) (*Outcome,
 		}
 		outcome.Steps = append(outcome.Steps, done)
 	}
+	trouble, err := e.keep(ctx, run, workflow, built, outcome)
+	if err != nil {
+		return nil, err
+	}
+	outcome.Trouble = trouble
 	return outcome, nil
+}
+
+func (e *Engine) keep(ctx context.Context, run Run, workflow Workflow, built *runner.Result, outcome *Outcome) (*Trouble, error) {
+	if built == nil || !slices.ContainsFunc(workflow.Outputs, func(o Output) bool { return o.To.Keeps() }) {
+		return nil, nil
+	}
+	pages := sitebuild.Pages(built)
+	names := []string{}
+	err := fs.WalkDir(pages, ".", func(name string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !entry.IsDir() && workflow.Selects(name, Destination.Keeps) {
+			names = append(names, name)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(names) == 0 {
+		return nil, nil
+	}
+	if e.keeper == nil {
+		return nil, errors.New("workflows: this installation keeps no artifacts")
+	}
+	kept, err := e.keeper.Keep(ctx, run, pages, names)
+	if errors.Is(err, ErrTooBig) {
+		return &Trouble{
+			Step:    "Keeping the files",
+			Because: "One of the files this site makes is too big to keep.",
+			Advice:  "Your implementer has been told about this.",
+		}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	outcome.Kept = kept
+	return nil, nil
 }
 
 func (e *Engine) check(ctx context.Context, step Step, run Run) (string, *Trouble, error) {
@@ -193,17 +250,24 @@ func (e *Engine) build(ctx context.Context, run Run) (*runner.Result, string, *T
 	return result, result.Log, nil, nil
 }
 
-func (e *Engine) publish(ctx context.Context, run Run, built *runner.Result) (*Trouble, error) {
+func (e *Engine) publish(ctx context.Context, run Run, workflow Workflow, built *runner.Result) (string, *Trouble, error) {
 	var pages fs.FS
 	if built != nil {
 		pages = sitebuild.Pages(built)
+		if len(workflow.Outputs) > 0 {
+			chosen, err := only(pages, func(name string) bool { return workflow.Selects(name, Destination.Publishes) })
+			if err != nil {
+				return "", nil, err
+			}
+			pages = chosen
+		}
 	}
 
 	if err := e.publisher.Publish(ctx, run.ProjectID, pages); err != nil {
-		return &Trouble{
+		return err.Error(), &Trouble{
 			Because: "We could not reach the place your site is published to.",
 			Advice:  "Try again in a moment. If it keeps happening, your implementer can look into it.",
 		}, nil
 	}
-	return nil, nil
+	return "", nil, nil
 }

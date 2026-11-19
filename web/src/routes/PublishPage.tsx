@@ -9,6 +9,7 @@ import { whatWentWrong } from "../lib/api";
 import { useAsync } from "../lib/useAsync";
 import { onADay } from "../lib/when";
 import { useHere } from "../lib/whoami";
+import { ArtifactList } from "./ArtifactsPage";
 import { plural, say } from "../lib/say";
 import {
   publishNow,
@@ -153,9 +154,21 @@ function Done({ publish, onKeepEditing }: { publish: Publish; onKeepEditing: () 
           : plural(publish.changeCount, "publish.change-is-live-one", "publish.change-is-live-many")}
       </p>
       <Progress publish={publish} />
+      {publish.artifacts && publish.artifacts.length > 0 && <Downloads publish={publish} />}
       <div className="flex flex-wrap gap-2">
         <Button onClick={onKeepEditing}>{say("publish.back-to-content")}</Button>
       </div>
+    </section>
+  );
+}
+
+function Downloads({ publish }: { publish: Publish }) {
+  const { organisation } = useHere();
+  const { project = "" } = useParams();
+  return (
+    <section aria-label={say("artifacts.made-by-this-publish")} className="flex flex-col gap-2">
+      <h3 className="text-[15px] font-semibold">{say("artifacts.made-by-this-publish")}</h3>
+      <ArtifactList organisation={organisation} project={project} artifacts={publish.artifacts ?? []} />
     </section>
   );
 }

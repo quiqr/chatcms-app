@@ -17,6 +17,7 @@ import (
 
 	"github.com/quiqr/chatcms-app/internal/aigateway"
 	"github.com/quiqr/chatcms-app/internal/assistant"
+	"github.com/quiqr/chatcms-app/internal/runtime"
 	"github.com/quiqr/chatcms-app/internal/workspace"
 )
 
@@ -150,5 +151,76 @@ func TestARealMicroVMServesThePersonsSite(t *testing.T) {
 	}
 	if fetch() != "" {
 		t.Errorf("the VM still answers after Stop()")
+	}
+}
+
+func TestARealMicroVMRunsQuartoWithoutWritingIntoTheCopy(t *testing.T) {
+	quarto := needs(t, "CHATCMS_QUARTO_BIN")
+	guest, err := LoadGuest(needs(t, "CHATCMS_WORKSPACE_GUEST"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	backend, err := New(Settings{
+		CloudHypervisor: needs(t, "CHATCMS_CLOUD_HYPERVISOR_BIN"),
+		Virtiofsd:       needs(t, "CHATCMS_VIRTIOFSD_BIN"),
+		Guest:           guest,
+		RunDir:          filepath.Join("/tmp", "chatcms-w-"+uuid.NewString()[:8]),
+		Taps:            1,
+		HugoBin:         needs(t, "CHATCMS_HUGO_BIN"),
+		Ready:           2 * time.Minute,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	site := filepath.Join(t.TempDir(), "working-copy")
+	for name, content := range map[string]string{
+		"_quarto.yml": "project:\n  type: book\nbook:\n  title: Korenaar Recipes\n  author: Korenaar\n  chapters:\n    - index.qmd\n    - bread.qmd\nformat:\n  html: default\n",
+		"index.qmd":   "# Preface\n\nWelcome to the bakery.\n",
+		"bread.qmd":   "# Bread\n\nFresh bread every morning.\n",
+	} {
+		os.MkdirAll(filepath.Dir(filepath.Join(site, name)), 0o755)
+		os.WriteFile(filepath.Join(site, name), []byte(content), 0o644)
+	}
+	before, _ := os.ReadDir(site)
+
+	real, _ := filepath.EvalSymlinks(quarto)
+	run := runtime.Resolved{
+		Path:    []string{filepath.Dir(real)},
+		Preview: runtime.Command{Program: real, Args: []string{"preview", "{source}", "--host", "{host}", "--port", "{port}", "--no-browser", "--to", "html"}},
+		Type:    runtime.Web,
+		Open:    "/",
+		Rooted:  true,
+	}
+	started := time.Now()
+	handle, endpoint, err := backend.Start(t.Context(), workspace.Spec{
+		Key: workspace.Key{Person: uuid.New(), Project: uuid.New()}, Dir: site,
+		Under: "http://127.0.0.1:8080/preview/o/p/", Run: run,
+	}, os.Stderr)
+	if err != nil {
+		t.Fatalf("Start() error = %v", err)
+	}
+	defer backend.Stop(context.Background(), handle)
+	t.Logf("Quarto answered after %v", time.Since(started))
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	deadline := time.Now().Add(2 * time.Minute)
+	for {
+		answer, err := client.Get("http://" + endpoint.Address() + "/bread.html")
+		if err == nil {
+			body, _ := io.ReadAll(answer.Body)
+			answer.Body.Close()
+			if strings.Contains(string(body), "Fresh bread every morning") {
+				break
+			}
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("the chapter never showed: %v", err)
+		}
+		time.Sleep(time.Second)
+	}
+	after, _ := os.ReadDir(site)
+	if len(after) != len(before) {
+		t.Errorf("the copy holds %d entries, it held %d", len(after), len(before))
 	}
 }

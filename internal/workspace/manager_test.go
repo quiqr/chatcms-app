@@ -671,3 +671,38 @@ func TestAChangedRuntimeDefinitionStartsAfresh(t *testing.T) {
 		t.Errorf("started %d, running %d, want 2 and 1", len(h.backend.Started), h.backend.Running())
 	}
 }
+
+func TestTheEndpointSaysWhetherThePreviewIsRooted(t *testing.T) {
+	h := newHarness(t, 8)
+	made, err := workspace.New(h.backend, h.store, h.copies, h.isAllowed, workspace.Settings{
+		RuntimeFor: func(context.Context, workspace.Key, string) (runtime.Resolved, error) {
+			return runtime.Resolved{Preview: runtime.Command{Program: "/nix/store/q-quarto/bin/quarto"}, Rooted: true}, nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { made.Close(context.Background()) })
+	if got := endpoint(t, made, aKey()); !got.Rooted {
+		t.Errorf("Endpoint() = %+v, want it rooted", got)
+	}
+}
+
+func TestAPreviewThatIsNotHugoHasPagesOfItsOwn(t *testing.T) {
+	h := newHarness(t, 8)
+	made, err := workspace.New(h.backend, h.store, h.copies, h.isAllowed, workspace.Settings{
+		RuntimeFor: func(context.Context, workspace.Key, string) (runtime.Resolved, error) {
+			return runtime.Resolved{Preview: runtime.Command{Program: "/nix/store/q-quarto/bin/quarto"}, Rooted: true}, nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { made.Close(context.Background()) })
+	key := aKey()
+	endpoint(t, made, key)
+	if report, _ := made.Report(key); !report.OwnPages {
+		t.Errorf("Report() = %+v", report)
+	}
+	endpoint(t, h.w, aKey())
+}

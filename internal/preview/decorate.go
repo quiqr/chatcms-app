@@ -28,11 +28,17 @@ func (s *Service) appOrigin() string {
 	return parsed.Scheme + "://" + parsed.Host
 }
 
-func (s *Service) decorate(where *url.URL, prefix string) http.Handler {
+func (s *Service) decorate(where *url.URL, prefix string, rooted bool) http.Handler {
 	proxy := httputil.NewSingleHostReverseProxy(where)
 	tag := []byte(`<script type="module" src="` + html.EscapeString(prefix+Assets+"select.js") + `" data-app="` + html.EscapeString(s.appOrigin()) + `"></script>`)
 	director := proxy.Director
 	proxy.Director = func(r *http.Request) {
+		if rooted {
+			r.URL.Path = "/" + strings.TrimPrefix(r.URL.Path, prefix)
+			if r.URL.RawPath != "" {
+				r.URL.RawPath = "/" + strings.TrimPrefix(r.URL.RawPath, prefix)
+			}
+		}
 		director(r)
 		r.Header.Del("Accept-Encoding")
 	}

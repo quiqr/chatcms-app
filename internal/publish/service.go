@@ -56,6 +56,25 @@ type Service struct {
 	sources Sources
 	engine  Engine
 	records Recorder
+	kept    KeptOf
+}
+
+type KeptOf interface {
+	OfPublish(ctx context.Context, publishID uuid.UUID) ([]workflows.Kept, error)
+}
+
+func (s *Service) Keeping(kept KeptOf) { s.kept = kept }
+
+func (s *Service) withKept(ctx context.Context, record Record) (Record, error) {
+	if s.kept == nil || record.State != Succeeded {
+		return record, nil
+	}
+	kept, err := s.kept.OfPublish(ctx, record.ID)
+	if err != nil {
+		return Record{}, err
+	}
+	record.Artifacts = kept
+	return record, nil
 }
 
 func NewService(sources Sources, engine Engine, records Recorder) (*Service, error) {
@@ -151,6 +170,7 @@ func (s *Service) Run(ctx context.Context, actor policy.Actor, projectID uuid.UU
 
 	outcome, err := s.engine.Run(ctx, declared.For(workflows.OnPublish, settings), workflows.Run{
 		ProjectID: projectID,
+		PublishID: started.ID,
 		Site:      site.FS(),
 		BaseURL:   baseURL,
 	})
@@ -166,7 +186,12 @@ func (s *Service) Run(ctx context.Context, actor policy.Actor, projectID uuid.UU
 		state = Failed
 		trouble = outcome.Sentence()
 	}
-	return s.records.Finish(ctx, started.ID, state, outcome.Steps, trouble, detailOf(outcome))
+	finished, err := s.records.Finish(ctx, started.ID, state, outcome.Steps, trouble, detailOf(outcome))
+	if err != nil {
+		return Record{}, err
+	}
+	finished.Artifacts = outcome.Kept
+	return finished, nil
 }
 
 func detailOf(outcome *workflows.Outcome) string {
@@ -198,6 +223,10 @@ func (s *Service) Get(ctx context.Context, actor policy.Actor, projectID, id uui
 	}
 	if record.ProjectID != projectID {
 		return Record{}, ErrNoSuchPublish
+	}
+	record, err = s.withKept(ctx, record)
+	if err != nil {
+		return Record{}, err
 	}
 	if s.allowed(ctx, actor, policy.ActionSeeTechnicalDetail, projectID) != nil {
 		record.Detail = ""

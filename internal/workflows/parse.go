@@ -15,8 +15,14 @@ import (
 const Directory = "quiqr/workflows"
 
 type fileShape struct {
-	On    string      `yaml:"on"`
-	Steps []stepShape `yaml:"steps"`
+	On      string        `yaml:"on"`
+	Steps   []stepShape   `yaml:"steps"`
+	Outputs []outputShape `yaml:"outputs"`
+}
+
+type outputShape struct {
+	Path string `yaml:"path"`
+	To   string `yaml:"to"`
 }
 
 type stepShape struct {
@@ -55,7 +61,43 @@ func Parse(file string, content []byte) (Workflow, error) {
 	if err := order(workflow); err != nil {
 		return Workflow{}, err
 	}
+	for index, shape := range shape.Outputs {
+		output, err := readOutput(workflow, index+1, shape)
+		if err != nil {
+			return Workflow{}, err
+		}
+		workflow.Outputs = append(workflow.Outputs, output)
+	}
 	return workflow, nil
+}
+
+func readOutput(workflow Workflow, number int, shape outputShape) (Output, error) {
+	where := func(key, reason string) error {
+		return &Error{File: workflow.File, Key: fmt.Sprintf("outputs[%d].%s", number, key), Reason: reason}
+	}
+	output := Output{Path: strings.TrimPrefix(shape.Path, "./"), To: Destination(shape.To)}
+	if output.Path == "" {
+		output.Path = "."
+	}
+	if shape.Path == "" {
+		return Output{}, where("path", "an output has to say which part of the build it is; . is all of it")
+	}
+	if cleaned := path.Clean(output.Path); cleaned != output.Path || strings.HasPrefix(cleaned, "../") || cleaned == ".." || strings.HasPrefix(cleaned, "/") {
+		return Output{}, where("path", fmt.Sprintf("%q has to be a path inside the build's output", shape.Path))
+	}
+	if _, err := path.Match(output.Path, ""); err != nil {
+		return Output{}, where("path", fmt.Sprintf("%q is not a pattern", shape.Path))
+	}
+	if !output.To.Known() {
+		return Output{}, where("to", fmt.Sprintf("%q is not a destination; the destinations are %s", shape.To, listed(Destinations)))
+	}
+	if !workflow.Does(Build) {
+		return Output{}, where("path", "outputs come from a build, and this workflow does not build")
+	}
+	if output.To.Publishes() && !workflow.Does(Publish) {
+		return Output{}, where("to", fmt.Sprintf("%q goes to publish, but this workflow does not publish", shape.Path))
+	}
+	return output, nil
 }
 
 func readStep(file string, number int, shape stepShape) (Step, error) {

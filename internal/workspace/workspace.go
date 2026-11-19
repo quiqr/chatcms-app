@@ -45,6 +45,7 @@ type Endpoint struct {
 	Host      string
 	Port      int
 	AgentPort int
+	Rooted    bool
 }
 
 func (e Endpoint) Address() string {

@@ -2,6 +2,7 @@ package workflows
 
 import (
 	"fmt"
+	"path"
 	"sort"
 	"strings"
 	"time"
@@ -85,7 +86,48 @@ func (s Step) Title() string {
 type Workflow struct {
 	Trigger Trigger
 	Steps   []Step
+	Outputs []Output
 	File    string
+}
+
+type Destination string
+
+const (
+	ToPublish  Destination = "publish"
+	ToArtifact Destination = "artifact"
+	ToBoth     Destination = "both"
+)
+
+var Destinations = []Destination{ToPublish, ToArtifact, ToBoth}
+
+func (d Destination) Known() bool {
+	return d == ToPublish || d == ToArtifact || d == ToBoth
+}
+
+func (d Destination) Publishes() bool { return d == ToPublish || d == ToBoth }
+
+func (d Destination) Keeps() bool { return d == ToArtifact || d == ToBoth }
+
+type Output struct {
+	Path string
+	To   Destination
+}
+
+func (o Output) Holds(file string) bool {
+	if o.Path == "." || o.Path == file || strings.HasPrefix(file, o.Path+"/") {
+		return true
+	}
+	matched, _ := path.Match(o.Path, file)
+	return matched
+}
+
+func (w Workflow) Selects(file string, wanted func(Destination) bool) bool {
+	for _, output := range w.Outputs {
+		if wanted(output.To) && output.Holds(file) {
+			return true
+		}
+	}
+	return false
 }
 
 func (w Workflow) Does(action Action) bool {

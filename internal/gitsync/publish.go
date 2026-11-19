@@ -169,9 +169,9 @@ func (r *repo) PublishPages(ctx context.Context, line string, pages fs.FS, autho
 	if parent, found := r.tipOf(ctx, line); found {
 		arguments = append(arguments, "-p", parent)
 	}
-	when := []string{
-		"GIT_AUTHOR_NAME=" + author.Name,
-		"GIT_AUTHOR_EMAIL=" + author.Email,
+	when := []string{}
+	if author.Name != "" && author.Email != "" {
+		when = append(when, "GIT_AUTHOR_NAME="+author.Name, "GIT_AUTHOR_EMAIL="+author.Email)
 	}
 	made, err := r.git.runWith(ctx, nil, when, arguments...)
 	if err != nil {

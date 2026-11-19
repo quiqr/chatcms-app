@@ -45,7 +45,11 @@ function Section({
 function siteSummary(report: SiteReport) {
   if (report.kind === "none") return say("onboarding.nothing-has-been-brought-in-yet");
   if (report.ready) {
-    return `Hugo site, Quiqr model found: ${report.pages} pages and ${report.collections} collections.`;
+    return say("onboarding.site-with-a-model", {
+      runtime: report.runtime ? report.runtime.charAt(0).toUpperCase() + report.runtime.slice(1) : "Hugo",
+      pages: String(report.pages),
+      collections: String(report.collections),
+    });
   }
   return report.problem ?? "Something is missing.";
 }

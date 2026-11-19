@@ -407,3 +407,13 @@ func TestPublishedPagesKeepTheirExecutableBit(t *testing.T) {
 		t.Errorf("the line holds %q, want the script to still be runnable", listed)
 	}
 }
+
+func TestPublishPagesWithNoAuthorIsWrittenByTheSystem(t *testing.T) {
+	repository, remote, cfg := cloned(t)
+	if _, err := repository.PublishPages(t.Context(), "live", fstest.MapFS{"index.html": {Data: []byte("<h1>Home</h1>")}}, Identity{}, "Publish"); err != nil {
+		t.Fatalf("PublishPages() error = %v", err)
+	}
+	if author := strings.TrimSpace(run(t, cfg, remote, "log", "-1", "--format=%an <%ae>", "refs/heads/live")); author != cfg.System.Name+" <"+cfg.System.Email+">" {
+		t.Errorf("written by %q", author)
+	}
+}

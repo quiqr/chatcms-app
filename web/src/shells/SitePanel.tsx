@@ -67,7 +67,7 @@ function RailGroup({ label, entries, unpublished }: { label: string; entries: Na
 export function SitePanel({ project, role }: { project: Project; role: string }) {
   const { organisation, who } = useHere();
   const [folded, setFolded] = useFold("site", who.person.id);
-  const site = siteNavigation(organisation, project.slug);
+  const site = siteNavigation(organisation, project.slug, project.hasArtifacts);
   const setup = canSeeSetup(role) ? setupNavigation(organisation, project.slug) : [];
 
   if (folded) {

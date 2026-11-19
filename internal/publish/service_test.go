@@ -483,3 +483,37 @@ func TestPublishStopsWhenSharingFails(t *testing.T) {
 		t.Errorf("Review() error = %v, want the sharing error", err)
 	}
 }
+
+type keptOf struct {
+	kept map[uuid.UUID][]workflows.Kept
+}
+
+func (k keptOf) OfPublish(ctx context.Context, publishID uuid.UUID) ([]workflows.Kept, error) {
+	return k.kept[publishID], nil
+}
+
+func TestAPublishCarriesWhatItKept(t *testing.T) {
+	project := uuid.New()
+	rec := &records{lastErr: publish.ErrNoSuchPublish}
+	pdf := workflows.Kept{ID: uuid.New(), Name: "Korenaar.pdf", Size: 5}
+	eng := &engine{outcome: &workflows.Outcome{Trigger: workflows.OnPublish, Kept: []workflows.Kept{pdf}}}
+	made := service(t, &sources{site: anEditedHomePage()}, eng, rec)
+
+	record, err := made.Run(context.Background(), anEditor(project), project, "")
+	if err != nil || len(record.Artifacts) != 1 || record.Artifacts[0] != pdf {
+		t.Fatalf("Run() = %+v, %v", record.Artifacts, err)
+	}
+	if eng.run.PublishID != record.ID || record.ID == uuid.Nil {
+		t.Errorf("the workflow ran for publish %v, the record is %v", eng.run.PublishID, record.ID)
+	}
+
+	made.Keeping(keptOf{kept: map[uuid.UUID][]workflows.Kept{record.ID: {pdf}}})
+	again, err := made.Get(context.Background(), anEditor(project), project, record.ID)
+	if err != nil || len(again.Artifacts) != 1 {
+		t.Errorf("Get() = %+v, %v", again.Artifacts, err)
+	}
+	view := publish.PublishViewOf(again)
+	if len(view.Artifacts) != 1 || view.Artifacts[0].Name != "Korenaar.pdf" || view.Artifacts[0].ID != pdf.ID.String() {
+		t.Errorf("view = %+v", view.Artifacts)
+	}
+}

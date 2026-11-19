@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -100,10 +102,69 @@ func (p *Pins) lockFor(key string) *sync.Mutex {
 	return lock
 }
 
-func (p *Pins) Path(ctx context.Context, name, version string) (string, error) {
-	if !usable.MatchString(name) || !usable.MatchString(version) {
+func (p *Pins) Path(ctx context.Context, name, version, rev string) (string, error) {
+	if !usable.MatchString(name) || !usable.MatchString(version) || (rev != "" && !revision.MatchString(rev)) {
 		return "", fmt.Errorf("%w: %s %s", ErrUnusable, name, version)
 	}
+	if rev == "" {
+		return p.kept(ctx, name, version, func() (Package, error) { return p.resolve(ctx, name, version) }, p.realise)
+	}
+	path, err := p.kept(ctx, name, version+"@"+rev, func() (Package, error) {
+		return Package{Name: name, Version: version + "@" + rev, System: p.settings.System, Revision: rev, AttrPath: name}, nil
+	}, p.realise)
+	if err != nil {
+		return "", err
+	}
+	if !strings.HasSuffix(filepath.Base(path), "-"+version) {
+		_, held, _ := strings.Cut(filepath.Base(path), "-")
+		return "", fmt.Errorf("%w: nixpkgs %s holds %s, not %s %s", ErrNotFound, rev[:12], held, name, version)
+	}
+	return path, nil
+}
+
+var cellPackage = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+
+var cellBasics = map[string][]string{
+	"python": {"jupyter", "ipykernel"},
+	"r":      {"knitr", "rmarkdown"},
+}
+
+func cellExpression(kind, rev, system string, packages []string) (string, error) {
+	wanted := append(append([]string{}, cellBasics[kind]...), packages...)
+	sort.Strings(wanted)
+	wanted = slices.Compact(wanted)
+	for _, name := range wanted {
+		if !cellPackage.MatchString(name) {
+			return "", fmt.Errorf("%w: %s package %q", ErrUnusable, kind, name)
+		}
+	}
+	pkgs := fmt.Sprintf("(builtins.getFlake \"github:NixOS/nixpkgs/%s\").legacyPackages.%s", rev, system)
+	switch kind {
+	case "python":
+		return fmt.Sprintf("%s.python3.withPackages (ps: [ ps.%s ])", pkgs, strings.Join(wanted, " ps.")), nil
+	case "r":
+		return fmt.Sprintf("let p = %s; in p.rWrapper.override { packages = [ p.rPackages.%s ]; }", pkgs, strings.Join(wanted, " p.rPackages.")), nil
+	}
+	return "", fmt.Errorf("%w: %q is not python or r", ErrUnusable, kind)
+}
+
+func (p *Pins) Environment(ctx context.Context, kind, rev string, packages []string) (string, error) {
+	if !revision.MatchString(rev) {
+		return "", fmt.Errorf("%w: %s needs a whole nixpkgs revision", ErrUnusable, kind)
+	}
+	expression, err := cellExpression(kind, rev, p.settings.System, packages)
+	if err != nil {
+		return "", err
+	}
+	listed := append([]string{}, packages...)
+	sort.Strings(listed)
+	version := strings.Join(listed, "+") + "@" + rev
+	return p.kept(ctx, kind+"-cells", version, func() (Package, error) {
+		return Package{Name: kind + "-cells", Version: version, System: p.settings.System, Revision: rev, AttrPath: expression}, nil
+	}, p.realiseExpression)
+}
+
+func (p *Pins) kept(ctx context.Context, name, version string, find func() (Package, error), realise func(context.Context, Package) (string, error)) (string, error) {
 	system := p.settings.System
 	lock := p.lockFor(name + "\x00" + version)
 	lock.Lock()
@@ -119,12 +180,12 @@ func (p *Pins) Path(ctx context.Context, name, version string) (string, error) {
 
 	pkg := known
 	if !found {
-		pkg, err = p.resolve(ctx, name, version)
+		pkg, err = find()
 		if err != nil {
 			return "", err
 		}
 	}
-	pkg.StorePath, err = p.realise(ctx, pkg)
+	pkg.StorePath, err = realise(ctx, pkg)
 	if err != nil {
 		return "", err
 	}
@@ -190,14 +251,21 @@ func (p *Pins) resolve(ctx context.Context, name, version string) (Package, erro
 }
 
 func (p *Pins) realise(ctx context.Context, pkg Package) (string, error) {
+	return p.build(ctx, pkg, "github:NixOS/nixpkgs/"+pkg.Revision+"#"+pkg.AttrPath)
+}
+
+func (p *Pins) realiseExpression(ctx context.Context, pkg Package) (string, error) {
+	return p.build(ctx, pkg, "--impure", "--expr", pkg.AttrPath)
+}
+
+func (p *Pins) build(ctx context.Context, pkg Package, what ...string) (string, error) {
 	if err := os.MkdirAll(p.settings.Roots, 0o755); err != nil {
 		return "", err
 	}
-	link := filepath.Join(p.settings.Roots, pkg.Name+"-"+pkg.Version)
-	installable := "github:NixOS/nixpkgs/" + pkg.Revision + "#" + pkg.AttrPath
-	command := exec.CommandContext(ctx, p.settings.NixBin,
-		"--extra-experimental-features", "nix-command flakes",
-		"build", "--print-out-paths", "--out-link", link, installable)
+	link := filepath.Join(p.settings.Roots, strings.ReplaceAll(pkg.Name+"-"+pkg.Version, "/", "_"))
+	args := append([]string{"--extra-experimental-features", "nix-command flakes",
+		"build", "--print-out-paths", "--out-link", link}, what...)
+	command := exec.CommandContext(ctx, p.settings.NixBin, args...)
 	out, err := command.Output()
 	if err != nil {
 		detail := ""

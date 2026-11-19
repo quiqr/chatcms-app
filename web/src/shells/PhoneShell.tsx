@@ -29,7 +29,7 @@ export function PhoneShell({
   children,
 }: PhoneShellProps) {
   const { organisation } = useHere();
-  const tabs = siteNavigation(organisation, project.slug);
+  const tabs = siteNavigation(organisation, project.slug, project.hasArtifacts);
 
   return (
     <div

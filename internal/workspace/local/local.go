@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -99,6 +101,9 @@ func (b *Backend) Start(ctx context.Context, spec workspace.Spec, log io.Writer)
 	command.Dir = spec.Dir
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	command.Env = []string{"HOME=" + home, "PATH=" + strings.Join(append(append([]string{}, run.Path...), "/usr/bin", "/bin"), ":"), "TZ=UTC"}
+	for _, name := range slices.Sorted(maps.Keys(run.Env)) {
+		command.Env = append(command.Env, name+"="+run.Env[name])
+	}
 	command.Stdout = log
 	command.Stderr = log
 

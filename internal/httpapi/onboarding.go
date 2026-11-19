@@ -31,6 +31,7 @@ type ImportView struct {
 	Remote      string   `json:"remote,omitempty"`
 	Hosted      bool     `json:"hosted"`
 	IsHugoSite  bool     `json:"isHugoSite"`
+	Runtime     string   `json:"runtime,omitempty"`
 	HasModel    bool     `json:"hasModel"`
 	Ready       bool     `json:"ready"`
 	Pages       int      `json:"pages"`
