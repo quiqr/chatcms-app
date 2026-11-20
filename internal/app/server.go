@@ -225,6 +225,7 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 		Publish:    server.publish,
 		History:    server.history,
 		Content:    server.content,
+		Files:      server.content,
 		Browse:     server.content,
 		Menu:       server.content,
 		Media:      server.media,

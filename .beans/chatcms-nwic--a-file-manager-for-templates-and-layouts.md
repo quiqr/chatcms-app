@@ -1,11 +1,11 @@
 ---
 # chatcms-nwic
 title: A file manager for templates and layouts
-status: todo
+status: in-progress
 type: feature
 priority: normal
 created_at: 2026-11-20T13:34:53Z
-updated_at: 2026-11-20T13:34:53Z
+updated_at: 2026-11-20T18:58:33Z
 ---
 
 Implementers can look through a project's files and read them: the

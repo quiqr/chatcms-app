@@ -373,3 +373,49 @@ func (w *Web) Search(ctx context.Context, who httpapi.Actor, organisation, proje
 	}
 	return view, nil
 }
+
+func (w *Web) ProjectFiles(ctx context.Context, who httpapi.Actor, organisation, project string) (httpapi.FilesView, error) {
+	actor, id, err := w.reach(ctx, who, organisation, project)
+	if err != nil {
+		return httpapi.FilesView{}, err
+	}
+	entries, err := w.service.Files(ctx, actor, id)
+	if err != nil {
+		return httpapi.FilesView{}, err
+	}
+	view := httpapi.FilesView{Entries: make([]httpapi.FileEntryView, 0, len(entries))}
+	for _, entry := range entries {
+		view.Entries = append(view.Entries, httpapi.FileEntryView{Path: entry.Path, Dir: entry.Dir, Link: entry.Link, Size: entry.Size})
+	}
+	return view, nil
+}
+
+func fileView(text FileText) httpapi.FileView {
+	return httpapi.FileView{Path: text.Path, Text: text.Text, Sum: text.Sum, Unusable: text.Unusable}
+}
+
+func (w *Web) ProjectFile(ctx context.Context, who httpapi.Actor, organisation, project, name string) (httpapi.FileView, error) {
+	actor, id, err := w.reach(ctx, who, organisation, project)
+	if err != nil {
+		return httpapi.FileView{}, err
+	}
+	text, err := w.service.ReadFile(ctx, actor, id, name)
+	if err != nil {
+		return httpapi.FileView{}, err
+	}
+	return fileView(text), nil
+}
+
+func (w *Web) SaveProjectFile(ctx context.Context, who httpapi.Actor, organisation, project, name string, save httpapi.FileSave) (httpapi.FileView, error) {
+	actor, id, err := w.reach(ctx, who, organisation, project)
+	if err != nil {
+		return httpapi.FileView{}, err
+	}
+	text, err := w.service.WriteFile(ctx, actor, id, name, save.Text, save.Sum)
+	if err != nil {
+		return httpapi.FileView{}, err
+	}
+	return fileView(text), nil
+}
+
+var _ httpapi.FilesService = (*Web)(nil)

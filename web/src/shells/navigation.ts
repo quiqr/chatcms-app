@@ -1,6 +1,7 @@
 import {
   FileDown,
   FileText,
+  FolderTree,
   History,
   Image,
   ScrollText,
@@ -37,6 +38,7 @@ export function setupNavigation(organisation: string, projectSlug: string): NavE
   return [
     { key: "people", label: say("people.people-roles"), to: `/o/${organisation}/p/${projectSlug}/people`, icon: Users },
     { key: "settings", label: say("app.project-settings"), to: `/o/${organisation}/p/${projectSlug}/settings`, icon: SlidersHorizontal },
+    { key: "files", label: say("app.files"), to: `/o/${organisation}/p/${projectSlug}/files`, icon: FolderTree },
     { key: "log", label: say("app.log"), to: `/o/${organisation}/p/${projectSlug}/log`, icon: ScrollText },
     { key: "workflows", label: say("app.workflows"), to: `/o/${organisation}/p/${projectSlug}/workflows`, icon: Workflow, soon: true },
   ];

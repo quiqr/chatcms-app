@@ -682,6 +682,26 @@ export function logAddress(organisation: string, name: string, entry?: string) {
   return `/o/${organisation}/p/${name}/log${entry ? `?entry=${encodeURIComponent(entry)}` : ""}`;
 }
 
+export type FileEntry = { path: string; dir?: boolean; link?: boolean; size?: number };
+
+export type ProjectFile = { path: string; text: string; sum?: string; unusable?: "too-large" | "binary" | "link" };
+
+function filePath(path: string) {
+  return path.split("/").map(encodeURIComponent).join("/");
+}
+
+export function readFiles(organisation: string, name: string) {
+  return get<{ entries: FileEntry[] }>(`${project(organisation, name)}/files`);
+}
+
+export function readProjectFile(organisation: string, name: string, path: string) {
+  return get<ProjectFile>(`${project(organisation, name)}/files/${filePath(path)}`);
+}
+
+export function saveProjectFile(organisation: string, name: string, path: string, text: string, sum: string) {
+  return put<ProjectFile>(`${project(organisation, name)}/files/${filePath(path)}`, { text, sum });
+}
+
 export function restartWorkspace(organisation: string, name: string) {
   return post<Workspace>(`${project(organisation, name)}/workspace/restart`);
 }

@@ -67,7 +67,7 @@
           root = ./test/fixtures;
           fileset = nixpkgs.lib.fileset.fileFilter (file: file.hasExt "md") ./test/fixtures;
         }}";
-        npmDepsHash = "sha256-mBUV64hRrxJdJ+7V7wdiB/+bLbvfo9iirbaizB7o0Eg=";
+        npmDepsHash = "sha256-NZxg5mbcLhWGHiasrxluHpfWjDnxan6/ZylkGWANkX0=";
 
         nativeBuildInputs = [ pkgs.nodejs_22 ];
 

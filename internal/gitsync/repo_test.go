@@ -510,3 +510,21 @@ func TestSaveWithNoPathsAndNothingToSave(t *testing.T) {
 		t.Errorf("Save() error = %v, want ErrNothingChanged", err)
 	}
 }
+
+func TestContentFSSaysWhatIsALink(t *testing.T) {
+	repository, _, _ := cloned(t)
+	dir := repository.(*repo).dir
+	if err := os.Symlink("/etc", filepath.Join(dir, "outside")); err != nil {
+		t.Fatal(err)
+	}
+	info, err := fs.Lstat(repository.FS(), "outside")
+	if err != nil || info.Mode()&fs.ModeSymlink == 0 {
+		t.Errorf("Lstat(outside) = %v, %v, want a symbolic link", info, err)
+	}
+	if target, err := fs.ReadLink(repository.FS(), "outside"); err != nil || target != "/etc" {
+		t.Errorf("ReadLink() = %q, %v", target, err)
+	}
+	if _, err := fs.Lstat(repository.FS(), ".git/config"); err == nil {
+		t.Error("version control's configuration can be looked at")
+	}
+}

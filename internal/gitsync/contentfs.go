@@ -104,3 +104,23 @@ func (d *contentDir) ReadDir(n int) ([]fs.DirEntry, error) {
 func hidden(name string) bool {
 	return name == versionControlDir || strings.HasPrefix(name, versionControlDir+"/")
 }
+
+func (c *contentFS) Lstat(name string) (fs.FileInfo, error) {
+	if !fs.ValidPath(name) {
+		return nil, &fs.PathError{Op: "lstat", Path: name, Err: fs.ErrInvalid}
+	}
+	if hidden(name) {
+		return nil, &fs.PathError{Op: "lstat", Path: name, Err: fs.ErrNotExist}
+	}
+	return os.Lstat(path.Join(c.root, name))
+}
+
+func (c *contentFS) ReadLink(name string) (string, error) {
+	if !fs.ValidPath(name) {
+		return "", &fs.PathError{Op: "readlink", Path: name, Err: fs.ErrInvalid}
+	}
+	if hidden(name) {
+		return "", &fs.PathError{Op: "readlink", Path: name, Err: fs.ErrNotExist}
+	}
+	return os.Readlink(path.Join(c.root, name))
+}

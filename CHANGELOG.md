@@ -70,6 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   why) beside builds and publications, for implementers.
 - An item without a page of its own says so in the preview, with a way to
   the home page; the model's `previewUrl` and `hidePreviewIcon` are followed.
+- Setup → Files: implementers browse a project's files in a keyboard-friendly
+  tree and edit templates in a code editor; a save is published like any other.
 
 ### Changed
 

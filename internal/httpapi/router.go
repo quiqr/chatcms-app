@@ -56,6 +56,7 @@ type Options struct {
 	History HistoryService
 	// Content serves one page as a form, and writes an edit back.
 	Content ContentService
+	Files   FilesService
 	// Browse serves what a site holds, and making, renaming and removing
 	// pages.
 	Browse BrowseService
@@ -238,6 +239,10 @@ func New(opts Options) http.Handler {
 		mux.Handle("GET "+base+"/pages/{page...}", RequireActor(readPageHandler(opts.Content)))
 		mux.Handle("PUT "+base+"/pages/{page...}", RequireActor(savePageHandler(opts.Content)))
 		mux.HandleFunc(base+"/pages/{page...}", MethodNotAllowed)
+	}
+
+	if opts.Files != nil {
+		filesHandlers(mux, opts.Files)
 	}
 
 	if opts.Browse != nil {
