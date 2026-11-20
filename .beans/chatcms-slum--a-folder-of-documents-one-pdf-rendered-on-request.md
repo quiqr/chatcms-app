@@ -37,3 +37,10 @@ The shape agreed on 20 November 2026:
 Chosen on 20 November 2026: a button, not automatic. Rendering on simply
 opening a page would spend the same effort on every visit that the automatic
 preview does now.
+
+Chosen on 20 November 2026: one Publish button does not square with many
+documents, and the answer is not a second kind of publish. The site keeps one
+Publish, which pushes the site. A document gets an action of its own, "Make
+this PDF", which renders it and keeps it, and touches no published line. That
+keeping is the artifact protocol's "keep on request", so this bean depends on
+it. Publishing a single document to a line of its own is out of scope.
