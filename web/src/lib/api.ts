@@ -103,6 +103,7 @@ export async function sendForm<T>(path: string, body: FormData, method = "POST")
     askToSignIn(response.status, path);
     throw new RequestFailed(errorFrom(payload, response.status));
   }
+  tellProjectChanged(path);
   return payload as T;
 }
 
@@ -145,6 +146,10 @@ async function send<T>(method: string, path: string, body?: unknown): Promise<T>
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
+  if (response.ok && method !== "GET" && method !== "HEAD") {
+    tellProjectChanged(path);
+  }
+
   if (response.status === 204) {
     return undefined as T;
   }
@@ -156,6 +161,18 @@ async function send<T>(method: string, path: string, body?: unknown): Promise<T>
     throw new RequestFailed(errorFrom(payload, response.status));
   }
   return payload as T;
+}
+
+export const projectChangedEvent = "chatcms:project-changed";
+
+const projectPath = /^\/api\/organisations\/([^/]+)\/projects\/([^/]+)\/([^/?]+)/;
+const notAChange = new Set(["workspace", "chat"]);
+
+export function tellProjectChanged(path: string) {
+  if (typeof window === "undefined") return;
+  const found = projectPath.exec(path);
+  if (!found || notAChange.has(found[3]!)) return;
+  window.dispatchEvent(new CustomEvent(projectChangedEvent, { detail: { organisation: found[1], project: found[2] } }));
 }
 
 function errorFrom(payload: unknown, status: number): ApiError {

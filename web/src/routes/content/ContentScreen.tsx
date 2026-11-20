@@ -3,6 +3,7 @@ import { Navigate, useParams } from "react-router";
 import { say } from "../../lib/say";
 import { readContentMenu, readProject } from "../../lib/tenancy";
 import { useAsync } from "../../lib/useAsync";
+import { useProjectChanges } from "../../lib/projectChanges";
 import { useHere } from "../../lib/whoami";
 import { useIsPhone } from "../../shells/useIsPhone";
 import { CollectionView } from "./CollectionView";
@@ -32,7 +33,8 @@ export function ContentScreen() {
   const { organisation } = useHere();
   const { project = "", collection } = useParams();
   const onAPhone = useIsPhone();
-  const [loaded] = useAsync(() => readProject(organisation, project), [organisation, project], `project:${organisation}/${project}`);
+  const [loaded, again] = useAsync(() => readProject(organisation, project), [organisation, project], `project:${organisation}/${project}`);
+  useProjectChanges(organisation, project, again);
   const mayEdit = loaded.state === "ready" && loaded.value.youMay.includes("edit-content");
 
   if (onAPhone) {

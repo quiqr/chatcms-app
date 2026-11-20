@@ -3,7 +3,7 @@ import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "reac
 import { useNavigate } from "react-router";
 
 import { Button } from "../components/ui/button";
-import { whatWentWrong } from "../lib/api";
+import { tellProjectChanged, whatWentWrong } from "../lib/api";
 import { say } from "../lib/say";
 import {
   askAssistant,
@@ -140,7 +140,10 @@ export function ChatPanel({
             return before;
         }
       });
-      if (event.type === "change") changed.current(asking.current ?? undefined);
+      if (event.type === "change") {
+        changed.current(asking.current ?? undefined);
+        tellProjectChanged(`/api/organisations/${organisation}/projects/${project}/pages`);
+      }
       if (event.type === "done" || event.type === "error") {
         working.current = false;
         current.current = null;

@@ -1,6 +1,7 @@
 import { useParams } from "react-router";
 
 import { useAsync } from "../lib/useAsync";
+import { useProjectChanges } from "../lib/projectChanges";
 import { readProject } from "../lib/tenancy";
 import { useHere } from "../lib/whoami";
 import { PhoneShell } from "../shells/PhoneShell";
@@ -33,7 +34,8 @@ export function ProjectPage({
   // The project comes from the server. It used to come from the demo
   // scaffold, which is how the count on the Publish button came to disagree
   // with the publish screen beside it.
-  const [loaded] = useAsync(() => readProject(organisation, slug), [organisation, slug], `project:${organisation}/${slug}`);
+  const [loaded, again] = useAsync(() => readProject(organisation, slug), [organisation, slug], `project:${organisation}/${slug}`);
+  useProjectChanges(organisation, slug, again);
 
   if (loaded.state === "loading") {
     return <p className="p-6 text-[15px] text-muted-foreground">{say("common.looking")}</p>;

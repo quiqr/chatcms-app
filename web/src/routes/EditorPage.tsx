@@ -7,6 +7,7 @@ import { Button } from "../components/ui/button";
 import { Segmented } from "../components/ui/segmented";
 import { readAssistant, readProject, type PreviewRequest, type PreviewSelection } from "../lib/tenancy";
 import { useAsync } from "../lib/useAsync";
+import { useProjectChanges } from "../lib/projectChanges";
 import { EditorShell, type EditorLayout } from "../shells/EditorShell";
 import { PhoneShell } from "../shells/PhoneShell";
 import { AssistantSlot } from "../shells/ProjectShell";
@@ -23,7 +24,8 @@ import { Stepper, usePlace } from "./content/usePlace";
 export function EditorPage() {
   const { organisation, who } = useHere();
   const { project: slug, "*": page = "" } = useParams();
-  const [loaded] = useAsync(() => readProject(organisation, slug ?? ""), [organisation, slug], `project:${organisation}/${slug}`);
+  const [loaded, again] = useAsync(() => readProject(organisation, slug ?? ""), [organisation, slug], `project:${organisation}/${slug}`);
+  useProjectChanges(organisation, slug ?? "", again);
   const viewKey = `chatcms.editor.view.${who.person.id}.${slug ?? ""}`;
   const [layout, setLayoutNow] = useState<EditorLayout>(() => recall<EditorLayout>(viewKey, "split"));
   const setLayout = (next: EditorLayout) => {

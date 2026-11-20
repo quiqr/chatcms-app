@@ -247,3 +247,14 @@ the folded or unfolded panel is usable as soon as it is pressed.
 
 - **WHEN** a screen loads with a panel remembered as folded
 - **THEN** the panel is shown folded from the start, without moving
+
+### Requirement: The publish count follows changes
+
+The number of changes waiting to be published, on the Publish control and in
+the project navigation, SHALL follow a save, a new or removed page, or an
+assistant's change without the page being opened again.
+
+#### Scenario: a save
+
+- **WHEN** a person saves a change to a page while everything was published
+- **THEN** the Publish control SHALL show one change waiting, without a reload
