@@ -309,6 +309,40 @@ func TestPublishPagesDoesNotDisturbTheWorkingCopy(t *testing.T) {
 	}
 }
 
+func TestPublishingPagesSaysWhatIsSavedSinceIsPublished(t *testing.T) {
+	repository, _, _ := cloned(t)
+
+	save(t, repository, "anna", "Write the bread page", map[string]string{
+		"content/bread.md": "---\ntitle: Bread\n---\n",
+	})
+
+	if _, err := repository.PublishPages(t.Context(), "live", fstest.MapFS{
+		"index.html": {Data: []byte("<h1>Home</h1>")},
+	}, editor("anna"), "Publish the site"); err != nil {
+		t.Fatal(err)
+	}
+
+	changes, err := repository.Changes(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(changes) != 0 {
+		t.Errorf("Changes() after publishing = %v, want nothing waiting", pathsOf(changes))
+	}
+
+	save(t, repository, "bert", "Write the rye page", map[string]string{
+		"content/rye.md": "---\ntitle: Rye\n---\n",
+	})
+
+	changes, err = repository.Changes(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(changes) != 1 || changes[0].Path != "content/rye.md" {
+		t.Errorf("Changes() = %v, want only the page saved after the publish", pathsOf(changes))
+	}
+}
+
 func TestPublishingPagesTwiceContinuesTheSameLine(t *testing.T) {
 	repository, remote, cfg := cloned(t)
 

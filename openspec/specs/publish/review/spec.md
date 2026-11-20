@@ -9,7 +9,9 @@ the button is a decision rather than a leap.
 ### Requirement: What changed is said as pages, not as files
 
 The review SHALL list what differs from the published site as pages and
-sections, using the names the site's model gives them.
+sections, using the names the site's model gives them. For a site that
+publishes built pages, the site as last published is where its own files stood
+when those pages were published, because its own files never reach the remote.
 
 #### Scenario: a page the model knows
 
@@ -27,6 +29,12 @@ sections, using the names the site's model gives them.
 - **WHEN** a file outside the model has changed
 - **THEN** it SHALL still be listed, named from its own path
 - **AND** SHALL NOT be left out
+
+#### Scenario: publishing built pages
+
+- **WHEN** a site that publishes built pages is published
+- **THEN** the review afterwards SHALL say that nothing is waiting
+- **AND** a page saved after that publish SHALL be the only change waiting
 
 ### Requirement: Each change says what sort it is and who made it
 

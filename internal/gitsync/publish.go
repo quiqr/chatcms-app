@@ -38,7 +38,7 @@ func (r *repo) Changes(ctx context.Context) ([]Change, error) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	against := r.publishedRef()
+	against := r.againstPublished(ctx)
 	if !r.git.succeeds(ctx, "rev-parse", "--verify", "--quiet", against) {
 		against = emptyTree
 	}
@@ -182,6 +182,9 @@ func (r *repo) PublishPages(ctx context.Context, line string, pages fs.FS, autho
 	if err := r.push(ctx, version, line); err != nil {
 		return PublishResult{}, err
 	}
+	if err := r.notePublishedSource(ctx); err != nil {
+		return PublishResult{}, err
+	}
 	return PublishResult{Published: []Version{{
 		ID:      version,
 		Time:    time.Now().UTC(),
@@ -191,6 +194,26 @@ func (r *repo) PublishPages(ctx context.Context, line string, pages fs.FS, autho
 }
 
 var ErrUnsuitableLine = errors.New("gitsync: that is not somewhere this can be published")
+
+func publishedSourceRef(branch string) string {
+	return "refs/chatcms/published-source/" + branch
+}
+
+func (r *repo) notePublishedSource(ctx context.Context) error {
+	head, err := r.git.run(ctx, "rev-parse", "HEAD")
+	if err != nil {
+		return err
+	}
+	_, err = r.git.run(ctx, "update-ref", publishedSourceRef(r.branch), strings.TrimSpace(string(head)))
+	return err
+}
+
+func (r *repo) againstPublished(ctx context.Context) string {
+	if published := publishedSourceRef(r.branch); r.git.succeeds(ctx, "rev-parse", "--verify", "--quiet", published) {
+		return published
+	}
+	return r.publishedRef()
+}
 
 func checkLine(line string) error {
 	switch {
