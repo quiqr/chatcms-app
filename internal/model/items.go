@@ -153,7 +153,7 @@ func describeItem(fsys fs.FS, c Collection, item Item) Item {
 	if err != nil {
 		return item
 	}
-	document, err := frontmatter.Parse(item.File, data)
+	document, err := frontmatter.Read(item.File, data)
 	if err != nil || document.Fields == nil {
 		return item
 	}

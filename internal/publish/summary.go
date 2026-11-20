@@ -114,8 +114,8 @@ func fieldsOf(ctx context.Context, site Reader, place Place, name string) []Fiel
 		return nil
 	}
 
-	before, beforeErr := frontmatter.Parse(name, was)
-	after, afterErr := frontmatter.Parse(name, now)
+	before, beforeErr := frontmatter.Read(name, was)
+	after, afterErr := frontmatter.Read(name, now)
 	if afterErr != nil {
 		return nil
 	}

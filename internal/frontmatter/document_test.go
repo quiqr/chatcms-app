@@ -316,3 +316,42 @@ func TestGoldenIndexRecordsTheReferenceVersions(t *testing.T) {
 		}
 	}
 }
+
+func TestATOMLConfigKeepsItsOrderAtEveryDepth(t *testing.T) {
+	config := "baseURL = \"https://example.org/\"\ntitle = \"UILite\"\n\n[params]\nzeta = \"last\"\nalpha = \"first\"\n\n  [params.social]\n  twitter = \"t\"\n  github = \"g\"\n\n[[menu.main]]\nname = \"Home\"\nurl = \"/\"\n\n[[menu.main]]\nname = \"About\"\nurl = \"/about/\""
+	document, err := ParseData("config.toml", FormatTOML, []byte(config))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(document.Fields.Keys(), ","); got != "baseURL,title,params,menu" {
+		t.Errorf("top keys = %s", got)
+	}
+	params, _ := document.Fields.Get("params")
+	if got := strings.Join(params.(*Map).Keys(), ","); got != "zeta,alpha,social" {
+		t.Errorf("params keys = %s", got)
+	}
+	menu, _ := document.Fields.Get("menu")
+	main, _ := menu.(*Map).Get("main")
+	items, ok := main.([]any)
+	if !ok || len(items) != 2 {
+		t.Fatalf("menu.main = %#v", main)
+	}
+	if got := strings.Join(items[1].(*Map).Keys(), ","); got != "name,url" {
+		t.Errorf("menu item keys = %s", got)
+	}
+	written, err := document.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "baseURL = \"https://example.org/\"\ntitle = \"UILite\"\n\n[params]\nzeta = \"last\"\nalpha = \"first\"\n\n  [params.social]\n  twitter = \"t\"\n  github = \"g\"\n\n[menu]\n\n  [[menu.main]]\n  name = \"Home\"\n  url = \"/\"\n\n  [[menu.main]]\n  name = \"About\"\n  url = \"/about/\""
+	if string(written) != want {
+		t.Errorf("wrote:\n%s\nwant tomlify's:\n%s", written, want)
+	}
+	again, err := ParseData("config.toml", FormatTOML, written)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if twice, _ := again.Bytes(); string(twice) != want {
+		t.Errorf("a second save changed the file:\n%s", twice)
+	}
+}

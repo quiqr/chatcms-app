@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path"
+	"sort"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -30,6 +32,40 @@ type Document struct {
 	Format Format
 	Fields *Map
 	Body   string
+	Whole  bool
+}
+
+var contentExtensions = map[string]bool{".md": true, ".markdown": true, ".html": true, ".qmd": true}
+
+var dataFormats = map[string]Format{".json": FormatJSON, ".yaml": FormatYAML, ".yml": FormatYAML, ".toml": FormatTOML}
+
+func DataFormatOf(name string) (Format, bool) {
+	extension := strings.ToLower(path.Ext(name))
+	if contentExtensions[extension] {
+		return "", false
+	}
+	format, ok := dataFormats[extension]
+	return format, ok
+}
+
+func Read(name string, data []byte) (*Document, error) {
+	if format, whole := DataFormatOf(name); whole {
+		return ParseData(name, format, data)
+	}
+	return Parse(name, data)
+}
+
+func ParseData(name string, format Format, data []byte) (*Document, error) {
+	document := &Document{Format: format, Fields: NewMap(), Whole: true}
+	if strings.TrimSpace(string(data)) == "" {
+		return document, nil
+	}
+	fields, err := parseHeader(format, string(data))
+	if err != nil {
+		return nil, &ParseError{File: name, Format: format, Err: err}
+	}
+	document.Fields = fields
+	return document, nil
 }
 
 // ErrUnwritableFormat says the front matter is in a format this writer will
@@ -206,24 +242,60 @@ func parseTOMLHeader(header string) (*Map, error) {
 		return nil, err
 	}
 
-	out := NewMap()
+	order := map[string][]string{}
+	seen := map[string]bool{}
 	for _, key := range meta.Keys() {
-		if len(key) != 1 {
-			continue
-		}
-		name := key[0]
-		if value, ok := tree[name]; ok {
-			out.Set(name, fromGeneric(value))
-		}
-	}
-	// Anything the key list did not reach, such as a table's own name, is
-	// added afterwards so nothing is dropped.
-	for name, value := range tree {
-		if _, seen := out.Get(name); !seen {
-			out.Set(name, fromGeneric(value))
+		for depth := range key {
+			parent := strings.Join(key[:depth], "\x00")
+			whole := parent + "\x01" + key[depth]
+			if !seen[whole] {
+				seen[whole] = true
+				order[parent] = append(order[parent], key[depth])
+			}
 		}
 	}
+	out, _ := tomlOrdered(tree, nil, order).(*Map)
 	return out, nil
+}
+
+func tomlOrdered(value any, at []string, order map[string][]string) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		out := NewMap()
+		parent := strings.Join(at, "\x00")
+		for _, key := range order[parent] {
+			if item, ok := typed[key]; ok {
+				out.Set(key, tomlOrdered(item, append(append([]string{}, at...), key), order))
+			}
+		}
+		var rest []string
+		for key := range typed {
+			if _, done := out.Get(key); !done {
+				rest = append(rest, key)
+			}
+		}
+		sort.Strings(rest)
+		for _, key := range rest {
+			out.Set(key, tomlOrdered(typed[key], append(append([]string{}, at...), key), order))
+		}
+		return out
+	case []map[string]any:
+		items := make([]any, len(typed))
+		for i, item := range typed {
+			items[i] = tomlOrdered(item, at, order)
+		}
+		return items
+	case []any:
+		items := make([]any, len(typed))
+		for i, item := range typed {
+			items[i] = tomlOrdered(item, at, order)
+		}
+		return items
+	case string:
+		return typed
+	default:
+		return fromGeneric(value)
+	}
 }
 
 func parseJSONHeader(header string) (*Map, error) {

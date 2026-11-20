@@ -127,7 +127,7 @@ func candidatesOf(site fs.FS, p page) []candidate {
 			found = append(found, candidate{page: p.key, title: p.title, field: field, plain: plain})
 		}
 	}
-	document, err := frontmatter.Parse(p.file, data)
+	document, err := frontmatter.Read(p.file, data)
 	if err != nil {
 		return nil
 	}

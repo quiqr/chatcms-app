@@ -196,3 +196,103 @@ func TestYAMLMatchesTheReferenceImplementation(t *testing.T) {
 		t.Logf("%d of %d cases differ: %s", len(mismatches), len(index.Cases), strings.Join(mismatches, " "))
 	}
 }
+
+func TestJSONMatchesTheReferenceImplementation(t *testing.T) {
+	index := loadIndex(t)
+	cases := loadCases(t)
+	for _, entry := range index.Cases {
+		if !entry.JSON {
+			continue
+		}
+		t.Run(entry.Name, func(t *testing.T) {
+			want, err := os.ReadFile(filepath.Join(goldenDir, entry.Name+".json.golden"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := EmitJSON(cases[entry.Name])
+			if err != nil {
+				t.Fatalf("EmitJSON() error = %v", err)
+			}
+			if string(got) != strings.TrimSuffix(string(want), "\n") {
+				t.Errorf("JSON.stringify wrote:\n%s\nthis writer wrote:\n%s", want, got)
+			}
+		})
+	}
+}
+
+func TestTOMLMatchesTheReferenceImplementation(t *testing.T) {
+	index := loadIndex(t)
+	cases := loadCases(t)
+	for _, entry := range index.Cases {
+		t.Run(entry.Name, func(t *testing.T) {
+			got, err := EmitTOML(cases[entry.Name])
+			if !entry.TOML {
+				if err == nil {
+					t.Errorf("tomlify refused this case, but this writer wrote:\n%s", got)
+				}
+				return
+			}
+			want, readErr := os.ReadFile(filepath.Join(goldenDir, entry.Name+".toml.golden"))
+			if readErr != nil {
+				t.Fatal(readErr)
+			}
+			if err != nil {
+				t.Fatalf("EmitTOML() error = %v", err)
+			}
+			if string(got) != string(want) {
+				t.Errorf("tomlify %s wrote:\n%s\nthis writer wrote:\n%s", index.Tomlify, want, got)
+			}
+		})
+	}
+}
+
+func TestAWholeDataFileIsWrittenBackAsItWasRead(t *testing.T) {
+	index := loadIndex(t)
+	for _, entry := range index.Cases {
+		for _, kind := range []struct {
+			on     bool
+			ext    string
+			golden string
+		}{{entry.YAML, ".yaml", ".yaml.golden"}, {entry.JSON, ".json", ".json.golden"}, {entry.TOML, ".toml", ".toml.golden"}} {
+			if !kind.on {
+				continue
+			}
+			t.Run(entry.Name+kind.ext, func(t *testing.T) {
+				raw, err := os.ReadFile(filepath.Join(goldenDir, entry.Name+kind.golden))
+				if err != nil {
+					t.Fatal(err)
+				}
+				want := string(raw)
+				if kind.ext == ".json" {
+					want = strings.TrimSuffix(want, "\n")
+				}
+				format, ok := DataFormatOf("data/case" + kind.ext)
+				if !ok {
+					t.Fatalf("DataFormatOf(%s) is not data", kind.ext)
+				}
+				document, err := ParseData("data/case"+kind.ext, format, []byte(want))
+				if err != nil {
+					t.Fatalf("ParseData() error = %v", err)
+				}
+				got, err := document.Bytes()
+				if err != nil {
+					t.Fatalf("Bytes() error = %v", err)
+				}
+				if string(got) != want {
+					t.Errorf("read:\n%s\nwrote:\n%s", want, got)
+				}
+			})
+		}
+	}
+}
+
+func TestOnlyDataExtensionsAreReadWhole(t *testing.T) {
+	for name, want := range map[string]bool{
+		"config.toml": true, "data/a.json": true, "data/a.yml": true, "data/a.YAML": true,
+		"content/a.md": false, "index.qmd": false, "page.html": false, "a.markdown": false, "notes.txt": false,
+	} {
+		if _, got := DataFormatOf(name); got != want {
+			t.Errorf("DataFormatOf(%s) = %v, want %v", name, got, want)
+		}
+	}
+}

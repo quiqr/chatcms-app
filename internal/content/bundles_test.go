@@ -85,3 +85,39 @@ func TestANewPageHoldsWhatQuiqrDesktopWrites(t *testing.T) {
 		}
 	}
 }
+
+func TestASiteConfigurationAndDataAreEditedWhole(t *testing.T) {
+	project := uuid.New()
+	working := &site{
+		files: fstest.MapFS{
+			"config.toml":     {Data: []byte("title = \"UILite\"\n\n[params]\ncolor = \"blue\"\n")},
+			"data/hours.yaml": {Data: []byte("note: Closed on Sundays\n")},
+		},
+		model: &model.Model{Singles: []model.Single{
+			{Key: "mainConfig", File: "config.toml", Fields: []model.Field{{Key: "title", Type: "string"}}},
+			{Key: "hours", File: "data/hours.yaml", Fields: []model.Field{{Key: "note", Type: "string"}}},
+		}},
+	}
+	src := &sources{site: working}
+	editing := service(t, src, &syncer{})
+
+	for key, want := range map[string]string{"mainConfig": "UILite", "hours": "Closed on Sundays"} {
+		page, err := editing.Read(context.Background(), anEditor(project), project, key)
+		if err != nil || len(page.Controls) == 0 || page.Controls[0].Value != want {
+			t.Errorf("Read(%s) = %+v, %v, want %q", key, page.Controls, err, want)
+		}
+	}
+
+	if _, err := editing.Save(context.Background(), anEditor(project), project, "mainConfig", content.Edit{Values: map[string]any{"title": "My portfolio"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := editing.Save(context.Background(), anEditor(project), project, "hours", content.Edit{Values: map[string]any{"note": "Open on Sundays"}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := string(src.site.saved[0].Writes["config.toml"]); got != "title = \"My portfolio\"\n\n[params]\ncolor = \"blue\"" {
+		t.Errorf("config.toml = %q", got)
+	}
+	if got := string(src.site.saved[1].Writes["data/hours.yaml"]); got != "note: Open on Sundays\n" {
+		t.Errorf("data/hours.yaml = %q", got)
+	}
+}

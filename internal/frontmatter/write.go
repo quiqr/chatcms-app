@@ -9,6 +9,9 @@ import (
 // written; see ErrUnwritableFormat and the assumption in the change that
 // introduced this package.
 func (d *Document) Bytes() ([]byte, error) {
+	if d.Whole {
+		return d.wholeBytes()
+	}
 	if d.Fields == nil || d.Fields.Len() == 0 {
 		return []byte(d.Body), nil
 	}
@@ -34,4 +37,23 @@ func (d *Document) Bytes() ([]byte, error) {
 	out.WriteString("\n\n")
 	out.WriteString(d.Body)
 	return []byte(out.String()), nil
+}
+
+func (d *Document) wholeBytes() ([]byte, error) {
+	fields := d.Fields
+	if fields == nil {
+		fields = NewMap()
+	}
+	switch d.Format {
+	case FormatJSON:
+		return EmitJSON(fields)
+	case FormatTOML:
+		return EmitTOML(fields)
+	case FormatYAML:
+		if fields.Len() == 0 {
+			return []byte("{}\n"), nil
+		}
+		return EmitYAML(fields)
+	}
+	return nil, fmt.Errorf("%w: %s", ErrUnwritableFormat, d.Format)
 }

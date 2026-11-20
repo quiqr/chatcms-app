@@ -88,6 +88,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Data files and the site configuration (JSON, YAML, TOML) are read and saved
+  whole in their own format, as Quiqr does, not empty or with front matter.
 - The preview's live reload passes through the app again, and event streams
   are flushed as they are written.
 - Publishing the built site no longer fails when its settings name no author.

@@ -20,7 +20,7 @@ type Form struct {
 
 // Load reads a content file against a field tree.
 func Load(fields []model.Field, name string, data []byte) (*Form, error) {
-	document, err := frontmatter.Parse(name, data)
+	document, err := frontmatter.Read(name, data)
 	if err != nil {
 		return nil, err
 	}
