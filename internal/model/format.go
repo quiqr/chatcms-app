@@ -109,6 +109,12 @@ func Normalise(value any) any {
 			out[i] = Normalise(item)
 		}
 		return out
+	case []map[string]any:
+		out := make([]any, len(typed))
+		for i, item := range typed {
+			out[i] = Normalise(item)
+		}
+		return out
 	case json.Number:
 		if integer, err := typed.Int64(); err == nil {
 			return integer

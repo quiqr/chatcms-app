@@ -18,6 +18,21 @@
     ],
     "collections": [
       {
+        "key": "posts",
+        "title": "Posts",
+        "folder": "content/posts/",
+        "extension": "md",
+        "dataformat": "yaml",
+        "itemtitle": "article",
+        "fields": [
+          {
+            "key": "title",
+            "type": "string",
+            "config": {}
+          }
+        ]
+      },
+      {
         "key": "pages",
         "title": "Pages",
         "folder": "content/pages/",
@@ -33,14 +48,7 @@
         ]
       }
     ],
-    "baseFile": "quiqr/model/base.toml",
-    "warnings": [
-      {
-        "file": "quiqr/model/base.toml",
-        "path": "collections",
-        "message": "this should be a list; what is there was ignored"
-      }
-    ]
+    "baseFile": "quiqr/model/base.toml"
   },
   "navigation": {
     "sections": [
@@ -57,6 +65,13 @@
       {
         "title": "Collections",
         "entries": [
+          {
+            "key": "posts",
+            "title": "Posts",
+            "kind": "collection",
+            "itemName": "article",
+            "count": 0
+          },
           {
             "key": "pages",
             "title": "Pages",

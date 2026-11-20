@@ -139,3 +139,18 @@ func TestNormaliseConvertsEveryNumberKind(t *testing.T) {
 		t.Errorf("string = %#v, want it untouched", got["string"])
 	}
 }
+
+func TestTOMLTablesInAListAreAList(t *testing.T) {
+	document := "[[build]]\nkey = \"default\"\nconfig = \"config.toml\"\n\n[[singles]]\nkey = \"mainConfig\"\n\n  [[singles.fields]]\n  key = \"title\"\n"
+	tree, err := Parse("base.toml", []byte(document))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]any{
+		"build":   []any{map[string]any{"key": "default", "config": "config.toml"}},
+		"singles": []any{map[string]any{"key": "mainConfig", "fields": []any{map[string]any{"key": "title"}}}},
+	}
+	if !reflect.DeepEqual(tree, want) {
+		t.Errorf("Parse() = %#v, want %#v", tree, want)
+	}
+}
