@@ -6,7 +6,6 @@ import { Button } from "../components/ui/button";
 import { useHere } from "../lib/whoami";
 import { named } from "./roles";
 import { SitePanel } from "./SitePanel";
-import { SyncIndicator, type SyncState } from "./SyncIndicator";
 import { WorkspaceIndicator } from "./WorkspaceIndicator";
 import { TopBar } from "./TopBar";
 import type { Project } from "../lib/tenancy";
@@ -19,7 +18,6 @@ export type ProjectShellProps = {
   title: ReactNode;
   heading?: ReactNode;
   actions?: ReactNode;
-  syncState?: SyncState;
   beside?: ReactNode;
   children: ReactNode;
 };
@@ -30,7 +28,6 @@ export function ProjectShell({
   title,
   heading,
   actions,
-  syncState = "saved",
   beside,
   children,
 }: ProjectShellProps) {
@@ -47,7 +44,6 @@ export function ProjectShell({
           ) : (
             <h1 className="flex-1 text-lg font-semibold">{title}</h1>
           )}
-          <SyncIndicator state={syncState} />
           <WorkspaceIndicator organisation={organisation} project={project.slug} />
           {actions}
           <Button asChild count={project.unpublished}>

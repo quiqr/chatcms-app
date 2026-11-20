@@ -601,6 +601,8 @@ export const en = {
   "page-editor.we-could-not-open-this-page": "We could not open this page.",
   "page-editor.we-could-not-save-that": "We could not save that.",
   "page-editor.whether-this-page-is-saved": "Whether this page is saved",
+  "page-editor.saved": "Saved",
+  "page-editor.saving": "Saving…",
 
   // panels
   "panels.a-line-of-its-own": "A line of its own",
@@ -985,8 +987,6 @@ export const en = {
   "sync.waiting-one": "{count} change is waiting to be published.",
 
   // sync-indicator
-  "sync-indicator.all-changes-saved": "All changes saved",
-  "sync-indicator.offline-saved-on-this-device": "Offline, saved on this device",
   "workspace-indicator.your-preview": "Your preview: {state}",
   "workspace-indicator.ready": "Preview ready",
   "workspace-indicator.starting": "Preview being prepared",

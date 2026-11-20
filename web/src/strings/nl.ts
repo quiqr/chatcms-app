@@ -604,6 +604,8 @@ export const nl: Strings = {
   "page-editor.we-could-not-open-this-page": "We konden deze pagina niet openen.",
   "page-editor.we-could-not-save-that": "We konden dat niet opslaan.",
   "page-editor.whether-this-page-is-saved": "Of deze pagina opgeslagen is",
+  "page-editor.saved": "Opgeslagen",
+  "page-editor.saving": "Bezig met opslaan…",
 
   // panels
   "panels.a-line-of-its-own": "Een eigen lijn",
@@ -988,8 +990,6 @@ export const nl: Strings = {
   "sync.waiting-one": "{count} wijziging wacht om gepubliceerd te worden.",
 
   // sync-indicator
-  "sync-indicator.all-changes-saved": "Alles is opgeslagen",
-  "sync-indicator.offline-saved-on-this-device": "Geen verbinding, opgeslagen op dit apparaat",
   "workspace-indicator.your-preview": "Je voorbeeld: {state}",
   "workspace-indicator.ready": "Voorbeeld klaar",
   "workspace-indicator.starting": "Voorbeeld wordt klaargezet",

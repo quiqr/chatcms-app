@@ -135,10 +135,10 @@ describe("the page editor", () => {
     renderEditor();
 
     const title = await screen.findByLabelText("Page title");
-    expect(screen.getByText("All changes saved")).toBeInTheDocument();
+    expect(screen.getByText("Saved")).toBeInTheDocument();
 
     await userEvent.type(title, "!");
-    await waitFor(() => expect(screen.getByText("All changes saved")).toBeInTheDocument(), {
+    await waitFor(() => expect(screen.getByText("Saved")).toBeInTheDocument(), {
       timeout: 4000,
     });
   });

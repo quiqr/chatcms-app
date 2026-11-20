@@ -68,13 +68,11 @@ function currentOf(page: Page): Current {
 
 function Status({ state }: { state: Saving }) {
   const said = {
-    saved: say("sync-indicator.all-changes-saved"),
-    saving: "Saving…",
+    saved: say("page-editor.saved"),
+    saving: say("page-editor.saving"),
     trouble: say("page-editor.not-saved-yet-we-will-keep-trying"),
   }[state];
 
-  // Named, because the top bar carries a status too and two live regions
-  // saying the same words are two things a screen reader cannot tell apart.
   return (
     <p
       aria-live="polite"

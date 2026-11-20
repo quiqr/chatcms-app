@@ -8,7 +8,6 @@ import { siteNavigation } from "./navigation";
 import { useHere } from "../lib/whoami";
 import { PersonMenu } from "./PersonMenu";
 import { ProjectSwitcher } from "./ProjectSwitcher";
-import { SyncIndicator } from "./SyncIndicator";
 import { WorkspaceIndicator } from "./WorkspaceIndicator";
 import type { Project } from "../lib/tenancy";
 import { say } from "../lib/say";
@@ -46,7 +45,6 @@ export function PhoneShell({
           </button>
         </ProjectSwitcher>
         <span className="flex min-w-0 flex-1 justify-end">
-          <SyncIndicator />
           <WorkspaceIndicator organisation={organisation} project={project.slug} />
         </span>
         <PersonMenu name={viewer.name} />

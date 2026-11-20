@@ -158,8 +158,8 @@ export async function worksOnAPhone(page, testInfo) {
 
 /**
  * saves runs something that changes a page and waits for the save to reach
- * the server. Waiting for the words "All changes saved" would not do: they
- * are also what the screen says before anything has been typed, so the
+ * the server. Waiting for the word "Saved" would not do: it is
+ * also what the screen says before anything has been typed, so the
  * assertion would pass without a save having happened at all.
  */
 export async function saves(page, change) {
@@ -172,7 +172,7 @@ export async function saves(page, change) {
   );
   await change();
   await written;
-  await expect(page.getByLabel("Whether this page is saved")).toHaveText("All changes saved");
+  await expect(page.getByLabel("Whether this page is saved")).toHaveText("Saved");
 }
 
 /**
