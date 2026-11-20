@@ -1,12 +1,13 @@
 import { Monitor, Smartphone } from "lucide-react";
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { Link } from "react-router";
 
 import { Segmented } from "../components/ui/segmented";
 import { useIsPhone } from "../shells/useIsPhone";
 import { whatWentWrong } from "../lib/api";
 import { maybe, say, spokenNow } from "../lib/say";
-import { openWorkspace, readWorkspace, type PreviewRequest, type Workspace } from "../lib/tenancy";
-import { stepNames, stepStates, useRestarted } from "../lib/workspace";
+import { logAddress, openWorkspace, readWorkspace, type PreviewRequest, type Workspace } from "../lib/tenancy";
+import { useRestarted } from "../lib/workspace";
 import type { Pill, Words } from "../preview/select";
 
 /**
@@ -104,7 +105,7 @@ export function Preview({
             }
           />
         ) : (
-          <Preparing workspace={workspace} refused={refused} />
+          <Preparing workspace={workspace} refused={refused} log={workspace?.entry ? logAddress(organisation, project, workspace.entry) : ""} />
         )}
       </div>
 
@@ -269,7 +270,7 @@ function useWorkspace(organisation: string, project: string) {
   return { workspace, refused };
 }
 
-function Preparing({ workspace, refused }: { workspace: Workspace | null; refused: string }) {
+function Preparing({ workspace, refused, log }: { workspace: Workspace | null; refused: string; log: string }) {
   const failed = refused || (workspace?.state === "sleeping" && workspace.reason
     ? maybe(workspace.reason) ?? say("preview.did-not-start")
     : "");
@@ -279,23 +280,10 @@ function Preparing({ workspace, refused }: { workspace: Workspace | null; refuse
       <p role="status" className="text-[15px] text-muted-foreground">
         {failed || say("preview.preparing")}
       </p>
-      {workspace?.steps && (
-        <details data-testid="preview-steps" className="w-full text-left text-[13px]">
-          <summary className="cursor-pointer text-primary">{say("preview.show-what-is-happening")}</summary>
-          <ul className="mt-2 flex flex-col gap-1">
-            {workspace.steps.map((step) => (
-              <li key={step.step} className="flex justify-between gap-4">
-                <span>{say(stepNames[step.step])}</span>
-                <span className="text-subtle-foreground">{say(stepStates[step.state])}</span>
-              </li>
-            ))}
-          </ul>
-          {workspace.log && workspace.log.length > 0 && (
-            <pre className="mt-2 max-h-48 overflow-auto rounded bg-muted p-2 text-[12px] whitespace-pre-wrap">
-              {workspace.log.join("\n")}
-            </pre>
-          )}
-        </details>
+      {log && (
+        <Link to={log} className="text-[13px] text-primary">
+          {say(failed ? "log.see-what-went-wrong" : "log.show-the-log")}
+        </Link>
       )}
     </div>
   );

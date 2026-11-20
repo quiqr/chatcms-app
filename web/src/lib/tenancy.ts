@@ -639,7 +639,45 @@ export type Workspace = {
   ownPages?: boolean;
   backend?: string;
   since?: string;
+  entry?: string;
 };
+
+export type LogKind = "start" | "build" | "publish";
+
+export type LogEntry = {
+  entry: string;
+  kind: LogKind;
+  at: string;
+  finished?: string;
+  state: string;
+  what?: string;
+  who?: string;
+  millis?: number;
+};
+
+export type LogDetail = LogEntry & {
+  hugo?: { asked: string; program: string; because: string; printed: string };
+  steps: { step: string; state: string; detail?: string }[];
+  log?: string;
+  reason?: string;
+  exit?: number;
+};
+
+export function readLog(organisation: string, name: string, kind: LogKind | "", before = "") {
+  const query = new URLSearchParams();
+  if (kind) query.set("kind", kind);
+  if (before) query.set("before", before);
+  const asked = query.toString();
+  return get<{ entries: LogEntry[]; more: boolean }>(`${project(organisation, name)}/log${asked ? `?${asked}` : ""}`);
+}
+
+export function readLogEntry(organisation: string, name: string, entry: string) {
+  return get<LogDetail>(`${project(organisation, name)}/log/${encodeURIComponent(entry)}`);
+}
+
+export function logAddress(organisation: string, name: string, entry?: string) {
+  return `/o/${organisation}/p/${name}/log${entry ? `?entry=${encodeURIComponent(entry)}` : ""}`;
+}
 
 export function restartWorkspace(organisation: string, name: string) {
   return post<Workspace>(`${project(organisation, name)}/workspace/restart`);

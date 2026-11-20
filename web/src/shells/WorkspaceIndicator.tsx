@@ -1,11 +1,12 @@
 import { Box, RotateCw } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 
 import { Button } from "../components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import { cn } from "../lib/cn";
 import { maybe, say, type Key } from "../lib/say";
-import { readAssistant, readWorkspace, restartWorkspace, type Workspace } from "../lib/tenancy";
+import { logAddress, readAssistant, readWorkspace, restartWorkspace, type Workspace } from "../lib/tenancy";
 import { when } from "../lib/when";
 import { announceRestart, stepNames, stepStates, useRestarted } from "../lib/workspace";
 
@@ -127,10 +128,10 @@ export function WorkspaceIndicator({ organisation, project }: { organisation: st
                 ))}
               </ul>
             )}
-            {workspace.log && workspace.log.length > 0 && (
-              <pre className="max-h-40 overflow-auto rounded bg-muted p-2 text-[12px] whitespace-pre-wrap">
-                {workspace.log.join("\n")}
-              </pre>
+            {workspace.entry && (
+              <Link to={logAddress(organisation, project, workspace.entry)} className="text-primary">
+                {say("log.open-the-log")}
+              </Link>
             )}
             <Button variant="outline" size="secondary" onClick={startAgain} disabled={restarting} type="button">
               <RotateCw aria-hidden="true" className={cn("size-4", restarting && "animate-spin")} />

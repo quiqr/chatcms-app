@@ -1,8 +1,14 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render as draw, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactElement } from "react";
+import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { WorkspaceIndicator, shownOf } from "../WorkspaceIndicator";
+
+function render(screenUnderTest: ReactElement) {
+  return draw(<MemoryRouter>{screenUnderTest}</MemoryRouter>);
+}
 
 type Answer = { status?: number; body: unknown };
 
@@ -70,7 +76,7 @@ describe("the workspace symbol", () => {
           backend: "gvisor",
           since: new Date().toISOString(),
           steps: [{ step: "building-preview", state: "done" }],
-          log: ["hugo server started"],
+          entry: "start:7",
         },
       },
       [`GET ${base}/chat`]: { body: { available: true } },
@@ -83,7 +89,7 @@ describe("the workspace symbol", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Your preview: Preview ready" }));
     expect(await screen.findByText("Runs on a gVisor sandbox")).toBeInTheDocument();
     expect(screen.getByText("Building the preview")).toBeInTheDocument();
-    expect(screen.getByText("hugo server started")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open the log" })).toHaveAttribute("href", "/o/technative/p/korenaar/log?entry=start%3A7");
 
     await userEvent.click(screen.getByRole("button", { name: "Start again" }));
     await waitFor(() => expect(fetched).toContain(`POST ${base}/workspace/restart`));

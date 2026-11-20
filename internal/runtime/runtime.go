@@ -228,7 +228,21 @@ type Resolved struct {
 	Declared bool              `json:"declared"`
 	Env      map[string]string `json:"env,omitempty"`
 	Rooted   bool              `json:"rooted,omitempty"`
+	Hugo     *HugoChoice       `json:"hugo,omitempty"`
 }
+
+type HugoChoice struct {
+	Asked   string `json:"asked"`
+	Program string `json:"program"`
+	Because string `json:"because"`
+}
+
+const (
+	HugoPinned     = "pinned"
+	HugoPinningOff = "pinning-off"
+	HugoNoVersion  = "no-version"
+	HugoProvided   = "provided"
+)
 
 type Pins interface {
 	Path(ctx context.Context, name, version, revision string) (string, error)
@@ -262,11 +276,18 @@ func (r Resolver) Resolve(ctx context.Context, definition Definition, declared b
 	sort.Strings(names)
 
 	var dirs []string
+	var hugo *HugoChoice
+	chose := func(name, version, dir, because string) {
+		if name == "hugo" {
+			hugo = &HugoChoice{Asked: version, Program: filepath.Join(dir, "hugo"), Because: because}
+		}
+	}
 	for _, name := range names {
 		pkg := definition.Packages[name]
 		version := pkg.Version
 		if provided, found := r.Provided[name]; found && providedAs(provided, version) {
 			dirs = append(dirs, filepath.Join(provided, "bin"))
+			chose(name, version, filepath.Join(provided, "bin"), HugoProvided)
 			continue
 		}
 		if name == "hugo" && (version == "" || r.Pins == nil) {
@@ -274,6 +295,11 @@ func (r Resolver) Resolve(ctx context.Context, definition Definition, declared b
 				return Resolved{}, ErrNoHugo
 			}
 			dirs = append(dirs, filepath.Dir(r.InstalledHugo))
+			because := HugoPinningOff
+			if version == "" {
+				because = HugoNoVersion
+			}
+			hugo = &HugoChoice{Asked: version, Program: r.InstalledHugo, Because: because}
 			continue
 		}
 		if r.Pins == nil {
@@ -284,6 +310,7 @@ func (r Resolver) Resolve(ctx context.Context, definition Definition, declared b
 			return Resolved{}, err
 		}
 		dirs = append(dirs, filepath.Join(path, "bin"))
+		chose(name, version, filepath.Join(path, "bin"), HugoPinned)
 	}
 
 	env := map[string]string{}
@@ -314,7 +341,7 @@ func (r Resolver) Resolve(ctx context.Context, definition Definition, declared b
 		return "", fmt.Errorf("%w: %s", ErrNoProgram, program)
 	}
 
-	resolved := Resolved{Path: dirs, Type: definition.Preview.Type, Open: definition.Preview.Open, Declared: declared, Rooted: !slices.Contains(definition.Preview.Command, "{url}")}
+	resolved := Resolved{Path: dirs, Type: definition.Preview.Type, Open: definition.Preview.Open, Declared: declared, Rooted: !slices.Contains(definition.Preview.Command, "{url}"), Hugo: hugo}
 	if len(env) > 0 {
 		resolved.Env = env
 	}

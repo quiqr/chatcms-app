@@ -64,10 +64,11 @@ type Options struct {
 	// Sync serves how a site stands and settling what two people changed.
 	Sync SyncService
 	// Preview serves a site as a reader will see it.
-	Preview   PreviewService
-	Workspace WorkspaceService
-	Chat      ChatService
-	Artifacts ArtifactService
+	Preview    PreviewService
+	Workspace  WorkspaceService
+	ProjectLog ProjectLogService
+	Chat       ChatService
+	Artifacts  ArtifactService
 }
 
 func New(opts Options) http.Handler {
@@ -291,6 +292,10 @@ func New(opts Options) http.Handler {
 	}
 	if opts.Artifacts != nil {
 		artifactHandlers(mux, opts.Artifacts)
+	}
+
+	if opts.ProjectLog != nil {
+		projectLogHandlers(mux, opts.ProjectLog)
 	}
 
 	if opts.Workspace != nil {

@@ -1,6 +1,6 @@
 import { AlertTriangle, CheckCircle2, ChevronDown, FileText, Image, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -12,6 +12,7 @@ import { useHere } from "../lib/whoami";
 import { ArtifactList } from "./ArtifactsPage";
 import { plural, say } from "../lib/say";
 import {
+  logAddress,
   publishNow,
   readReview,
   type Change,
@@ -175,6 +176,8 @@ function Downloads({ publish }: { publish: Publish }) {
 
 function Trouble({ publish, onTryAgain }: { publish: Publish; onTryAgain: () => void }) {
   const [showDetail, setShowDetail] = useState(false);
+  const { organisation } = useHere();
+  const { project = "" } = useParams();
 
   return (
     <section className="flex flex-col gap-4" aria-live="polite">
@@ -203,6 +206,9 @@ function Trouble({ publish, onTryAgain }: { publish: Publish; onTryAgain: () => 
           {showDetail && (
             <pre className="max-h-80 overflow-auto rounded-lg bg-muted p-3 text-xs">{publish.detail}</pre>
           )}
+          <Link to={logAddress(organisation, project, `publish:${publish.id}`)} className="text-sm text-primary">
+            {say("log.see-what-went-wrong")}
+          </Link>
         </div>
       )}
     </section>

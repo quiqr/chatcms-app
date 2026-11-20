@@ -81,3 +81,60 @@ FROM workspace_samples
 WHERE at >= $1
 GROUP BY 1
 ORDER BY 1;
+
+-- name: BeginWorkspaceStart :one
+INSERT INTO workspace_events (at, kind, backend, project_id, person_id)
+VALUES ($1, 'starting', $2, $3, $4)
+RETURNING id;
+
+-- name: FinishWorkspaceStart :exec
+UPDATE workspace_events
+SET kind = $2,
+    millis = $3,
+    reason = $4,
+    steps = $5,
+    log = $6,
+    hugo = $7,
+    finished_at = $8
+WHERE id = $1;
+
+-- name: InterruptWorkspaceStarts :exec
+UPDATE workspace_events
+SET kind = 'interrupted', finished_at = now()
+WHERE kind = 'starting';
+
+-- name: GetWorkspaceStart :one
+SELECT e.id, e.at, e.kind, e.backend, e.project_id, e.millis, e.reason, e.steps, e.log, e.hugo, e.finished_at,
+       coalesce(nullif(p.display_name, ''), p.email, '')::text AS who
+FROM workspace_events e
+LEFT JOIN people p ON p.id = e.person_id
+WHERE e.id = $1 AND e.project_id = $2 AND e.kind <> 'refused';
+
+-- name: ProjectLog :many
+SELECT kind, id, at, finished_at, state, what, who, millis FROM (
+    SELECT 'start'::text AS kind, e.id::text AS id, e.at AS at, e.finished_at AS finished_at,
+           e.kind::text AS state, e.backend::text AS what,
+           coalesce(nullif(p.display_name, ''), p.email, '')::text AS who,
+           e.millis AS millis
+    FROM workspace_events e
+    LEFT JOIN people p ON p.id = e.person_id
+    WHERE e.project_id = sqlc.arg(project) AND e.kind <> 'refused'
+    UNION ALL
+    SELECT 'build'::text, b.id::text, b.started_at, b.finished_at,
+           b.state::text, b.reason::text, ''::text,
+           (extract(epoch FROM b.finished_at - b.started_at) * 1000)::int
+    FROM builds b
+    WHERE b.project_id = sqlc.arg(project)
+    UNION ALL
+    SELECT 'publish'::text, u.id::text, u.started_at, u.finished_at,
+           u.state::text, u.change_count::text,
+           coalesce(nullif(p.display_name, ''), p.email, '')::text,
+           (extract(epoch FROM u.finished_at - u.started_at) * 1000)::int
+    FROM publishes u
+    LEFT JOIN people p ON p.id = u.person_id
+    WHERE u.project_id = sqlc.arg(project)
+) entries
+WHERE (sqlc.narg(of_kind)::text IS NULL OR kind = sqlc.narg(of_kind)::text)
+  AND (sqlc.narg(before)::timestamptz IS NULL OR at < sqlc.narg(before)::timestamptz)
+ORDER BY at DESC, id DESC
+LIMIT sqlc.arg(most);

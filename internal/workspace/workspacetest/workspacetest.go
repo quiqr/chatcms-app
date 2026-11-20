@@ -21,6 +21,7 @@ type Backend struct {
 	next    int
 	running map[workspace.Handle]workspace.Spec
 	Started []workspace.Spec
+	Says    []string
 	Stopped []workspace.Handle
 }
 
@@ -41,6 +42,9 @@ func (b *Backend) Start(ctx context.Context, spec workspace.Spec, log io.Writer)
 		}
 	}
 	fmt.Fprintf(log, "starting %s\n", spec.Dir)
+	for _, line := range b.Says {
+		fmt.Fprintln(log, line)
+	}
 
 	b.mu.Lock()
 	defer b.mu.Unlock()

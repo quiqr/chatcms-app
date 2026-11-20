@@ -9,6 +9,7 @@ import { NotFound } from "./routes/NotFound";
 import { OrganisationPage } from "./routes/OrganisationPage";
 import { OnboardingPage } from "./routes/OnboardingPage";
 import { HistoryPage } from "./routes/HistoryPage";
+import { LogPage } from "./routes/LogPage";
 import { ContentBreadcrumb } from "./routes/content/ContentBreadcrumb";
 import { ContentBeside, ContentScreen } from "./routes/content/ContentScreen";
 import { EditorPage } from "./routes/EditorPage";
@@ -137,6 +138,7 @@ export function App() {
             element={<ProjectPage title="app.project-settings" body={<ProjectSettingsPage />} />}
           />
           <Route path="p/:project/workflows" element={<ProjectPage title="app.workflows" />} />
+          <Route path="p/:project/log" element={<ProjectPage title="app.log" body={<LogPage />} />} />
           <Route path="p/:project/content" element={<ProjectPage title="app.content" beside={<ContentBeside />} body={<ContentScreen />} />} />
           <Route
             path="p/:project/content/c/:collection"

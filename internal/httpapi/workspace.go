@@ -27,6 +27,7 @@ type WorkspaceView struct {
 	Log      []string            `json:"log,omitempty"`
 	Backend  string              `json:"backend,omitempty"`
 	Since    string              `json:"since,omitempty"`
+	Entry    string              `json:"entry,omitempty"`
 }
 
 func openWorkspaceHandler(service WorkspaceService) http.Handler {

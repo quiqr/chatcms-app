@@ -3,6 +3,7 @@ package preview
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"net/url"
@@ -122,6 +123,7 @@ type Standing struct {
 	Log      []string
 	Backend  string
 	Since    time.Time
+	Entry    string
 }
 
 func (s *Service) Open(ctx context.Context, actor policy.Actor, projectID uuid.UUID, under string) (Standing, error) {
@@ -187,6 +189,9 @@ func (s *Service) standing(key workspace.Key, technical bool) Standing {
 		standing.Steps = report.Steps
 		standing.Log = report.Log
 		standing.Backend = report.Backend
+		if report.Logged != 0 {
+			standing.Entry = fmt.Sprintf("start:%d", report.Logged)
+		}
 	}
 	return standing
 }

@@ -164,6 +164,9 @@ func (s *Server) startWorkspaces(ctx context.Context, tenancyStore *tenancy.Stor
 	if err != nil {
 		return nil, err
 	}
+	if err := history.Interrupt(ctx); err != nil {
+		return nil, err
+	}
 	if err := made.Reconcile(ctx); err != nil {
 		return nil, err
 	}

@@ -110,7 +110,7 @@ func (w *Web) WorkspaceStanding(ctx context.Context, who httpapi.Actor, organisa
 }
 
 func viewOf(standing Standing) httpapi.WorkspaceView {
-	view := httpapi.WorkspaceView{State: string(standing.State), Reason: standing.Reason, Log: standing.Log, Address: standing.Address, Type: standing.Type, Open: standing.Open, OwnPages: standing.OwnPages, Backend: standing.Backend}
+	view := httpapi.WorkspaceView{State: string(standing.State), Reason: standing.Reason, Log: standing.Log, Address: standing.Address, Type: standing.Type, Open: standing.Open, OwnPages: standing.OwnPages, Backend: standing.Backend, Entry: standing.Entry}
 	if !standing.Since.IsZero() {
 		view.Since = standing.Since.UTC().Format(time.RFC3339)
 	}

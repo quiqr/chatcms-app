@@ -1,11 +1,16 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render as draw, screen, waitFor } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import type { ReactElement } from "react";
+import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useStartWorkspace } from "../../lib/workspace";
 import { Preview } from "../Preview";
 import { setWidth } from "./width";
+
+function render(screenUnderTest: ReactElement) {
+  return draw(<MemoryRouter>{screenUnderTest}</MemoryRouter>);
+}
 
 const workspacePath = "/api/organisations/technative/projects/korenaar/workspace";
 
@@ -53,16 +58,26 @@ describe("preview", () => {
     expect(asked[1]).toBe(`GET ${workspacePath}`);
   });
 
-  it("lets somebody given the steps unfold them, with the log", async () => {
-    vi.stubGlobal("fetch", server([{ body: { state: "starting", steps, log: ["hugo starting"] } }]));
+  it("gives an implementer a link to this start in the log", async () => {
+    vi.stubGlobal("fetch", server([{ body: { state: "starting", steps, entry: "start:7" } }]));
 
     render(<Preview organisation="technative" project="korenaar" />);
 
-    const unfold = await screen.findByText("Show what is happening");
-    await userEvent.click(unfold);
-    expect(screen.getByText("Building the preview")).toBeInTheDocument();
-    expect(screen.getByText("Busy")).toBeInTheDocument();
-    expect(screen.getByText("hugo starting")).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Show the log" })).toHaveAttribute(
+      "href",
+      "/o/technative/p/korenaar/log?entry=start%3A7",
+    );
+  });
+
+  it("sends an implementer to what went wrong when the start failed", async () => {
+    vi.stubGlobal("fetch", server([{ body: { state: "sleeping", reason: "refused.preview-did-not-start-site", entry: "start:8" } }]));
+
+    render(<Preview organisation="technative" project="korenaar" />);
+
+    expect(await screen.findByRole("link", { name: "See what went wrong" })).toHaveAttribute(
+      "href",
+      "/o/technative/p/korenaar/log?entry=start%3A8",
+    );
   });
 
   it("gives a content creator nothing to unfold", async () => {
@@ -71,7 +86,7 @@ describe("preview", () => {
     render(<Preview organisation="technative" project="korenaar" />);
 
     await screen.findByRole("status");
-    expect(screen.queryByTestId("preview-steps")).toBeNull();
+    expect(screen.queryByRole("link", { name: /log|went wrong/ })).toBeNull();
     expect(screen.getByRole("status").textContent).not.toMatch(/git|commit|branch|repository|build log/i);
   });
 
@@ -197,7 +212,7 @@ describe("selecting in the preview", () => {
 
   it("tells the overlay again when chat is switched off", async () => {
     const { sent, view } = await framed();
-    view.rerender(<Preview organisation="technative" project="korenaar" page="posts/one" onAsk={vi.fn()} chatOn={false} />);
+    view.rerender(<MemoryRouter><Preview organisation="technative" project="korenaar" page="posts/one" onAsk={vi.fn()} chatOn={false} /></MemoryRouter>);
     const setup = sent.mock.calls.map(([data]) => data).filter((data) => data.chatcms === "setup").at(-1);
     expect(setup).toMatchObject({ on: false });
   });

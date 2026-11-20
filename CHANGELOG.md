@@ -66,6 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (Workspaces); history is kept `workspaceHistoryDays`, 90 by default.
 - A symbol beside the save status says how your preview stands and whether
   the assistant is there; implementers see more and can start it again.
+- Project → Log keeps every preview start (backend, Hugo asked, chosen and
+  why) beside builds and publications, for implementers.
 
 ### Changed
 

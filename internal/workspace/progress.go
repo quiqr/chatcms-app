@@ -30,7 +30,7 @@ type StepReport struct {
 	State StepState `json:"state"`
 }
 
-const logLines = 200
+const logLines = 400
 
 type progress struct {
 	mu      sync.Mutex

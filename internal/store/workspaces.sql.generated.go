@@ -11,6 +11,31 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const beginWorkspaceStart = `-- name: BeginWorkspaceStart :one
+INSERT INTO workspace_events (at, kind, backend, project_id, person_id)
+VALUES ($1, 'starting', $2, $3, $4)
+RETURNING id
+`
+
+type BeginWorkspaceStartParams struct {
+	At        pgtype.Timestamptz `json:"at"`
+	Backend   string             `json:"backend"`
+	ProjectID pgtype.UUID        `json:"project_id"`
+	PersonID  pgtype.UUID        `json:"person_id"`
+}
+
+func (q *Queries) BeginWorkspaceStart(ctx context.Context, arg BeginWorkspaceStartParams) (int64, error) {
+	row := q.db.QueryRow(ctx, beginWorkspaceStart,
+		arg.At,
+		arg.Backend,
+		arg.ProjectID,
+		arg.PersonID,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const countBusyWorkspacesBesides = `-- name: CountBusyWorkspacesBesides :one
 SELECT count(*) FROM workspaces
 WHERE state IN ('starting', 'warm')
@@ -122,6 +147,43 @@ func (q *Queries) DeleteWorkspace(ctx context.Context, id pgtype.UUID) error {
 	return err
 }
 
+const finishWorkspaceStart = `-- name: FinishWorkspaceStart :exec
+UPDATE workspace_events
+SET kind = $2,
+    millis = $3,
+    reason = $4,
+    steps = $5,
+    log = $6,
+    hugo = $7,
+    finished_at = $8
+WHERE id = $1
+`
+
+type FinishWorkspaceStartParams struct {
+	ID         int64              `json:"id"`
+	Kind       string             `json:"kind"`
+	Millis     *int32             `json:"millis"`
+	Reason     string             `json:"reason"`
+	Steps      []byte             `json:"steps"`
+	Log        string             `json:"log"`
+	Hugo       []byte             `json:"hugo"`
+	FinishedAt pgtype.Timestamptz `json:"finished_at"`
+}
+
+func (q *Queries) FinishWorkspaceStart(ctx context.Context, arg FinishWorkspaceStartParams) error {
+	_, err := q.db.Exec(ctx, finishWorkspaceStart,
+		arg.ID,
+		arg.Kind,
+		arg.Millis,
+		arg.Reason,
+		arg.Steps,
+		arg.Log,
+		arg.Hugo,
+		arg.FinishedAt,
+	)
+	return err
+}
+
 const forgetWorkspaceEvents = `-- name: ForgetWorkspaceEvents :exec
 DELETE FROM workspace_events WHERE at < $1
 `
@@ -164,6 +226,65 @@ func (q *Queries) GetWorkspace(ctx context.Context, arg GetWorkspaceParams) (Wor
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getWorkspaceStart = `-- name: GetWorkspaceStart :one
+SELECT e.id, e.at, e.kind, e.backend, e.project_id, e.millis, e.reason, e.steps, e.log, e.hugo, e.finished_at,
+       coalesce(nullif(p.display_name, ''), p.email, '')::text AS who
+FROM workspace_events e
+LEFT JOIN people p ON p.id = e.person_id
+WHERE e.id = $1 AND e.project_id = $2 AND e.kind <> 'refused'
+`
+
+type GetWorkspaceStartParams struct {
+	ID        int64       `json:"id"`
+	ProjectID pgtype.UUID `json:"project_id"`
+}
+
+type GetWorkspaceStartRow struct {
+	ID         int64              `json:"id"`
+	At         pgtype.Timestamptz `json:"at"`
+	Kind       string             `json:"kind"`
+	Backend    string             `json:"backend"`
+	ProjectID  pgtype.UUID        `json:"project_id"`
+	Millis     *int32             `json:"millis"`
+	Reason     string             `json:"reason"`
+	Steps      []byte             `json:"steps"`
+	Log        string             `json:"log"`
+	Hugo       []byte             `json:"hugo"`
+	FinishedAt pgtype.Timestamptz `json:"finished_at"`
+	Who        string             `json:"who"`
+}
+
+func (q *Queries) GetWorkspaceStart(ctx context.Context, arg GetWorkspaceStartParams) (GetWorkspaceStartRow, error) {
+	row := q.db.QueryRow(ctx, getWorkspaceStart, arg.ID, arg.ProjectID)
+	var i GetWorkspaceStartRow
+	err := row.Scan(
+		&i.ID,
+		&i.At,
+		&i.Kind,
+		&i.Backend,
+		&i.ProjectID,
+		&i.Millis,
+		&i.Reason,
+		&i.Steps,
+		&i.Log,
+		&i.Hugo,
+		&i.FinishedAt,
+		&i.Who,
+	)
+	return i, err
+}
+
+const interruptWorkspaceStarts = `-- name: InterruptWorkspaceStarts :exec
+UPDATE workspace_events
+SET kind = 'interrupted', finished_at = now()
+WHERE kind = 'starting'
+`
+
+func (q *Queries) InterruptWorkspaceStarts(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, interruptWorkspaceStarts)
+	return err
 }
 
 const listBusyWorkspaces = `-- name: ListBusyWorkspaces :many
@@ -241,6 +362,88 @@ SELECT pg_advisory_xact_lock(7307)
 func (q *Queries) LockWorkspaces(ctx context.Context) error {
 	_, err := q.db.Exec(ctx, lockWorkspaces)
 	return err
+}
+
+const projectLog = `-- name: ProjectLog :many
+SELECT kind, id, at, finished_at, state, what, who, millis FROM (
+    SELECT 'start'::text AS kind, e.id::text AS id, e.at AS at, e.finished_at AS finished_at,
+           e.kind::text AS state, e.backend::text AS what,
+           coalesce(nullif(p.display_name, ''), p.email, '')::text AS who,
+           e.millis AS millis
+    FROM workspace_events e
+    LEFT JOIN people p ON p.id = e.person_id
+    WHERE e.project_id = $1 AND e.kind <> 'refused'
+    UNION ALL
+    SELECT 'build'::text, b.id::text, b.started_at, b.finished_at,
+           b.state::text, b.reason::text, ''::text,
+           (extract(epoch FROM b.finished_at - b.started_at) * 1000)::int
+    FROM builds b
+    WHERE b.project_id = $1
+    UNION ALL
+    SELECT 'publish'::text, u.id::text, u.started_at, u.finished_at,
+           u.state::text, u.change_count::text,
+           coalesce(nullif(p.display_name, ''), p.email, '')::text,
+           (extract(epoch FROM u.finished_at - u.started_at) * 1000)::int
+    FROM publishes u
+    LEFT JOIN people p ON p.id = u.person_id
+    WHERE u.project_id = $1
+) entries
+WHERE ($2::text IS NULL OR kind = $2::text)
+  AND ($3::timestamptz IS NULL OR at < $3::timestamptz)
+ORDER BY at DESC, id DESC
+LIMIT $4
+`
+
+type ProjectLogParams struct {
+	Project pgtype.UUID        `json:"project"`
+	OfKind  *string            `json:"of_kind"`
+	Before  pgtype.Timestamptz `json:"before"`
+	Most    int32              `json:"most"`
+}
+
+type ProjectLogRow struct {
+	Kind       string             `json:"kind"`
+	ID         string             `json:"id"`
+	At         pgtype.Timestamptz `json:"at"`
+	FinishedAt pgtype.Timestamptz `json:"finished_at"`
+	State      string             `json:"state"`
+	What       string             `json:"what"`
+	Who        string             `json:"who"`
+	Millis     *int32             `json:"millis"`
+}
+
+func (q *Queries) ProjectLog(ctx context.Context, arg ProjectLogParams) ([]ProjectLogRow, error) {
+	rows, err := q.db.Query(ctx, projectLog,
+		arg.Project,
+		arg.OfKind,
+		arg.Before,
+		arg.Most,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ProjectLogRow{}
+	for rows.Next() {
+		var i ProjectLogRow
+		if err := rows.Scan(
+			&i.Kind,
+			&i.ID,
+			&i.At,
+			&i.FinishedAt,
+			&i.State,
+			&i.What,
+			&i.Who,
+			&i.Millis,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const recordWorkspaceEvent = `-- name: RecordWorkspaceEvent :exec

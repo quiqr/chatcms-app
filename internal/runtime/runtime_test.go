@@ -250,3 +250,29 @@ func TestAPreviewToldItsAddressIsNotRooted(t *testing.T) {
 		t.Errorf("Hugo Rooted = %v, %v", resolved.Rooted, err)
 	}
 }
+
+func TestTheHugoChosenSaysWhy(t *testing.T) {
+	installed := Resolver{InstalledHugo: "/usr/local/bin/hugo", Exists: inStore("/usr/local/bin/hugo")}
+	pinning := Resolver{InstalledHugo: "/usr/local/bin/hugo", Pins: pins{"hugo@0.101.0": "/nix/store/h-hugo-0.101.0"}, Exists: inStore("/usr/local/bin/hugo", "/nix/store/h-hugo-0.101.0/bin/hugo")}
+	provided := Resolver{Provided: map[string]string{"hugo": "/nix/store/p-hugo-0.120.0"}, Exists: inStore("/nix/store/p-hugo-0.120.0/bin/hugo")}
+	for name, test := range map[string]struct {
+		resolver Resolver
+		version  string
+		want     HugoChoice
+	}{
+		"pinned":      {pinning, "0.101.0", HugoChoice{Asked: "0.101.0", Program: "/nix/store/h-hugo-0.101.0/bin/hugo", Because: HugoPinned}},
+		"pinning off": {installed, "0.101.0", HugoChoice{Asked: "0.101.0", Program: "/usr/local/bin/hugo", Because: HugoPinningOff}},
+		"no version":  {pinning, "", HugoChoice{Program: "/usr/local/bin/hugo", Because: HugoNoVersion}},
+		"provided":    {provided, "0.120.0", HugoChoice{Asked: "0.120.0", Program: "/nix/store/p-hugo-0.120.0/bin/hugo", Because: HugoProvided}},
+	} {
+		resolved, err := test.resolver.Resolve(t.Context(), Default(test.version), false)
+		if err != nil || resolved.Hugo == nil || *resolved.Hugo != test.want {
+			t.Errorf("%s: Resolve() hugo = %+v, %v, want %+v", name, resolved.Hugo, err, test.want)
+		}
+	}
+	quartoDefinition, _ := Parse([]byte(quarto))
+	resolved, _ := Resolver{Pins: pins{"quarto@1.6.40": "/nix/store/q-quarto", "typst@0.12.0": "/nix/store/t-typst"}, Exists: inStore()}.Resolve(t.Context(), quartoDefinition, true)
+	if resolved.Hugo != nil {
+		t.Errorf("a Quarto site chose a Hugo: %+v", resolved.Hugo)
+	}
+}

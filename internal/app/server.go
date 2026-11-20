@@ -231,6 +231,7 @@ func NewServer(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, e
 		Sync:       server.standing,
 		Preview:    server.appPreview(),
 		Workspace:  server.preview,
+		ProjectLog: projectLog{queries: server.db.Queries, tenancy: tenancyStore, sources: publishSources{sites: server.sites, queries: server.db.Queries, baseURL: cfg.BaseURL}},
 		Chat:       server.chatWeb,
 		Artifacts:  server.artifactsWeb(),
 		Secure:     strings.HasPrefix(strings.ToLower(cfg.BaseURL), "https://"),

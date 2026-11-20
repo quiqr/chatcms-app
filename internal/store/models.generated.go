@@ -206,13 +206,18 @@ type Workspace struct {
 }
 
 type WorkspaceEvent struct {
-	ID        int64              `json:"id"`
-	At        pgtype.Timestamptz `json:"at"`
-	Kind      string             `json:"kind"`
-	Backend   string             `json:"backend"`
-	ProjectID pgtype.UUID        `json:"project_id"`
-	Millis    *int32             `json:"millis"`
-	Reason    string             `json:"reason"`
+	ID         int64              `json:"id"`
+	At         pgtype.Timestamptz `json:"at"`
+	Kind       string             `json:"kind"`
+	Backend    string             `json:"backend"`
+	ProjectID  pgtype.UUID        `json:"project_id"`
+	Millis     *int32             `json:"millis"`
+	Reason     string             `json:"reason"`
+	PersonID   pgtype.UUID        `json:"person_id"`
+	Steps      []byte             `json:"steps"`
+	Log        string             `json:"log"`
+	Hugo       []byte             `json:"hugo"`
+	FinishedAt pgtype.Timestamptz `json:"finished_at"`
 }
 
 type WorkspaceSample struct {

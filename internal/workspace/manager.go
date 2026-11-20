@@ -72,6 +72,7 @@ type Report struct {
 	Log      []string     `json:"log,omitempty"`
 	Backend  string       `json:"backend,omitempty"`
 	Since    time.Time    `json:"since,omitempty"`
+	Logged   int64        `json:"logged,omitempty"`
 }
 
 type live struct {
@@ -88,6 +89,7 @@ type live struct {
 	under    string
 	view     string
 	made     string
+	logged   int64
 }
 
 type Workspaces struct {
@@ -324,6 +326,7 @@ func (w *Workspaces) begin(ctx context.Context, spec Spec) (*live, error) {
 	w.live[spec.Key] = held
 	w.mu.Unlock()
 
+	held.logged = w.beginStart(Event{At: now, Kind: Begun, Backend: w.backend.Name(), Project: spec.Key.Project, Person: spec.Key.Person})
 	held.progress.begin(StepStarting)
 	go w.start(held)
 	return held, nil
@@ -334,10 +337,14 @@ func (w *Workspaces) start(held *live) {
 	defer cancel()
 
 	held.progress.begin(StepFetching)
+	held.progress.logf("backend " + w.backend.Name())
 	held.progress.logf("fetching " + held.spec.Dir)
 	var err error
 	if w.settings.RuntimeFor != nil {
 		held.spec.Run, err = w.settings.RuntimeFor(ctx, held.spec.Key, held.spec.Dir)
+		if chosen := held.spec.Run.Hugo; chosen != nil {
+			held.progress.logf(fmt.Sprintf("hugo asked %q, chose %s (%s)", chosen.Asked, chosen.Program, chosen.Because))
+		}
 		if held.spec.Run.Preview.Program != "" {
 			held.progress.logf("preview with " + held.spec.Run.Preview.Program)
 		}
@@ -373,15 +380,22 @@ func (w *Workspaces) start(held *live) {
 	}
 	w.mu.Unlock()
 
-	held.progress.finish(err != nil)
-	if err == nil {
-		w.record(Event{At: w.clock(), Kind: Started, Backend: w.backend.Name(), Project: held.spec.Key.Project, Millis: int(w.clock().Sub(held.began).Milliseconds())})
-	} else {
-		w.record(Event{At: w.clock(), Kind: Failed, Backend: w.backend.Name(), Project: held.spec.Key.Project, Reason: reasonFor(err) + ": " + firstLine(err.Error(), 200)})
+	if err != nil {
+		held.progress.logf(err.Error())
 	}
+	held.progress.finish(err != nil)
+	ended := Event{At: held.began, Kind: Started, Backend: w.backend.Name(), Project: held.spec.Key.Project, Person: held.spec.Key.Person, Millis: int(w.clock().Sub(held.began).Milliseconds())}
+	if err != nil {
+		ended.Kind = Failed
+		ended.Reason = reasonFor(err) + ": " + firstLine(err.Error(), 200)
+	}
+	ended.Steps, ended.Log = held.progress.report()
+	if chosen := held.spec.Run.Hugo; chosen != nil {
+		ended.Hugo = &HugoFacts{Asked: chosen.Asked, Program: chosen.Program, Because: chosen.Because, Printed: printedBy(ended.Log)}
+	}
+	w.finishStart(held.logged, ended)
 	if err != nil {
 		w.revoke(ctx, held.spec.Key)
-		held.progress.logf(err.Error())
 		if sleepErr := w.store.Sleep(ctx, held.record.ID, reasonFor(err)); sleepErr != nil {
 			w.settings.Logger.Warn("recording a failed start failed", "error", sleepErr)
 		}
@@ -425,6 +439,7 @@ func (w *Workspaces) Report(key Key) (Report, bool) {
 	if held.state != Sleeping {
 		report.Since = held.began
 	}
+	report.Logged = held.logged
 	if held.state == Warm {
 		report.Address = held.spec.Under
 		if held.spec.Run.Rooted {
