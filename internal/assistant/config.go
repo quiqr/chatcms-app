@@ -16,56 +16,67 @@ Change pages only with the quiqr tools: list_pages to find a page, read_page to 
 Answer briefly, in the language the person writes in. Never use the words commit, branch, push, pull, merge, repository or conflict.`
 )
 
+var permissions = []struct{ action, effect string }{
+	{"read", "allow"},
+	{"glob", "allow"},
+	{"grep", "allow"},
+	{"list", "allow"},
+	{"todowrite", "allow"},
+	{"edit", "deny"},
+	{"shell", "deny"},
+	{"execute", "deny"},
+	{"subagent", "deny"},
+	{"external_directory", "deny"},
+	{"webfetch", "deny"},
+	{"websearch", "deny"},
+	{"repo_clone", "deny"},
+	{"repo_overview", "deny"},
+	{"lsp", "deny"},
+	{"skill", "deny"},
+	{"question", "deny"},
+	{"doom_loop", "deny"},
+}
+
 func OpenCodeConfig(gateway, token string) string {
 	gateway = strings.TrimSuffix(gateway, "/")
+	model := map[string]string{"providerID": Provider, "model": Model}
+	rules := make([]map[string]string, 0, len(permissions))
+	for _, rule := range permissions {
+		rules = append(rules, map[string]string{"action": rule.action, "resource": "*", "effect": rule.effect})
+	}
 	config := map[string]any{
-		"$schema":    "https://opencode.ai/config.json",
-		"autoupdate": false,
-		"share":      "disabled",
-		"snapshot":   false,
-		"provider": map[string]any{
+		"$schema":     "https://opencode.ai/config.json",
+		"model":       model,
+		"update":      "disable",
+		"share":       "disabled",
+		"snapshots":   false,
+		"permissions": rules,
+		"agents": map[string]any{
+			"build": map[string]any{"system": Prompt},
+			"title": map[string]any{"model": model},
+		},
+		"mcp": map[string]any{
+			"servers": map[string]any{
+				"quiqr": map[string]any{
+					"type":     "remote",
+					"url":      gateway + "/mcp",
+					"headers":  map[string]string{"Authorization": "Bearer " + token},
+					"oauth":    false,
+					"disabled": false,
+					"codemode": false,
+				},
+			},
+		},
+		"providers": map[string]any{
 			Provider: map[string]any{
-				"npm":  "@ai-sdk/openai-compatible",
-				"name": "ChatCMS",
-				"options": map[string]any{
+				"name":    "ChatCMS",
+				"package": "aisdk:@ai-sdk/openai-compatible",
+				"settings": map[string]any{
 					"baseURL": gateway + "/v1",
 					"apiKey":  token,
 				},
 				"models": map[string]any{Model: map[string]any{"name": "ChatCMS"}},
 			},
-		},
-		"model":       Provider + "/" + Model,
-		"small_model": Provider + "/" + Model,
-		"mcp": map[string]any{
-			"quiqr": map[string]any{
-				"type":    "remote",
-				"url":     gateway + "/mcp",
-				"enabled": true,
-				"oauth":   false,
-				"headers": map[string]string{"Authorization": "Bearer " + token},
-			},
-		},
-		"permission": map[string]any{
-			"read":               "allow",
-			"glob":               "allow",
-			"grep":               "allow",
-			"list":               "allow",
-			"todowrite":          "allow",
-			"edit":               "deny",
-			"bash":               "deny",
-			"task":               "deny",
-			"external_directory": "deny",
-			"webfetch":           "deny",
-			"websearch":          "deny",
-			"repo_clone":         "deny",
-			"repo_overview":      "deny",
-			"lsp":                "deny",
-			"skill":              "deny",
-			"question":           "deny",
-			"doom_loop":          "deny",
-		},
-		"agent": map[string]any{
-			"build": map[string]any{"prompt": Prompt},
 		},
 	}
 	data, _ := json.Marshal(config)

@@ -1,11 +1,11 @@
 ---
 # chatcms-uzi2
 title: Move the assistant to OpenCode 2
-status: todo
+status: in-progress
 type: task
 priority: normal
 created_at: 2026-11-18T21:41:32Z
-updated_at: 2026-11-18T21:41:32Z
+updated_at: 2026-11-20T19:46:38Z
 parent: chatcms-z0p7
 ---
 

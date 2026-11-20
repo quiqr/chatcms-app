@@ -102,9 +102,13 @@ func (c *Chat) session(ctx context.Context, key workspace.Key, base, secret stri
 	var err error
 	deadline := time.Now().Add(3 * time.Minute)
 	for {
-		answer, err = c.call(ctx, http.MethodPost, base+"/session", secret, map[string]any{"title": "ChatCMS"})
-		if err == nil || time.Now().After(deadline) || ctx.Err() != nil {
+		answer, err = c.call(ctx, http.MethodPost, base+"/api/session", secret, map[string]any{"title": "ChatCMS"})
+		starting := err == nil && answer.StatusCode == http.StatusServiceUnavailable
+		if (err == nil && !starting) || time.Now().After(deadline) || ctx.Err() != nil {
 			break
+		}
+		if starting {
+			answer.Body.Close()
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
@@ -116,19 +120,59 @@ func (c *Chat) session(ctx context.Context, key workspace.Key, base, secret stri
 		return "", fmt.Errorf("%w: it answered %d", ErrNoAgent, answer.StatusCode)
 	}
 	var made struct {
-		ID string `json:"id"`
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
 	}
-	if err := json.NewDecoder(answer.Body).Decode(&made); err != nil || made.ID == "" {
+	if err := json.NewDecoder(answer.Body).Decode(&made); err != nil || made.Data.ID == "" {
 		return "", fmt.Errorf("%w: no session", ErrNoAgent)
 	}
+	c.awaitTools(ctx, base, secret)
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if known, found := c.sessions[key]; found {
 		return known, nil
 	}
-	c.sessions[key] = made.ID
-	return made.ID, nil
+	c.sessions[key] = made.Data.ID
+	return made.Data.ID, nil
+}
+
+const toolsWithin = 15 * time.Second
+
+func (c *Chat) awaitTools(ctx context.Context, base, secret string) {
+	deadline := time.Now().Add(toolsWithin)
+	for time.Now().Before(deadline) && ctx.Err() == nil {
+		if c.toolsConnected(ctx, base, secret) {
+			return
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
+func (c *Chat) toolsConnected(ctx context.Context, base, secret string) bool {
+	answer, err := c.call(ctx, http.MethodGet, base+"/api/mcp", secret, nil)
+	if err != nil {
+		return false
+	}
+	defer answer.Body.Close()
+	var listed struct {
+		Data []struct {
+			Name   string `json:"name"`
+			Status struct {
+				Status string `json:"status"`
+			} `json:"status"`
+		} `json:"data"`
+	}
+	if answer.StatusCode != http.StatusOK || json.NewDecoder(answer.Body).Decode(&listed) != nil {
+		return false
+	}
+	for _, server := range listed.Data {
+		if server.Name == "quiqr" && server.Status.Status == "connected" {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Chat) Send(ctx context.Context, key workspace.Key, under, text string) error {
@@ -143,9 +187,7 @@ func (c *Chat) Send(ctx context.Context, key workspace.Key, under, text string) 
 	if err != nil {
 		return err
 	}
-	answer, err := c.call(ctx, http.MethodPost, base+"/session/"+session+"/prompt_async", secret, map[string]any{
-		"parts": []map[string]string{{"type": "text", "text": text}},
-	})
+	answer, err := c.call(ctx, http.MethodPost, base+"/api/session/"+session+"/prompt", secret, map[string]any{"text": text})
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrNoAgent, err)
 	}
@@ -168,7 +210,7 @@ func (c *Chat) Stop(ctx context.Context, key workspace.Key, under string) error 
 	if err != nil {
 		return err
 	}
-	answer, err := c.call(ctx, http.MethodPost, base+"/session/"+session+"/abort", secret, nil)
+	answer, err := c.call(ctx, http.MethodPost, base+"/api/session/"+session+"/interrupt", secret, nil)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrNoAgent, err)
 	}
@@ -218,33 +260,29 @@ func (c *Chat) unlisten(key workspace.Key, listener chan Event) {
 }
 
 type agentEvent struct {
-	Type       string `json:"type"`
-	Properties struct {
+	Type string `json:"type"`
+	Data struct {
 		SessionID string `json:"sessionID"`
-		MessageID string `json:"messageID"`
-		PartID    string `json:"partID"`
-		Field     string `json:"field"`
+		ID        string `json:"id"`
+		Name      string `json:"name"`
 		Delta     string `json:"delta"`
-		Info      struct {
-			ID   string `json:"id"`
-			Role string `json:"role"`
-		} `json:"info"`
-		Part struct {
-			ID        string `json:"id"`
-			MessageID string `json:"messageID"`
-			Type      string `json:"type"`
-			Tool      string `json:"tool"`
-			State     struct {
-				Status string `json:"status"`
-			} `json:"state"`
-		} `json:"part"`
-		Error *struct {
-			Name string `json:"name"`
-			Data struct {
-				Message string `json:"message"`
-			} `json:"data"`
+		Attempt   int    `json:"attempt"`
+		Error     *struct {
+			Type    string `json:"type"`
+			Message string `json:"message"`
+			Status  int    `json:"status"`
 		} `json:"error"`
-	} `json:"properties"`
+	} `json:"data"`
+}
+
+const retriesBeforeGivingUp = 3
+
+func (c *Chat) interrupt(ctx context.Context, base, secret, session string) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	if answer, err := c.call(ctx, http.MethodPost, base+"/api/session/"+session+"/interrupt", secret, nil); err == nil {
+		answer.Body.Close()
+	}
 }
 
 func (c *Chat) Events(ctx context.Context, key workspace.Key, under string, emit func(Event) error) error {
@@ -265,7 +303,7 @@ func (c *Chat) Events(ctx context.Context, key workspace.Key, under string, emit
 
 	streamCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	request, err := http.NewRequestWithContext(streamCtx, http.MethodGet, base+"/event", nil)
+	request, err := http.NewRequestWithContext(streamCtx, http.MethodGet, base+"/api/event", nil)
 	if err != nil {
 		return err
 	}
@@ -288,6 +326,8 @@ func (c *Chat) Events(ctx context.Context, key workspace.Key, under string, emit
 			case from <- event:
 			case <-streamCtx.Done():
 			}
+		}, func() {
+			go c.interrupt(context.WithoutCancel(ctx), base, secret, session)
 		})
 	}()
 
@@ -313,18 +353,28 @@ func (c *Chat) Events(ctx context.Context, key workspace.Key, under string, emit
 	}
 }
 
-func relay(stream io.Reader, session string, emit func(Event)) {
-	users := map[string]bool{}
-	texts := map[string]bool{}
+func relay(stream io.Reader, session string, emit func(Event), halt func()) {
 	tools := map[string]string{}
+	halted := false
 
 	reader := bufio.NewReaderSize(stream, 256<<10)
 	for {
 		line, err := reader.ReadBytes('\n')
 		if payload, found := bytes.CutPrefix(bytes.TrimSpace(line), []byte("data:")); found {
 			var event agentEvent
-			if json.Unmarshal(bytes.TrimSpace(payload), &event) == nil {
-				translate(event, session, users, texts, tools, emit)
+			if json.Unmarshal(bytes.TrimSpace(payload), &event) == nil && event.Data.SessionID == session {
+				if gaveUp(event) {
+					if !halted {
+						halted = true
+						emit(Event{Type: "error", Message: messageOf(event, "the assistant could not answer")})
+						halt()
+					}
+				} else {
+					translate(event, tools, emit)
+				}
+				if strings.HasPrefix(event.Type, "session.execution.") {
+					halted = false
+				}
 			}
 		}
 		if err != nil {
@@ -333,43 +383,36 @@ func relay(stream io.Reader, session string, emit func(Event)) {
 	}
 }
 
-func translate(event agentEvent, session string, users, texts map[string]bool, tools map[string]string, emit func(Event)) {
-	properties := event.Properties
+func messageOf(event agentEvent, otherwise string) string {
+	if event.Data.Error != nil && event.Data.Error.Message != "" {
+		return event.Data.Error.Message
+	}
+	return otherwise
+}
+
+func gaveUp(event agentEvent) bool {
+	if event.Type != "session.retry.scheduled" {
+		return false
+	}
+	refused := event.Data.Error != nil && event.Data.Error.Status >= 400 && event.Data.Error.Status < 500
+	return refused || event.Data.Attempt >= retriesBeforeGivingUp
+}
+
+func translate(event agentEvent, tools map[string]string, emit func(Event)) {
+	data := event.Data
 	switch event.Type {
-	case "message.updated":
-		if properties.Info.Role == "user" {
-			users[properties.Info.ID] = true
+	case "session.text.delta":
+		if data.Delta != "" {
+			emit(Event{Type: "text", Text: data.Delta})
 		}
-	case "message.part.updated":
-		if properties.SessionID != session {
-			return
-		}
-		part := properties.Part
-		switch part.Type {
-		case "text":
-			texts[part.ID] = !users[part.MessageID]
-		case "tool":
-			status := part.State.Status
-			if status != tools[part.ID] && (status == "running" || status == "error") {
-				emit(Event{Type: "tool", Tool: strings.TrimPrefix(part.Tool, "quiqr_"), Message: status})
-			}
-			tools[part.ID] = status
-		}
-	case "message.part.delta":
-		if properties.SessionID == session && properties.Field == "text" && texts[properties.PartID] && !users[properties.MessageID] {
-			emit(Event{Type: "text", Text: properties.Delta})
-		}
-	case "session.idle":
-		if properties.SessionID == session {
-			emit(Event{Type: "done"})
-		}
-	case "session.error":
-		if properties.SessionID == session {
-			message := "the assistant could not answer"
-			if properties.Error != nil && properties.Error.Data.Message != "" {
-				message = properties.Error.Data.Message
-			}
-			emit(Event{Type: "error", Message: message})
-		}
+	case "session.tool.input.started":
+		tools[data.ID] = strings.TrimPrefix(data.Name, "quiqr_")
+		emit(Event{Type: "tool", Tool: tools[data.ID], Message: "running"})
+	case "session.tool.failed":
+		emit(Event{Type: "tool", Tool: tools[data.ID], Message: "error"})
+	case "session.execution.succeeded", "session.execution.interrupted":
+		emit(Event{Type: "done"})
+	case "session.execution.failed":
+		emit(Event{Type: "error", Message: messageOf(event, "the assistant could not answer")})
 	}
 }

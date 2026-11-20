@@ -4,9 +4,8 @@
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   inputs.microvm.url = "github:astro/microvm.nix";
   inputs.microvm.inputs.nixpkgs.follows = "nixpkgs";
-  inputs.nixpkgs-opencode.url = "github:NixOS/nixpkgs/f9d8b65950353691ab56561e7c73d2e1063d810b";
 
-  outputs = { self, nixpkgs, microvm, nixpkgs-opencode }:
+  outputs = { self, nixpkgs, microvm }:
     let
       version = nixpkgs.lib.fileContents ./VERSION;
 
@@ -313,11 +312,11 @@
           echo "  bash scripts/ship-change.sh <change>  ship one OpenSpec change"
         '';
       };
-      opencodeFor = system: nixpkgs-opencode.legacyPackages.${system}.opencode;
+      opencodeFor = system: nixpkgs.legacyPackages.${system}.opencode;
 
       opencodeSandboxedFor = system:
         let
-          from = nixpkgs-opencode.legacyPackages.${system};
+          from = nixpkgs.legacyPackages.${system};
           opencode = opencodeFor system;
         in
         from.writeShellScriptBin "opencode" ''

@@ -75,6 +75,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The assistant runs on OpenCode 2 from the same nixpkgs as everything else;
+  its page tools are direct tools, and its code runtime with network is off.
 - The page no longer scrolls: the header stays and each panel scrolls on its
   own, so the preview's end and the assistant's message box stay in view.
 - A narrow editor shows form or preview instead of stacking them; the open

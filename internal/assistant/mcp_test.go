@@ -202,22 +202,33 @@ func TestTheAgentsConfigurationKeepsItToTheTools(t *testing.T) {
 	if err := json.Unmarshal([]byte(OpenCodeConfig("http://10.231.0.1:8091/", "tok")), &config); err != nil {
 		t.Fatal(err)
 	}
-	provider := config["provider"].(map[string]any)[Provider].(map[string]any)["options"].(map[string]any)
+	provider := config["providers"].(map[string]any)[Provider].(map[string]any)["settings"].(map[string]any)
 	if provider["baseURL"] != "http://10.231.0.1:8091/v1" || provider["apiKey"] != "tok" {
 		t.Errorf("provider = %v", provider)
 	}
-	mcp := config["mcp"].(map[string]any)["quiqr"].(map[string]any)
-	if mcp["url"] != "http://10.231.0.1:8091/mcp" || mcp["headers"].(map[string]any)["Authorization"] != "Bearer tok" {
+	mcp := config["mcp"].(map[string]any)["servers"].(map[string]any)["quiqr"].(map[string]any)
+	if mcp["url"] != "http://10.231.0.1:8091/mcp" || mcp["headers"].(map[string]any)["Authorization"] != "Bearer tok" || mcp["codemode"] != false {
 		t.Errorf("mcp = %v", mcp)
 	}
-	permission := config["permission"].(map[string]any)
-	for _, denied := range []string{"edit", "bash", "webfetch", "websearch", "task", "external_directory"} {
-		if permission[denied] != "deny" {
-			t.Errorf("%s = %v, want deny", denied, permission[denied])
+	effects := map[string]string{}
+	for _, rule := range config["permissions"].([]any) {
+		rule := rule.(map[string]any)
+		if rule["resource"] != "*" {
+			t.Errorf("rule %v is not for every resource", rule)
+		}
+		effects[rule["action"].(string)] = rule["effect"].(string)
+	}
+	for _, denied := range []string{"edit", "shell", "execute", "webfetch", "websearch", "subagent", "external_directory"} {
+		if effects[denied] != "deny" {
+			t.Errorf("%s is %q, want deny", denied, effects[denied])
 		}
 	}
-	if config["autoupdate"] != false || config["share"] != "disabled" {
-		t.Errorf("autoupdate %v share %v", config["autoupdate"], config["share"])
+	if effects["read"] != "allow" {
+		t.Errorf("read is %q, want allow", effects["read"])
+	}
+	build := config["agents"].(map[string]any)["build"].(map[string]any)
+	if build["system"] != Prompt {
+		t.Errorf("the build agent's prompt = %v", build["system"])
 	}
 
 	environment := strings.Join(OpenCodeEnvironment("/run/agent", "http://h:1", "tok"), "\n")
