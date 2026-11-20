@@ -57,3 +57,39 @@ func TestLocateFindsNothingOutsideTheListing(t *testing.T) {
 		t.Errorf("Locate(home) = %+v, %v", page, ok)
 	}
 }
+
+func TestLocateSaysWhatThePreviewShows(t *testing.T) {
+	m := &model.Model{
+		Singles: []model.Single{
+			{Key: "home", File: "content/_index.md"},
+			{Key: "book", File: "index.qmd"},
+			{Key: "services", File: "data/services.json"},
+			{Key: "mainConfig", File: "config.toml"},
+			{Key: "sidebar", File: "data/sidebar.yaml", PreviewURL: " / "},
+			{Key: "secret", File: "content/secret.md", HidePreviewIcon: true},
+		},
+		Collections: []model.Collection{
+			{Key: "posts", Folder: "content/post/"},
+			{Key: "team", Folder: "data/team/"},
+		},
+	}
+	files := fstest.MapFS{
+		"content/post/hello.md": {Data: []byte("---\ntitle: Hello\n---\n")},
+		"data/team/anna.yaml":   {Data: []byte("name: Anna\n")},
+	}
+	for key, want := range map[string]Preview{
+		"home":        {Kind: PreviewOwnPage},
+		"book":        {Kind: PreviewOwnPage},
+		"services":    {Kind: PreviewNoPage},
+		"mainConfig":  {Kind: PreviewNoPage},
+		"sidebar":     {Kind: PreviewDeclared, Address: "/"},
+		"secret":      {Kind: PreviewHidden},
+		"posts/hello": {Kind: PreviewOwnPage},
+		"team/anna":   {Kind: PreviewNoPage},
+	} {
+		page, ok := Locate(m, files, key)
+		if !ok || page.Preview != want {
+			t.Errorf("Locate(%s).Preview = %+v, %v, want %+v", key, page.Preview, ok, want)
+		}
+	}
+}

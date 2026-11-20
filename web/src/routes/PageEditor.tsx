@@ -5,7 +5,7 @@ import { Button } from "../components/ui/button";
 import { BodyEditor } from "../fields/BodyEditor";
 import { Draw, withPicking } from "../fields/Fields";
 import { MediaPage, pictureAddress } from "./MediaPage";
-import { readPage, savePage, type Control, type Page } from "../lib/tenancy";
+import { readPage, savePage, type Control, type Page, type PagePreview } from "../lib/tenancy";
 import { say } from "../lib/say";
 import { whatWentWrong } from "../lib/api";
 import { toast } from "../components/ui/toast";
@@ -94,7 +94,7 @@ export function PageEditor({
   /** onSaved is how the preview is told to show the site again. */
   onSaved?: () => void;
   /** onOpened hands the page's name to whoever draws the bar above it. */
-  onOpened?: (opened: { title: string; section: string }) => void;
+  onOpened?: (opened: { title: string; section: string; preview?: PagePreview }) => void;
   /** headed is false when the bar above already says which page this is. */
   headed?: boolean;
 }) {
@@ -142,7 +142,7 @@ export function PageEditor({
         setSteps(start);
         keep(key, start);
         show(answer);
-        onOpened?.({ title: answer.title, section: answer.section });
+        onOpened?.({ title: answer.title, section: answer.section, preview: answer.preview });
       })
       .catch((error: unknown) => {
         if (!cancelled) setTrouble(whatWentWrong(error, "page-editor.we-could-not-open-this-page"));

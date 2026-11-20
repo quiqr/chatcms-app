@@ -2,11 +2,12 @@ import { Monitor, Smartphone } from "lucide-react";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { Link } from "react-router";
 
+import { Button } from "../components/ui/button";
 import { Segmented } from "../components/ui/segmented";
 import { useIsPhone } from "../shells/useIsPhone";
 import { whatWentWrong } from "../lib/api";
 import { maybe, say, spokenNow } from "../lib/say";
-import { logAddress, openWorkspace, readWorkspace, type PreviewRequest, type Workspace } from "../lib/tenancy";
+import { logAddress, openWorkspace, readWorkspace, type PagePreview, type PreviewRequest, type Workspace } from "../lib/tenancy";
 import { useRestarted } from "../lib/workspace";
 import type { Pill, Words } from "../preview/select";
 
@@ -27,6 +28,7 @@ export function Preview({
   highlight,
   pills = [],
   onPill,
+  shows,
 }: {
   organisation: string;
   project: string;
@@ -43,8 +45,11 @@ export function Preview({
   pills?: Pill[];
   onPill?: (action: "undo" | "stop" | "open-chat" | "seen", id: number) => void;
   highlight?: { before: string; after: string; id: number } | null;
+  shows?: PagePreview;
 }) {
   const [device, setDevice] = useState<"desktop" | "phone">("desktop");
+  const [homeAnyway, setHomeAnyway] = useState(false);
+  useEffect(() => setHomeAnyway(false), [page]);
   const [reloads, setReloads] = useState(0);
   const onAPhone = useIsPhone();
 
@@ -53,8 +58,10 @@ export function Preview({
   const kind = workspace?.type ?? "web";
   const base = baseOf(workspace?.address, `/preview/${organisation}/${project}/`);
   const opened = (workspace?.open ?? "/").replace(/^\//, "");
+  const pagePath = shows?.kind === "declared" ? pathOf((shows.address ?? "").replace(/^\/+/, "")) : homeAnyway ? "" : pathOf(page);
+  const without = kind === "web" && !workspace?.ownPages && (shows?.kind === "hidden" || (shows?.kind === "none" && !homeAnyway));
   const at =
-    kind === "web" ? base + (workspace?.ownPages ? opened : pathOf(page)) : kind === "pdf" ? `${base}__chatcms/pdf/?file=${encodeURIComponent(opened)}${onAPhone ? "&fit=width" : ""}&lang=${spokenNow()}` : base + opened;
+    kind === "web" ? base + (workspace?.ownPages ? opened : pagePath) : kind === "pdf" ? `${base}__chatcms/pdf/?file=${encodeURIComponent(opened)}${onAPhone ? "&fit=width" : ""}&lang=${spokenNow()}` : base + opened;
   const frame = useRef<HTMLIFrameElement>(null);
   useFrameMessages(frame, base, chatOn && Boolean(onAsk), onAsk, highlight, pills, onPill);
 
@@ -87,7 +94,9 @@ export function Preview({
       </div>
 
       <div className="flex flex-1 justify-center overflow-hidden rounded-lg border border-border bg-card">
-        {ready && kind === "other" ? (
+        {without ? (
+          <NoPage hidden={shows?.kind === "hidden"} onHome={() => setHomeAnyway(true)} />
+        ) : ready && kind === "other" ? (
           <div className="flex w-full max-w-[520px] flex-col items-center justify-center gap-4 p-6 text-center">
             <p className="text-[15px] text-muted-foreground">{say("preview.cannot-show-here")}</p>
             <a href={at} target="_blank" rel="noreferrer" className="flex min-h-11 items-center font-medium text-primary">
@@ -268,6 +277,24 @@ function useWorkspace(organisation: string, project: string) {
   }, [organisation, project, restarted]);
 
   return { workspace, refused };
+}
+
+function NoPage({ hidden, onHome }: { hidden: boolean; onHome: () => void }) {
+  return (
+    <div data-testid="preview-no-page" className="flex w-full max-w-[520px] flex-col items-center justify-center gap-3 p-6 text-center">
+      {hidden ? (
+        <p className="text-[15px] text-muted-foreground">{say("preview.switched-off")}</p>
+      ) : (
+        <>
+          <p className="text-[15px] font-semibold">{say("preview.no-page-title")}</p>
+          <p className="text-[15px] text-muted-foreground">{say("preview.no-page-explained")}</p>
+          <Button type="button" variant="outline" size="secondary" onClick={onHome}>
+            {say("preview.show-home")}
+          </Button>
+        </>
+      )}
+    </div>
+  );
 }
 
 function Preparing({ workspace, refused, log }: { workspace: Workspace | null; refused: string; log: string }) {

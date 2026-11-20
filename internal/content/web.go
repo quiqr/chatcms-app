@@ -98,6 +98,7 @@ func pageView(editable Editable) httpapi.PageView {
 		HasBody:    editable.HasBody,
 		Dialect:    editable.Dialect,
 		Shortcodes: shortcodeViews(editable.Shortcodes),
+		Preview:    httpapi.PagePreview{Kind: editable.Preview.Kind, Address: editable.Preview.Address},
 	}
 }
 

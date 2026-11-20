@@ -60,6 +60,7 @@ func NewService(sources Sources, sync Syncer) (*Service, error) {
 
 // Editable is one page as a form: what to draw, and what is in it now.
 type Editable struct {
+	Preview  Preview
 	Key      string
 	Title    string
 	Section  string
@@ -103,6 +104,7 @@ func editable(site Site, page Page, form *forms.Form) Editable {
 		Controls: Describe(page.Fields, form),
 		Body:     form.Body(),
 		HasBody:  hasBody(form),
+		Preview:  page.Preview,
 	}
 	if m, err := site.Model(); err == nil {
 		view.Dialect = ShortcodeDialect(m, site.FS())

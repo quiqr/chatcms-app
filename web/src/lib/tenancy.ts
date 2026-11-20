@@ -306,7 +306,10 @@ export type Page = {
   hasBody: boolean;
   dialect?: string;
   shortcodes?: ShortcodeDeclaration[];
+  preview?: PagePreview;
 };
+
+export type PagePreview = { kind: "own" | "declared" | "none" | "hidden"; address?: string };
 
 export type ShortcodeDeclaration = {
   key: string;

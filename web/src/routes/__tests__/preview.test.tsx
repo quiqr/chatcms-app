@@ -1,6 +1,7 @@
 import { render as draw, screen, waitFor } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
 import type { ReactElement } from "react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -56,6 +57,27 @@ describe("preview", () => {
     expect(frame).toHaveAttribute("src", "/preview/technative/korenaar/");
     expect(asked[0]).toBe(`POST ${workspacePath}`);
     expect(asked[1]).toBe(`GET ${workspacePath}`);
+  });
+
+  it("explains an item with no page of its own, and shows the home page when asked", async () => {
+    vi.stubGlobal("fetch", server([{ body: { state: "warm" } }]));
+    render(<Preview organisation="technative" project="korenaar" page="dataServices" shows={{ kind: "none" }} />);
+
+    expect(await screen.findByText("No page of its own")).toBeInTheDocument();
+    expect(screen.queryByTitle("Your site")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Show the home page" }));
+    expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "/preview/technative/korenaar/");
+  });
+
+  it("shows the address the model declares, and nothing where it hides the preview", async () => {
+    vi.stubGlobal("fetch", server([{ body: { state: "warm" } }]));
+    const view = render(<Preview organisation="technative" project="korenaar" page="dataSidebar" shows={{ kind: "declared", address: "/about/" }} />);
+    expect(await screen.findByTitle("Your site")).toHaveAttribute("src", "/preview/technative/korenaar/about/");
+    view.unmount();
+
+    render(<Preview organisation="technative" project="korenaar" page="secret" shows={{ kind: "hidden" }} />);
+    expect(await screen.findByText("This site shows no preview for this.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Show the home page" })).toBeNull();
   });
 
   it("gives an implementer a link to this start in the log", async () => {

@@ -21,9 +21,36 @@ type Page struct {
 	Title   string
 	Section string
 	// File is where it lives. It is never shown to a content creator.
-	File   string
-	Fields []model.Field
-	Bundle bool
+	File    string
+	Fields  []model.Field
+	Bundle  bool
+	Preview Preview
+}
+
+const (
+	PreviewOwnPage  = "own"
+	PreviewDeclared = "declared"
+	PreviewNoPage   = "none"
+	PreviewHidden   = "hidden"
+)
+
+type Preview struct {
+	Kind    string
+	Address string
+}
+
+var dataFiles = map[string]bool{".json": true, ".yaml": true, ".yml": true, ".toml": true}
+
+func previewOf(file, declared string, hidden bool) Preview {
+	switch {
+	case hidden:
+		return Preview{Kind: PreviewHidden}
+	case strings.TrimSpace(declared) != "":
+		return Preview{Kind: PreviewDeclared, Address: strings.TrimSpace(declared)}
+	case dataFiles[strings.ToLower(path.Ext(file))]:
+		return Preview{Kind: PreviewNoPage}
+	}
+	return Preview{Kind: PreviewOwnPage}
 }
 
 // Locate works out which page a key names, using the model and the files.
@@ -42,6 +69,7 @@ func Locate(m *model.Model, fsys fs.FS, key string) (Page, bool) {
 					Section: "Pages",
 					File:    single.File,
 					Fields:  single.Fields,
+					Preview: previewOf(single.File, single.PreviewURL, single.HidePreviewIcon),
 				}, true
 			}
 		}
@@ -63,6 +91,7 @@ func Locate(m *model.Model, fsys fs.FS, key string) (Page, bool) {
 			File:    found.File,
 			Fields:  collection.Fields,
 			Bundle:  found.Bundle,
+			Preview: previewOf(found.File, "", collection.HidePreviewIcon),
 		}, true
 	}
 	return Page{}, false

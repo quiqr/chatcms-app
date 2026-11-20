@@ -5,7 +5,7 @@ import { NavLink, useParams } from "react-router";
 
 import { Button } from "../components/ui/button";
 import { Segmented } from "../components/ui/segmented";
-import { readAssistant, readProject, type PreviewRequest, type PreviewSelection } from "../lib/tenancy";
+import { readAssistant, readProject, type PagePreview, type PreviewRequest, type PreviewSelection } from "../lib/tenancy";
 import { useAsync } from "../lib/useAsync";
 import { useProjectChanges } from "../lib/projectChanges";
 import { EditorShell, type EditorLayout } from "../shells/EditorShell";
@@ -40,7 +40,7 @@ export function EditorPage() {
   const [talking, setTalking] = useState(false);
   const [chatted, setChatted] = useState(false);
   const [showing, setShowing] = useState<"edit" | "preview">("edit");
-  const [opened, setOpened] = useState<{ title: string; section: string } | null>(null);
+  const [opened, setOpened] = useState<{ title: string; section: string; preview?: PagePreview } | null>(null);
   const [quote, setQuote] = useState<PreviewSelection | null>(null);
   const [highlight, setHighlight] = useState<{ before: string; after: string; id: number } | null>(null);
   const [request, setRequest] = useState<{ about: PreviewSelection; text: string; id: number } | null>(null);
@@ -110,6 +110,7 @@ export function EditorPage() {
               organisation={organisation}
               project={slug ?? ""}
               page={page}
+              shows={opened?.preview}
               showAgain={saves + changes}
               onAsk={asking}
               chatOn={mayAsk && (layout === "preview" || layout === "chat")}
@@ -212,6 +213,7 @@ export function EditorPage() {
               organisation={organisation}
               project={slug ?? ""}
               page={page}
+              shows={opened?.preview}
               showAgain={saves + changes}
               onAsk={asking}
               chatOn={mayAsk}

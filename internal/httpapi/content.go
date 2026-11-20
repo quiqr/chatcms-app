@@ -25,6 +25,12 @@ type PageView struct {
 	HasBody    bool            `json:"hasBody"`
 	Dialect    string          `json:"dialect,omitempty"`
 	Shortcodes []ShortcodeView `json:"shortcodes,omitempty"`
+	Preview    PagePreview     `json:"preview"`
+}
+
+type PagePreview struct {
+	Kind    string `json:"kind"`
+	Address string `json:"address,omitempty"`
 }
 
 // ShortcodeView is a shortcode the model declares: the form it opens, and

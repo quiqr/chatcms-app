@@ -68,6 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the assistant is there; implementers see more and can start it again.
 - Project → Log keeps every preview start (backend, Hugo asked, chosen and
   why) beside builds and publications, for implementers.
+- An item without a page of its own says so in the preview, with a way to
+  the home page; the model's `previewUrl` and `hidePreviewIcon` are followed.
 
 ### Changed
 
