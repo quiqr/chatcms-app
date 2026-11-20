@@ -12,10 +12,12 @@ export function Inside({
   children,
   organisation = "technative",
   administers = false,
+  again = () => {},
 }: {
   children: ReactNode;
   organisation?: string;
   administers?: boolean;
+  again?: () => void;
 }) {
   return (
     <HereContext.Provider
@@ -26,7 +28,7 @@ export function Inside({
           organisations: [{ slug: organisation, name: "TechNative" }],
         },
         organisation,
-        again: () => {},
+        again,
       }}
     >
       <TooltipProvider>{children}</TooltipProvider>

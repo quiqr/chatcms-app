@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { useHere } from "../lib/whoami";
 import { NewOrganisation } from "./AdministrationPage";
 import { PlatformOrganisations } from "./PlatformOrganisations";
 
@@ -14,6 +15,7 @@ import { PlatformOrganisations } from "./PlatformOrganisations";
 export function PlatformOrganisationsScreen() {
   const [making, setMaking] = useState(false);
   const [made, setMade] = useState(0);
+  const { again } = useHere();
 
   return (
     <div className="flex flex-col gap-6">
@@ -22,6 +24,7 @@ export function PlatformOrganisationsScreen() {
           onMade={() => {
             setMaking(false);
             setMade((count) => count + 1);
+            again();
           }}
         />
       )}
