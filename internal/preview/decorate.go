@@ -47,7 +47,11 @@ func (s *Service) decorate(where *url.URL, prefix string, rooted bool) http.Hand
 		director(r)
 		r.Header.Del("Accept-Encoding")
 	}
+	absolute := s.absoluteForms(prefix)
 	proxy.ModifyResponse = func(answer *http.Response) error {
+		if err := relative(answer, absolute, []byte(prefix)); err != nil {
+			return err
+		}
 		return inject(answer, tag)
 	}
 	assets := s.assets
@@ -111,6 +115,57 @@ func withMeta(page, meta []byte) []byte {
 	out = append(out, page[:at]...)
 	out = append(out, meta...)
 	return append(out, page[at:]...)
+}
+
+func (s *Service) absoluteForms(prefix string) [][]byte {
+	var forms [][]byte
+	for _, base := range []string{s.baseURL, s.origin} {
+		if base == "" {
+			continue
+		}
+		whole := strings.TrimSuffix(base, "/") + prefix
+		forms = append(forms, []byte(whole), []byte(strings.ReplaceAll(whole, "/", `\/`)))
+	}
+	return forms
+}
+
+var rewritten = map[string]bool{
+	"text/html":              true,
+	"text/css":               true,
+	"text/javascript":        true,
+	"application/javascript": true,
+	"application/json":       true,
+	"text/xml":               true,
+	"application/xml":        true,
+	"application/rss+xml":    true,
+	"application/atom+xml":   true,
+}
+
+func relative(answer *http.Response, absolute [][]byte, prefix []byte) error {
+	if len(absolute) == 0 || answer.StatusCode != http.StatusOK || answer.Header.Get("Content-Encoding") != "" {
+		return nil
+	}
+	kind, _, _ := mime.ParseMediaType(answer.Header.Get("Content-Type"))
+	if !rewritten[kind] {
+		return nil
+	}
+	body, err := io.ReadAll(answer.Body)
+	answer.Body.Close()
+	if err != nil {
+		return err
+	}
+	escaped := bytes.ReplaceAll(prefix, []byte("/"), []byte(`\/`))
+	for i, form := range absolute {
+		if i%2 == 0 {
+			body = bytes.ReplaceAll(body, form, prefix)
+		} else {
+			body = bytes.ReplaceAll(body, form, escaped)
+		}
+	}
+	answer.Body = io.NopCloser(bytes.NewReader(body))
+	answer.ContentLength = int64(len(body))
+	answer.Header.Set("Content-Length", strconv.Itoa(len(body)))
+	return nil
 }
 
 func inject(answer *http.Response, tag []byte) error {

@@ -176,3 +176,41 @@ func TestOnTheAppsOwnAddressTheScriptAnswersItsOwnPage(t *testing.T) {
 		t.Errorf("viewer = %s", body)
 	}
 }
+
+func TestTheAppsOwnAbsoluteAddressesBecomePaths(t *testing.T) {
+	for name, test := range map[string]struct {
+		apart bool
+		base  string
+	}{
+		"on the app's address":         {false, "https://app.example"},
+		"on an origin of its own":      {true, "https://preview.example"},
+		"the app's address when apart": {true, "https://app.example"},
+	} {
+		page := `<link href="` + test.base + `/v/k/css/styles.css"><img src="` + test.base + `/v/k/images/sim.jpg"><a href="https://elsewhere.example/v/k/x">x</a>`
+		origin, _ := decoratedWith(t, false, test.apart, func(w http.ResponseWriter, r *http.Request) {
+			switch r.URL.Path {
+			case "/v/k/index.json", "/index.json":
+				w.Header().Set("Content-Type", "application/json")
+				io.WriteString(w, `{"url":"`+strings.ReplaceAll(test.base+"/v/k/post/", "/", `\/`)+`"}`)
+			case "/v/k/logo.png", "/logo.png":
+				w.Header().Set("Content-Type", "image/png")
+				io.WriteString(w, test.base+"/v/k/")
+			default:
+				w.Header().Set("Content-Type", "text/html")
+				io.WriteString(w, page)
+			}
+		})
+		body := ask(origin, "/v/k/").Body.String()
+		for _, want := range []string{`<link href="/v/k/css/styles.css">`, `<img src="/v/k/images/sim.jpg">`, `https://elsewhere.example/v/k/x`} {
+			if !strings.Contains(body, want) {
+				t.Errorf("%s: page lacks %s:\n%s", name, want, body)
+			}
+		}
+		if json := ask(origin, "/v/k/index.json").Body.String(); json != `{"url":"\/v\/k\/post\/"}` {
+			t.Errorf("%s: json = %s", name, json)
+		}
+		if png := ask(origin, "/v/k/logo.png").Body.String(); png != test.base+"/v/k/" {
+			t.Errorf("%s: a picture was changed: %s", name, png)
+		}
+	}
+}

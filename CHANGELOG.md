@@ -92,6 +92,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A theme that links its styles and pictures through the base URL, such as
+  UILite, shows them in the preview however the app is opened.
 - Signing out always says so; a preview page that came out empty is loaded
   again instead of staying blank.
 - Data files and the site configuration (JSON, YAML, TOML) are read and saved
