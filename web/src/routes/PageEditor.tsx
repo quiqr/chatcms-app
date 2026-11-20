@@ -33,7 +33,7 @@ import { stepTitle, UndoControls } from "./UndoControls";
 
 type Saving = "saved" | "saving" | "trouble";
 
-const quietFor = 800;
+export const saving = { quietFor: 800 };
 
 /**
  * withValue replaces one control's value wherever it sits, so that what is
@@ -192,7 +192,7 @@ export function PageEditor({
 
   const later = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => void write(), quietFor);
+    timer.current = setTimeout(() => void write(), saving.quietFor);
   }, [write]);
 
   useEffect(() => {

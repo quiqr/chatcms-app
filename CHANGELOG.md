@@ -92,6 +92,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Signing out always says so; a preview page that came out empty is loaded
+  again instead of staying blank.
 - Data files and the site configuration (JSON, YAML, TOML) are read and saved
   whole in their own format, as Quiqr does, not empty or with front matter.
 - The preview's live reload passes through the app again, and event streams

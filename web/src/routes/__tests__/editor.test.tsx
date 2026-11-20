@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { fill } from "./fill";
 import { Inside } from "./here";import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { PageEditor } from "../PageEditor";
+import { PageEditor, saving } from "../PageEditor";
 
 
 const aPage = {
@@ -266,6 +266,11 @@ describe("undo", () => {
 
   beforeEach(() => {
     window.sessionStorage.clear();
+    saving.quietFor = 20;
+  });
+
+  afterEach(() => {
+    saving.quietFor = 800;
   });
 
   it("has nothing to undo or redo on opening", async () => {

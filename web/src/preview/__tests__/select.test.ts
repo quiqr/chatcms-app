@@ -83,10 +83,26 @@ afterEach(() => {
 describe("the selection overlay", () => {
   const text = "<h1>Korenaar</h1><p>Fresh bread every morning, baked on the Oude Gracht.</p>";
 
-  it("says it is ready to the app", () => {
+  it("says it is ready to the app, and whether the page came out empty", () => {
     page("<p>Fresh bread</p>");
     start();
-    expect(posted).toHaveBeenCalledWith({ chatcms: "ready" }, app);
+    expect(posted).toHaveBeenCalledWith({ chatcms: "ready", blank: false }, app);
+  });
+
+  it("calls a page with nothing on it empty, and one with only a picture not", () => {
+    page("<div class=\"h-100\">\n   \n</div>");
+    start();
+    expect(posted).toHaveBeenCalledWith({ chatcms: "ready", blank: true }, app);
+    posted.mockClear();
+    page("<img src=\"logo.png\" alt=\"\">");
+    start();
+    expect(posted).toHaveBeenCalledWith({ chatcms: "ready", blank: false }, app);
+  });
+
+  it("never calls a page the app draws itself empty, such as the PDF viewer before its file arrives", () => {
+    page("");
+    installed.push(install(window, app, () => "/book.pdf#page=1", false));
+    expect(posted).toHaveBeenCalledWith({ chatcms: "ready", blank: false }, app);
   });
 
   it("shows the chip only after the selection ends, never while dragging", () => {

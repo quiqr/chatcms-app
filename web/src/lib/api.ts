@@ -117,8 +117,15 @@ export async function sendForm<T>(path: string, body: FormData, method = "POST")
  * Signing in itself is left alone: a refused password is a 401 too, and it
  * belongs on the form rather than in a reload.
  */
+let leaving = false;
+
+export function signingOut(now: boolean) {
+  leaving = now;
+}
+
 function askToSignIn(status: number, path: string) {
   if (status !== 401) return;
+  if (leaving) return;
   if (typeof window === "undefined") return;
   if (path.startsWith("/api/sign-in") || path.startsWith("/api/set-password")) return;
 

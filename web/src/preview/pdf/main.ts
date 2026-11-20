@@ -64,7 +64,7 @@ async function show() {
   const said = document.querySelector<HTMLMetaElement>('meta[name="chatcms-app"]');
   const app = said ? said.content || window.location.origin : "";
   if (app && window.parent !== window) {
-    install(window, app, () => `${file.pathname}#page=${current}`);
+    install(window, app, () => `${file.pathname}#page=${current}`, false);
   }
 
   GlobalWorkerOptions.workerSrc = worker;

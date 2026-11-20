@@ -251,6 +251,41 @@ describe("selecting in the preview", () => {
     expect(setup.words.quick).toEqual(["Make it shorter", "Simpler words", "Fix spelling"]);
   });
 
+  it("loads an empty page again, a few times at most", async () => {
+    const { frame } = await framed();
+    vi.useFakeTimers();
+    try {
+      fromFrame(frame, { chatcms: "ready", blank: true });
+      await act(() => vi.advanceTimersByTimeAsync(1_500));
+      const second = screen.getByTitle("Your site") as HTMLIFrameElement;
+      expect(second).not.toBe(frame);
+      Object.defineProperty(second, "contentWindow", { value: { postMessage: vi.fn() }, configurable: true });
+      for (let i = 0; i < 5; i++) {
+        const current = screen.getByTitle("Your site") as HTMLIFrameElement;
+        Object.defineProperty(current, "contentWindow", { value: { postMessage: vi.fn() }, configurable: true });
+        fromFrame(current, { chatcms: "ready", blank: true });
+        await act(() => vi.advanceTimersByTimeAsync(10_000));
+      }
+      const last = screen.getByTitle("Your site");
+      await act(() => vi.advanceTimersByTimeAsync(30_000));
+      expect(screen.getByTitle("Your site")).toBe(last);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("leaves a page with something on it alone", async () => {
+    const { frame } = await framed();
+    vi.useFakeTimers();
+    try {
+      fromFrame(frame, { chatcms: "ready", blank: false });
+      await act(() => vi.advanceTimersByTimeAsync(10_000));
+      expect(screen.getByTitle("Your site")).toBe(frame);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("tells the overlay again when chat is switched off", async () => {
     const { sent, view } = await framed();
     view.rerender(<MemoryRouter><Preview organisation="technative" project="korenaar" page="posts/one" onAsk={vi.fn()} chatOn={false} /></MemoryRouter>);

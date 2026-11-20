@@ -27,7 +27,7 @@ export type Asked = {
 };
 
 export type ToApp =
-  | { chatcms: "ready" }
+  | { chatcms: "ready"; blank: boolean }
   | ({ chatcms: "send" } & Asked)
   | ({ chatcms: "draft" } & Asked)
   | { chatcms: "undo" | "stop" | "open-chat" | "seen"; id: number };
@@ -205,7 +205,7 @@ textarea { flex: 1; min-width: 0; border: 0; outline: 0; resize: none; font: inh
 @media (prefers-reduced-motion: reduce) { .pill[data-state="working"] .sign { animation: none; } }
 `;
 
-export function install(win: Window, app: string, where: () => string = () => win.location.pathname) {
+export function install(win: Window, app: string, where: () => string = () => win.location.pathname, aSitePage = true) {
   const doc = win.document;
   let words: Words | null = null;
   let on = false;
@@ -608,8 +608,9 @@ export function install(win: Window, app: string, where: () => string = () => wi
   win.addEventListener("resize", moved);
   win.addEventListener("message", heard);
   doc.head.appendChild(changedStyle);
+  const blank = aSitePage && (doc.body.innerText ?? doc.body.textContent ?? "").trim() === "" && !doc.body.querySelector("img, svg, video, canvas, iframe, picture, object, embed");
   doc.body.appendChild(host);
-  win.parent.postMessage({ chatcms: "ready" } satisfies ToApp, app);
+  win.parent.postMessage({ chatcms: "ready", blank } satisfies ToApp, app);
 
   const stop = () => {
     clearTimeout(timer);

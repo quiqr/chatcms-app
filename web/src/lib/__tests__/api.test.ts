@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { get, post, RequestFailed, whatWentWrong } from "../api";
+import { signIn, signOut } from "../session";
 import { speak } from "../say";
 
 function answers(status: number, body: unknown) {
@@ -71,6 +72,23 @@ describe("a session that has run out", () => {
     await expect(get("/api/me")).rejects.toThrow();
 
     expect(assign).not.toHaveBeenCalled();
+  });
+
+  it("does not race the way out when somebody signs out", async () => {
+    document.cookie = "chatcms_request_token=a-token; path=/";
+    vi.stubGlobal("fetch", answers(204, null));
+    const assign = watchTheAddressBar();
+    await signOut();
+
+    vi.stubGlobal("fetch", answers(401, refused));
+    await expect(get("/api/organisations/technative/projects/korenaar/workspace")).rejects.toThrow();
+    expect(assign).not.toHaveBeenCalled();
+
+    vi.stubGlobal("fetch", answers(200, { id: "p", email: "a@b.c", displayName: "" }));
+    await signIn("a@b.c", "right", false);
+    vi.stubGlobal("fetch", answers(401, refused));
+    await expect(get("/api/organisations")).rejects.toThrow();
+    expect(assign).toHaveBeenCalledWith("/sign-in?then=%2Fp%2Fkorenaar%2Fcontent");
   });
 
   it("leaves other failures where they are", async () => {

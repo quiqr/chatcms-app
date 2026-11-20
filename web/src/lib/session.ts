@@ -1,5 +1,5 @@
 import { forgetKept } from "./useAsync";
-import { get, post, put, remove, sendForm } from "./api";
+import { get, post, put, remove, sendForm, signingOut } from "./api";
 
 export type Person = {
   id: string;
@@ -7,12 +7,15 @@ export type Person = {
   displayName: string;
 };
 
-export function signIn(email: string, password: string, remember: boolean) {
-  return post<Person>("/api/sign-in", { email, password, remember });
+export async function signIn(email: string, password: string, remember: boolean) {
+  const person = await post<Person>("/api/sign-in", { email, password, remember });
+  signingOut(false);
+  return person;
 }
 
 export function signOut() {
   forgetKept();
+  signingOut(true);
   return post<void>("/api/sign-out");
 }
 

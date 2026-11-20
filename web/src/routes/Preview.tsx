@@ -70,7 +70,17 @@ export function Preview({
   const at =
     kind === "web" ? base + (workspace?.ownPages ? opened : pagePath) : kind === "pdf" ? `${base}__chatcms/pdf/?file=${encodeURIComponent(opened)}${onAPhone ? "&fit=width" : ""}&lang=${spokenNow()}` : base + opened;
   const frame = useRef<HTMLIFrameElement>(null);
-  useFrameMessages(frame, base, chatOn && Boolean(onAsk), onAsk, highlight, pills, onPill);
+  const blanks = useRef(0);
+  const loaded = (blank: boolean) => {
+    if (!blank) {
+      blanks.current = 0;
+      return;
+    }
+    if (blanks.current >= blankRetries) return;
+    blanks.current += 1;
+    setTimeout(() => setReloads((count) => count + 1), blankAfter * blanks.current);
+  };
+  useFrameMessages(frame, base, chatOn && Boolean(onAsk), onAsk, highlight, pills, onPill, loaded);
 
   return (
     <div className="flex h-full flex-col gap-2">
@@ -145,9 +155,10 @@ function useFrameMessages(
   highlight?: { before: string; after: string; id: number } | null,
   pills: Pill[] = [],
   onPill?: (action: "undo" | "stop" | "open-chat" | "seen", id: number) => void,
+  onLoaded?: (blank: boolean) => void,
 ) {
-  const latest = useRef({ onAsk, highlight, base, on, pills, onPill });
-  latest.current = { onAsk, highlight, base, on, pills, onPill };
+  const latest = useRef({ onAsk, highlight, base, on, pills, onPill, onLoaded });
+  latest.current = { onAsk, highlight, base, on, pills, onPill, onLoaded };
 
   useEffect(() => {
     const heard = (event: MessageEvent) => {
@@ -156,9 +167,10 @@ function useFrameMessages(
       const origin = new URL(here.src, window.location.href).origin;
       if (event.origin !== origin) return;
       const said = event.data as Record<string, unknown> | null;
-      const { onAsk, highlight, base, on, pills, onPill } = latest.current;
+      const { onAsk, highlight, base, on, pills, onPill, onLoaded } = latest.current;
       if (!said) return;
       if (said.chatcms === "ready") {
+        onLoaded?.(said.blank === true);
         here.contentWindow?.postMessage({ chatcms: "setup", words: overlayWords(), on }, origin);
         here.contentWindow?.postMessage({ chatcms: "pills", pills }, origin);
         if (highlight && Date.now() - highlight.id < highlightWhile) {
@@ -249,6 +261,8 @@ function baseOf(address: string | undefined, own: string) {
  * sits under its collection.
  */
 const settleAfter = [2_500, 8_000];
+const blankRetries = 3;
+const blankAfter = 1_500;
 
 function pathOf(page?: string) {
   if (!page || page === "home") return "";
