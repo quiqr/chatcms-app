@@ -1,11 +1,12 @@
 ---
 # chatcms-nwic
 title: A file manager for templates and layouts
-status: in-progress
+status: completed
 type: feature
 priority: normal
 created_at: 2026-11-20T13:34:53Z
-updated_at: 2026-11-20T18:58:33Z
+updated_at: 2026-11-20T19:20:27Z
+openspec-link: openspec/changes/archive/2026-11-20-project-files
 ---
 
 Implementers can look through a project's files and read them: the
@@ -30,3 +31,17 @@ Chosen on 20 November 2026, after comparing components:
 The real work is on the server: an endpoint for the tree and one for a file,
 with a path that cannot leave the project (`..`, symlinks) and with the
 same permission as the rest of the project's technical detail.
+
+## Summary of Changes
+
+- Setup → Files for implementers: the tree of their own copy (without `.git`
+  and build output) with the ARIA tree pattern, and a CodeMirror 6 editor
+  loaded only on this screen (a 44 KB chunk).
+- Languages by extension; Go template actions `{{ }}` marked by an own
+  overlay; a theme over the CSS variables; Ctrl/Cmd+S saves.
+- Saving writes into the person's copy as a saved change, published like any
+  other; a file that changed since it was opened is not overwritten.
+- The server refuses `..`, absolute paths, symbolic links and `.git`; the
+  content FS gained `Lstat` and `ReadLink` so links are seen.
+- CodeMirror's core packages are pinned to Milkdown's versions: one copy of
+  `@codemirror/state`.
