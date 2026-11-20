@@ -112,6 +112,7 @@ export function EditorPage() {
               page={page}
               shows={opened?.preview}
               showAgain={saves + changes}
+              settle={changes}
               onAsk={asking}
               chatOn={mayAsk && (layout === "preview" || layout === "chat")}
               highlight={highlight}
@@ -215,6 +216,7 @@ export function EditorPage() {
               page={page}
               shows={opened?.preview}
               showAgain={saves + changes}
+              settle={changes}
               onAsk={asking}
               chatOn={mayAsk}
               highlight={highlight}

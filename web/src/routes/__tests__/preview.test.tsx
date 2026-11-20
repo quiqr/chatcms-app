@@ -1,4 +1,4 @@
-import { render as draw, screen, waitFor } from "@testing-library/react";
+import { act, render as draw, screen, waitFor } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
 import type { ReactElement } from "react";
 import userEvent from "@testing-library/user-event";
@@ -57,6 +57,25 @@ describe("preview", () => {
     expect(frame).toHaveAttribute("src", "/preview/technative/korenaar/");
     expect(asked[0]).toBe(`POST ${workspacePath}`);
     expect(asked[1]).toBe(`GET ${workspacePath}`);
+  });
+
+  it("loads the page again after an assistant's change, once the site has had time to rebuild", async () => {
+    vi.stubGlobal("fetch", server([{ body: { state: "warm" } }]));
+    const view = render(<Preview organisation="technative" project="korenaar" settle={0} />);
+    const first = await screen.findByTitle("Your site");
+
+    vi.useFakeTimers();
+    try {
+      view.rerender(<MemoryRouter><Preview organisation="technative" project="korenaar" settle={1} /></MemoryRouter>);
+      expect(screen.getByTitle("Your site")).toBe(first);
+      await act(() => vi.advanceTimersByTimeAsync(2_500));
+      const second = screen.getByTitle("Your site");
+      expect(second).not.toBe(first);
+      await act(() => vi.advanceTimersByTimeAsync(5_500));
+      expect(screen.getByTitle("Your site")).not.toBe(second);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("explains an item with no page of its own, and shows the home page when asked", async () => {

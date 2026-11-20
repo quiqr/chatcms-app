@@ -23,6 +23,7 @@ export function Preview({
   project,
   page,
   showAgain = 0,
+  settle = 0,
   onAsk,
   chatOn = false,
   highlight,
@@ -40,6 +41,7 @@ export function Preview({
    * on purpose.
    */
   showAgain?: number;
+  settle?: number;
   onAsk?: (request: PreviewRequest, how: "send" | "draft") => void;
   chatOn?: boolean;
   pills?: Pill[];
@@ -51,6 +53,11 @@ export function Preview({
   const [homeAnyway, setHomeAnyway] = useState(false);
   useEffect(() => setHomeAnyway(false), [page]);
   const [reloads, setReloads] = useState(0);
+  useEffect(() => {
+    if (settle === 0) return;
+    const timers = settleAfter.map((after) => setTimeout(() => setReloads((count) => count + 1), after));
+    return () => timers.forEach(clearTimeout);
+  }, [settle]);
   const onAPhone = useIsPhone();
 
   const { workspace, refused } = useWorkspace(organisation, project);
@@ -241,6 +248,8 @@ function baseOf(address: string | undefined, own: string) {
  * the site's front page unless it says otherwise, and an item of a collection
  * sits under its collection.
  */
+const settleAfter = [2_500, 8_000];
+
 function pathOf(page?: string) {
   if (!page || page === "home") return "";
   return page.endsWith("/") ? page : page + "/";
