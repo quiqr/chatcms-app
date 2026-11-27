@@ -103,6 +103,13 @@ describe("ProjectShell", () => {
     }
   });
 
+  it("goes to the projects from the logo", () => {
+    at("/o/technative/p/korenaar/content", <ProjectShell project={project} viewer={theViewer} title="Content">body</ProjectShell>);
+
+    const navigation = screen.getByRole("complementary", { name: "Project navigation" });
+    expect(within(navigation).getByRole("link", { name: /go to your projects/ })).toHaveAttribute("href", "/projects");
+  });
+
   it("shows how much is waiting to be published", () => {
     at("/o/technative/p/korenaar/content", <ProjectShell project={project} viewer={theViewer} title="Content">body</ProjectShell>);
 

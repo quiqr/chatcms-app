@@ -152,8 +152,14 @@ function PanelContent({
   return (
     <>
       <div className="flex items-center gap-2 pl-2 pt-1">
-        <img src="/quiqr-logo.svg" alt={say("common.quiqr")} className="h-6 w-auto" />
-        <span className="flex-1 text-[15px] text-muted-foreground">{say("common.chatcms")}</span>
+        <NavLink
+          to="/projects"
+          className="flex min-h-11 flex-1 items-center gap-2"
+          aria-label={say("organisation-shell.quiqr-chatcms-go-to-your-projects")}
+        >
+          <img src="/quiqr-logo.svg" alt="" className="h-6 w-auto" />
+          <span className="text-[15px] text-muted-foreground">{say("common.chatcms")}</span>
+        </NavLink>
         <Button variant="ghost" size="icon" aria-label={say("site-panel.hide")} onClick={onHide}>
           <PanelLeftClose aria-hidden="true" className="size-4" />
         </Button>
