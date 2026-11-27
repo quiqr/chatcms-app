@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Setup, Files shows pictures, films, sound and PDFs the way the browser does,
+  with a link to open them in a new tab.
 - Everyone edits their own copy of a site, with a preview of their own; two
   people can preview different unfinished changes at once.
 - Saves reach the shared version by themselves; the same field changed by two

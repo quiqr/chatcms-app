@@ -391,7 +391,19 @@ func (w *Web) ProjectFiles(ctx context.Context, who httpapi.Actor, organisation,
 }
 
 func fileView(text FileText) httpapi.FileView {
-	return httpapi.FileView{Path: text.Path, Text: text.Text, Sum: text.Sum, Unusable: text.Unusable}
+	return httpapi.FileView{Path: text.Path, Text: text.Text, Sum: text.Sum, Unusable: text.Unusable, Preview: text.Preview}
+}
+
+func (w *Web) OpenProjectFile(ctx context.Context, who httpapi.Actor, organisation, project, name string) (httpapi.FileContent, error) {
+	actor, id, err := w.reach(ctx, who, organisation, project)
+	if err != nil {
+		return httpapi.FileContent{}, err
+	}
+	file, err := w.service.OpenFile(ctx, actor, id, name)
+	if err != nil {
+		return httpapi.FileContent{}, err
+	}
+	return httpapi.FileContent{Name: file.Name, Preview: file.Preview, Type: file.Type, Modified: file.Modified, Content: file.Content, Close: file.Close}, nil
 }
 
 func (w *Web) ProjectFile(ctx context.Context, who httpapi.Actor, organisation, project, name string) (httpapi.FileView, error) {

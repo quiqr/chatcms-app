@@ -6,10 +6,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"io"
 	"io/fs"
 	"path"
 	"sort"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -41,7 +43,51 @@ type FileText struct {
 	Text     string
 	Sum      string
 	Unusable string
+	Preview  string
 }
+
+type previewKind struct {
+	preview string
+	content string
+}
+
+var previews = map[string]previewKind{
+	".png":  {"image", "image/png"},
+	".jpg":  {"image", "image/jpeg"},
+	".jpeg": {"image", "image/jpeg"},
+	".gif":  {"image", "image/gif"},
+	".webp": {"image", "image/webp"},
+	".avif": {"image", "image/avif"},
+	".bmp":  {"image", "image/bmp"},
+	".ico":  {"image", "image/x-icon"},
+	".mp4":  {"video", "video/mp4"},
+	".webm": {"video", "video/webm"},
+	".ogv":  {"video", "video/ogg"},
+	".mov":  {"video", "video/quicktime"},
+	".mp3":  {"audio", "audio/mpeg"},
+	".wav":  {"audio", "audio/wav"},
+	".oga":  {"audio", "audio/ogg"},
+	".ogg":  {"audio", "audio/ogg"},
+	".m4a":  {"audio", "audio/mp4"},
+	".flac": {"audio", "audio/flac"},
+	".pdf":  {"pdf", "application/pdf"},
+}
+
+func fileKindOf(name string) (previewKind, bool) {
+	kind, known := previews[strings.ToLower(path.Ext(name))]
+	return kind, known
+}
+
+type FileContent struct {
+	Name     string
+	Preview  string
+	Type     string
+	Modified time.Time
+	Content  io.ReadSeeker
+	close    func() error
+}
+
+func (f FileContent) Close() error { return f.close() }
 
 var refusedPath = &httpapi.RefusedError{Key: "refused.file-path", Reason: "this path is not a file of the project"}
 
@@ -139,17 +185,76 @@ func readText(fsys fs.FS, name string) (FileText, error) {
 	if info.IsDir() {
 		return FileText{}, refusePath()
 	}
+	kind, _ := fileKindOf(name)
 	if info.Size() > largestFile {
-		return FileText{Path: name, Unusable: fileTooLarge}, nil
+		return FileText{Path: name, Unusable: fileTooLarge, Preview: kind.preview}, nil
 	}
 	data, err := fs.ReadFile(fsys, name)
 	if err != nil {
 		return FileText{}, err
 	}
 	if bytes.IndexByte(data, 0) >= 0 || !utf8.Valid(data) {
-		return FileText{Path: name, Unusable: fileBinary, Sum: sumOf(data)}, nil
+		return FileText{Path: name, Unusable: fileBinary, Sum: sumOf(data), Preview: kind.preview}, nil
 	}
 	return FileText{Path: name, Text: string(data), Sum: sumOf(data)}, nil
+}
+
+var refusedPreview = &httpapi.RefusedError{Key: "refused.file-not-shown", Reason: "this kind of file is not shown here"}
+
+func (s *Service) OpenFile(ctx context.Context, actor policy.Actor, projectID uuid.UUID, name string) (FileContent, error) {
+	if err := s.allowed(ctx, actor, policy.ActionSeeTechnicalDetail, projectID); err != nil {
+		return FileContent{}, err
+	}
+	kind, known := fileKindOf(name)
+	if !known {
+		copied := *refusedPreview
+		return FileContent{}, &copied
+	}
+	site, done, err := s.sources.Site(ctx, actor.PersonID, projectID)
+	if err != nil {
+		return FileContent{}, err
+	}
+	opened, err := openContent(site.FS(), name)
+	if err != nil {
+		done()
+		return FileContent{}, err
+	}
+	opened.Preview = kind.preview
+	opened.Type = kind.content
+	closeFile := opened.close
+	opened.close = func() error {
+		closeErr := closeFile()
+		return errors.Join(closeErr, done())
+	}
+	return opened, nil
+}
+
+func openContent(fsys fs.FS, name string) (FileContent, error) {
+	if err := checkPath(fsys, name); err != nil {
+		return FileContent{}, err
+	}
+	file, err := fsys.Open(name)
+	if err != nil {
+		return FileContent{}, httpapi.ErrMissing
+	}
+	info, err := file.Stat()
+	if err != nil || info.IsDir() {
+		file.Close()
+		return FileContent{}, refusePath()
+	}
+	opened := FileContent{Name: path.Base(name), Modified: info.ModTime(), close: file.Close}
+	if seeker, ok := file.(io.ReadSeeker); ok {
+		opened.Content = seeker
+		return opened, nil
+	}
+	data, err := io.ReadAll(file)
+	file.Close()
+	if err != nil {
+		return FileContent{}, err
+	}
+	opened.Content = bytes.NewReader(data)
+	opened.close = func() error { return nil }
+	return opened, nil
 }
 
 func (s *Service) WriteFile(ctx context.Context, actor policy.Actor, projectID uuid.UUID, name, text, sum string) (FileText, error) {

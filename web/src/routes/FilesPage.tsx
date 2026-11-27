@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from "react-router";
 import { Button } from "../components/ui/button";
 import { whatWentWrong, RequestFailed } from "../lib/api";
 import { say } from "../lib/say";
-import { readFiles, readProjectFile, saveProjectFile, type FileEntry, type ProjectFile } from "../lib/tenancy";
+import { projectFileContent, readFiles, readProjectFile, saveProjectFile, type FileEntry, type FilePreview, type ProjectFile } from "../lib/tenancy";
 import { useHere } from "../lib/whoami";
 import { useIsPhone } from "../shells/useIsPhone";
 import { FileTree } from "./files/FileTree";
@@ -13,6 +13,26 @@ import { FileTree } from "./files/FileTree";
 const CodeEditor = lazy(() => import("./files/CodeEditor"));
 
 type Saving = "idle" | "saving" | "saved";
+
+function Preview({ path, kind, address }: { path: string; kind: FilePreview; address: string }) {
+  const name = path.split("/").pop() ?? path;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-2">
+        <p className="min-w-0 flex-1 truncate font-mono text-[13px]">{path}</p>
+        <a href={address} target="_blank" rel="noopener" className="inline-flex min-h-11 items-center text-[13px] text-primary underline-offset-4 hover:underline">
+          {say("files.open-in-a-new-tab")}
+        </a>
+      </div>
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-muted p-4">
+        {kind === "image" && <img src={address} alt={say("files.picture", { name })} className="max-h-full max-w-full object-contain" />}
+        {kind === "video" && <video src={address} controls aria-label={say("files.film", { name })} className="max-h-full max-w-full" />}
+        {kind === "audio" && <audio src={address} controls aria-label={say("files.sound", { name })} className="w-full max-w-md" />}
+        {kind === "pdf" && <iframe src={address} title={say("files.document", { name })} className="h-full min-h-96 w-full rounded-md border border-border bg-background" />}
+      </div>
+    </div>
+  );
+}
 
 function OpenFile({ organisation, project, path, onDirty }: { organisation: string; project: string; path: string; onDirty: (dirty: boolean) => void }) {
   const [file, setFile] = useState<ProjectFile | null>(null);
@@ -69,6 +89,9 @@ function OpenFile({ organisation, project, path, onDirty }: { organisation: stri
     );
   }
   if (!file) return <p className="m-4 text-[13px] text-muted-foreground">{say("common.looking")}</p>;
+  if (file.preview) {
+    return <Preview path={path} kind={file.preview} address={projectFileContent(organisation, project, path)} />;
+  }
   if (file.unusable) {
     return <p className="m-4 text-[15px] text-muted-foreground">{say(file.unusable === "too-large" ? "files.too-large" : "files.binary")}</p>;
   }

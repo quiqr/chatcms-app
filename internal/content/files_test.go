@@ -1,7 +1,9 @@
 package content_test
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"errors"
 	"testing"
 	"testing/fstest"
@@ -18,6 +20,8 @@ func aSiteWithFiles() *site {
 		"layouts/index.html":          {Data: []byte("<h1>{{ .Title }}</h1>\n")},
 		"layouts/partials/head.html":  {Data: []byte("<title>{{ .Site.Title }}</title>\n")},
 		"static/images/loaf.png":      {Data: []byte("\x89PNG\r\n\x1a\n\x00\x00")},
+		"static/film.MP4":             {Data: bytes.Repeat([]byte{0}, 1<<20+1)},
+		"static/data.zip":             {Data: []byte("PK\x03\x04\x00")},
 		"public/index.html":           {Data: []byte("built")},
 		"resources/_gen/images/a.png": {Data: []byte("built")},
 		"node_modules/x/index.js":     {Data: []byte("x")},
@@ -108,10 +112,66 @@ func TestAPictureIsNotOpenedAsText(t *testing.T) {
 	project := uuid.New()
 	files := service(t, &sources{site: aSiteWithFiles()}, &syncer{})
 	read, err := files.ReadFile(context.Background(), anImplementer(project), project, "static/images/loaf.png")
-	if err != nil || read.Unusable != "binary" || read.Text != "" {
+	if err != nil || read.Unusable != "binary" || read.Text != "" || read.Preview != "image" {
 		t.Errorf("ReadFile(png) = %+v, %v", read, err)
 	}
 	if _, err := files.WriteFile(context.Background(), anImplementer(project), project, "static/images/loaf.png", "x", read.Sum); !errors.Is(err, httpapi.ErrRefused) {
 		t.Errorf("WriteFile(png) error = %v", err)
+	}
+}
+
+func TestAFileTheBrowserCanShowSaysHow(t *testing.T) {
+	project := uuid.New()
+	files := service(t, &sources{site: aSiteWithFiles()}, &syncer{})
+	for name, want := range map[string]content.FileText{
+		"static/film.MP4":    {Unusable: "too-large", Preview: "video"},
+		"static/data.zip":    {Unusable: "binary"},
+		"layouts/index.html": {},
+	} {
+		read, err := files.ReadFile(context.Background(), anImplementer(project), project, name)
+		if err != nil || read.Unusable != want.Unusable || read.Preview != want.Preview {
+			t.Errorf("ReadFile(%s) = %+v, %v", name, read, err)
+		}
+	}
+}
+
+func TestAPictureIsServedAsItself(t *testing.T) {
+	project := uuid.New()
+	files := service(t, &sources{site: aSiteWithFiles()}, &syncer{})
+	opened, err := files.OpenFile(context.Background(), anImplementer(project), project, "static/images/loaf.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := io.ReadAll(opened.Content)
+	if err != nil || string(data) != "\x89PNG\r\n\x1a\n\x00\x00" {
+		t.Errorf("content = %q, %v", data, err)
+	}
+	if opened.Name != "loaf.png" || opened.Type != "image/png" || opened.Preview != "image" {
+		t.Errorf("opened = %+v", opened)
+	}
+	if err := opened.Close(); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestOnlyAKnownKindIsServed(t *testing.T) {
+	project := uuid.New()
+	files := service(t, &sources{site: aSiteWithFiles()}, &syncer{})
+	implementer := anImplementer(project)
+	for _, name := range []string{"layouts/index.html", "static/data.zip", "hugo.toml"} {
+		if _, err := files.OpenFile(context.Background(), implementer, project, name); !errors.Is(err, httpapi.ErrRefused) {
+			t.Errorf("OpenFile(%s) error = %v, want a refusal", name, err)
+		}
+	}
+	for _, name := range []string{"../etc/x.png", ".git/a.png", "outside.png"} {
+		if _, err := files.OpenFile(context.Background(), implementer, project, name); err == nil {
+			t.Errorf("OpenFile(%s) succeeded", name)
+		}
+	}
+	if _, err := files.OpenFile(context.Background(), implementer, project, "static/missing.png"); !errors.Is(err, httpapi.ErrMissing) {
+		t.Errorf("a missing picture error = %v", err)
+	}
+	if _, err := files.OpenFile(context.Background(), anEditor(project), project, "static/images/loaf.png"); !errors.Is(err, httpapi.ErrNotAllowed) {
+		t.Errorf("OpenFile() for an editor error = %v", err)
 	}
 }

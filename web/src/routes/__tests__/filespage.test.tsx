@@ -107,6 +107,25 @@ describe("the Files screen", () => {
     expect(await screen.findByText("This file cannot be opened here: it is not text.")).toBeInTheDocument();
   });
 
+  it.each([
+    ["static/loaf.png", "image", "img", "The picture loaf.png"],
+    ["static/walk.mp4", "video", "video", "The film walk.mp4"],
+    ["static/bell.mp3", "audio", "audio", "The sound bell.mp3"],
+    ["docs/offer.pdf", "pdf", "iframe", "The document offer.pdf"],
+  ])("shows %s the way the browser does", async (path, preview, element, name) => {
+    serve({
+      [`GET ${base}`]: { body: tree },
+      [`GET ${base}/${path}`]: { body: { path, text: "", unusable: "binary", preview } },
+    });
+    const { container } = at(`/o/technative/p/korenaar/files?file=${encodeURIComponent(path)}`);
+    const address = `/api/organisations/technative/projects/korenaar/file-content/${path}`;
+    await waitFor(() => expect(container.querySelector(element)).toHaveAttribute("src", address));
+    const shown = container.querySelector(element)!;
+    expect(shown.getAttribute("alt") ?? shown.getAttribute("aria-label") ?? shown.getAttribute("title")).toBe(name);
+    expect(screen.getByRole("link", { name: "Open in a new tab" })).toHaveAttribute("href", address);
+    expect(screen.queryByText("This file cannot be opened here: it is not text.")).not.toBeInTheDocument();
+  });
+
   it("fills a phone's screen with an open file, and goes back to the tree", async () => {
     setWidth(390);
     serve({

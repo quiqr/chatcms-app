@@ -684,7 +684,9 @@ export function logAddress(organisation: string, name: string, entry?: string) {
 
 export type FileEntry = { path: string; dir?: boolean; link?: boolean; size?: number };
 
-export type ProjectFile = { path: string; text: string; sum?: string; unusable?: "too-large" | "binary" | "link" };
+export type FilePreview = "image" | "video" | "audio" | "pdf";
+
+export type ProjectFile = { path: string; text: string; sum?: string; unusable?: "too-large" | "binary" | "link"; preview?: FilePreview };
 
 function filePath(path: string) {
   return path.split("/").map(encodeURIComponent).join("/");
@@ -696,6 +698,10 @@ export function readFiles(organisation: string, name: string) {
 
 export function readProjectFile(organisation: string, name: string, path: string) {
   return get<ProjectFile>(`${project(organisation, name)}/files/${filePath(path)}`);
+}
+
+export function projectFileContent(organisation: string, name: string, path: string) {
+  return `${project(organisation, name)}/file-content/${filePath(path)}`;
 }
 
 export function saveProjectFile(organisation: string, name: string, path: string, text: string, sum: string) {

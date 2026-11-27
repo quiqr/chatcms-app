@@ -6,7 +6,10 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 )
 
 type stubFiles struct {
@@ -27,6 +30,25 @@ func (s *stubFiles) ProjectFile(_ context.Context, _ Actor, organisation, projec
 func (s *stubFiles) SaveProjectFile(_ context.Context, _ Actor, organisation, project, path string, save FileSave) (FileView, error) {
 	s.asked = append(s.asked, "save "+path+" "+save.Sum+" "+save.Text)
 	return FileView{Path: path, Text: save.Text, Sum: "def"}, s.err
+}
+
+func (s *stubFiles) OpenProjectFile(_ context.Context, _ Actor, organisation, project, path string) (FileContent, error) {
+	s.asked = append(s.asked, "open "+path)
+	if s.err != nil {
+		return FileContent{}, s.err
+	}
+	preview, kind := "image", "image/png"
+	if strings.HasSuffix(path, ".pdf") {
+		preview, kind = "pdf", "application/pdf"
+	}
+	return FileContent{
+		Name:     "loaf.png",
+		Preview:  preview,
+		Type:     kind,
+		Modified: time.Date(2026, 11, 27, 12, 0, 0, 0, time.UTC),
+		Content:  strings.NewReader("0123456789"),
+		Close:    func() error { s.asked = append(s.asked, "closed"); return nil },
+	}, nil
 }
 
 func withFiles(service FilesService, signedIn bool) http.Handler {
@@ -89,5 +111,63 @@ func TestFilesAreRefusedWithoutTechnicalDetail(t *testing.T) {
 	}
 	if recorder := signedInCall(t, handler, http.MethodDelete, filesPath+"/hugo.toml", nil); recorder.Code != http.StatusMethodNotAllowed {
 		t.Errorf("DELETE = %d, want 405", recorder.Code)
+	}
+}
+
+const contentPath = "/api/organisations/technative/projects/korenaar/file-content"
+
+func TestAFileIsServedAsItself(t *testing.T) {
+	service := &stubFiles{}
+	handler := withFiles(service, true)
+
+	recorder := signedInCall(t, handler, http.MethodGet, contentPath+"/static/images/loaf.png", nil)
+	if recorder.Code != http.StatusOK || recorder.Body.String() != "0123456789" {
+		t.Fatalf("GET = %d %q", recorder.Code, recorder.Body)
+	}
+	for header, want := range map[string]string{
+		"Content-Type":            "image/png",
+		"X-Content-Type-Options":  "nosniff",
+		"Content-Security-Policy": "sandbox",
+		"Content-Disposition":     "inline; filename=loaf.png",
+	} {
+		if got := recorder.Header().Get(header); got != want {
+			t.Errorf("%s = %q, want %q", header, got, want)
+		}
+	}
+	if len(service.asked) != 2 || service.asked[0] != "open static/images/loaf.png" || service.asked[1] != "closed" {
+		t.Errorf("asked = %v", service.asked)
+	}
+}
+
+func TestAFileIsServedInRanges(t *testing.T) {
+	handler := withFiles(&stubFiles{}, true)
+	request := httptest.NewRequest(http.MethodGet, contentPath+"/static/film.mp4", nil)
+	request.AddCookie(&http.Cookie{Name: SessionCookie, Value: "a-session-value"})
+	request.Header.Set("Range", "bytes=2-4")
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusPartialContent || recorder.Body.String() != "234" {
+		t.Errorf("range = %d %q", recorder.Code, recorder.Body)
+	}
+}
+
+func TestAPDFIsServedWithoutASandbox(t *testing.T) {
+	recorder := signedInCall(t, withFiles(&stubFiles{}, true), http.MethodGet, contentPath+"/docs/offer.pdf", nil)
+	if recorder.Code != http.StatusOK || recorder.Header().Get("Content-Type") != "application/pdf" {
+		t.Fatalf("GET = %d %v", recorder.Code, recorder.Header())
+	}
+	if recorder.Header().Get("Content-Security-Policy") != "" || recorder.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Errorf("headers = %v", recorder.Header())
+	}
+}
+
+func TestAFileThatIsNotShownIsRefused(t *testing.T) {
+	service := &stubFiles{err: &RefusedError{Key: "refused.file-not-shown", Reason: "no"}}
+	recorder := signedInCall(t, withFiles(service, true), http.MethodGet, contentPath+"/layouts/index.html", nil)
+	if recorder.Code < 400 || recorder.Code >= 500 {
+		t.Errorf("GET = %d", recorder.Code)
+	}
+	if recorder := call(t, withFiles(&stubFiles{}, false), http.MethodGet, contentPath+"/a.png", nil); recorder.Code != http.StatusUnauthorized {
+		t.Errorf("signed out = %d", recorder.Code)
 	}
 }
